@@ -1,341 +1,976 @@
 /**
- * ===== بيانات المؤشرات الكاملة (80+ مؤشر) =====
+ * ===== بيانات المؤشرات الكاملة =====
+ * 9 فئات - 80+ مؤشر
  */
 
-// أسماء الفئات
-const CATEGORY_NAMES = {
-    'WFM': 'إدارة القوى العاملة',
-    'UTZ': 'معدلات الاستخدام',
-    'MP': 'الأداء الطبي',
-    'PHC': 'الرعاية الصحية الأولية',
-    'IPC': 'مكافحة العدوى',
-    'PS': 'سلامة المرضى',
-    'OHS': 'الصحة المهنية والسلامة',
-    'MM': 'إدارة الأدوية',
-    'LAB': 'خدمات المختبر',
-    'DF': 'طب الأسنان'
+const KPI_CATEGORIES = {
+    WFM: 'إدارة القوى العاملة',
+    UTZ: 'معدلات الاستخدام',
+    MP: 'الأداء الطبي',
+    PHC: 'الرعاية الأولية',
+    IPC: 'مكافحة العدوى',
+    PS: 'سلامة المرضى',
+    OHS: 'الصحة المهنية',
+    MM: 'إدارة الأدوية',
+    LAB: 'المختبر',
+    DF: 'طب الأسنان'
 };
 
-// جميع المؤشرات
-const ALL_KPIS = {
-    // 1. إدارة القوى العاملة (WFM)
-    'WFM': [
-        {
-            code: 'WFM-01',
-            name: 'معدل التدريب السنوي للموظفين',
-            formula: '(عدد الموظفين المدربين / إجمالي عدد الموظفين) × 100',
-            numeratorLabel: 'عدد الموظفين المدربين',
-            denominatorLabel: 'إجمالي عدد الموظفين',
-            target: 80,
-            unit: '%',
-            category: 'WFM'
-        },
-        {
-            code: 'WFM-02',
-            name: 'معدل الحضور والانضباط',
-            formula: '(عدد أيام الحضور / إجمالي أيام العمل) × 100',
-            numeratorLabel: 'عدد أيام الحضور',
-            denominatorLabel: 'إجمالي أيام العمل',
-            target: 95,
-            unit: '%',
-            category: 'WFM'
-        },
-        {
-            code: 'WFM-03',
-            name: 'معدل دوران الموظفين',
-            formula: '(عدد الموظفين المغادرين / متوسط عدد الموظفين) × 100',
-            numeratorLabel: 'عدد الموظفين المغادرين',
-            denominatorLabel: 'متوسط عدد الموظفين',
-            target: 10,
-            unit: '%',
-            category: 'WFM'
-        },
-        {
-            code: 'WFM-04',
-            name: 'نسبة الممرضين إلى الأسرة',
-            formula: 'عدد الممرضين / عدد الأسرة',
-            numeratorLabel: 'عدد الممرضين',
-            denominatorLabel: 'عدد الأسرة',
-            target: 2,
-            unit: 'ممرض/سرير',
-            category: 'WFM'
-        },
-        {
-            code: 'WFM-05',
-            name: 'معدل رضا الموظفين',
-            formula: '(عدد الموظفين الراضين / إجمالي المشاركين) × 100',
-            numeratorLabel: 'عدد الموظفين الراضين',
-            denominatorLabel: 'إجمالي المشاركين',
-            target: 85,
-            unit: '%',
-            category: 'WFM'
-        },
-        {
-            code: 'WFM-06',
-            name: 'معدل إكمال التقييم السنوي',
-            formula: '(عدد التقييمات المكتملة / إجمالي الموظفين) × 100',
-            numeratorLabel: 'عدد التقييمات المكتملة',
-            denominatorLabel: 'إجمالي الموظفين',
-            target: 100,
-            unit: '%',
-            category: 'WFM'
-        },
-        {
-            code: 'WFM-07',
-            name: 'نسبة الأطباء إلى المرضى',
-            formula: 'عدد الأطباء / عدد المرضى اليومي',
-            numeratorLabel: 'عدد الأطباء',
-            denominatorLabel: 'عدد المرضى اليومي',
-            target: 0.1,
-            unit: 'طبيب/مريض',
-            category: 'WFM'
-        },
-        {
-            code: 'WFM-08',
-            name: 'معدل الإجازات المرضية',
-            formula: '(أيام الإجازات المرضية / إجمالي أيام العمل) × 100',
-            numeratorLabel: 'أيام الإجازات المرضية',
-            denominatorLabel: 'إجمالي أيام العمل',
-            target: 3,
-            unit: '%',
-            category: 'WFM'
-        },
-        {
-            code: 'WFM-09',
-            name: 'معدل العمل الإضافي',
-            formula: '(ساعات العمل الإضافي / إجمالي ساعات العمل) × 100',
-            numeratorLabel: 'ساعات العمل الإضافي',
-            denominatorLabel: 'إجمالي ساعات العمل',
-            target: 5,
-            unit: '%',
-            category: 'WFM'
-        },
-        {
-            code: 'WFM-10',
-            name: 'معدل التوظيف الجديد',
-            formula: '(عدد الموظفين الجدد / إجمالي الموظفين) × 100',
-            numeratorLabel: 'عدد الموظفين الجدد',
-            denominatorLabel: 'إجمالي الموظفين',
-            target: 15,
-            unit: '%',
-            category: 'WFM'
-        }
-    ],
+const KPI_DATA = [
+    // ===== 1. إدارة القوى العاملة (WFM) =====
+    {
+        code: 'WFM-001',
+        category: 'WFM',
+        name: 'معدل التدريب السنوي للموظفين',
+        formula: '(عدد الموظفين المدربين / إجمالي عدد الموظفين) × 100',
+        numeratorLabel: 'عدد الموظفين المدربين',
+        denominatorLabel: 'إجمالي عدد الموظفين',
+        target: 80,
+        unit: '%'
+    },
+    {
+        code: 'WFM-002',
+        category: 'WFM',
+        name: 'معدل الحضور والانضباط',
+        formula: '(أيام الحضور / إجمالي أيام العمل) × 100',
+        numeratorLabel: 'أيام الحضور',
+        denominatorLabel: 'إجمالي أيام العمل',
+        target: 95,
+        unit: '%'
+    },
+    {
+        code: 'WFM-003',
+        category: 'WFM',
+        name: 'معدل دوران الموظفين',
+        formula: '(عدد الموظفين المغادرين / متوسط عدد الموظفين) × 100',
+        numeratorLabel: 'عدد الموظفين المغادرين',
+        denominatorLabel: 'متوسط عدد الموظفين',
+        target: 10,
+        unit: '%'
+    },
+    {
+        code: 'WFM-004',
+        category: 'WFM',
+        name: 'نسبة الممرضين إلى المرضى',
+        formula: 'عدد الممرضين / عدد المرضى',
+        numeratorLabel: 'عدد الممرضين',
+        denominatorLabel: 'عدد المرضى',
+        target: 0.5,
+        unit: 'نسبة'
+    },
+    {
+        code: 'WFM-005',
+        category: 'WFM',
+        name: 'معدل الرضا الوظيفي',
+        formula: '(عدد الموظفين الراضين / إجمالي المستجيبين) × 100',
+        numeratorLabel: 'عدد الموظفين الراضين',
+        denominatorLabel: 'إجمالي المستجيبين',
+        target: 85,
+        unit: '%'
+    },
+    {
+        code: 'WFM-006',
+        category: 'WFM',
+        name: 'معدل ساعات العمل الإضافي',
+        formula: '(ساعات العمل الإضافي / إجمالي ساعات العمل) × 100',
+        numeratorLabel: 'ساعات العمل الإضافي',
+        denominatorLabel: 'إجمالي ساعات العمل',
+        target: 5,
+        unit: '%'
+    },
+    {
+        code: 'WFM-007',
+        category: 'WFM',
+        name: 'نسبة التوطين',
+        formula: '(عدد الموظفين السعوديين / إجمالي الموظفين) × 100',
+        numeratorLabel: 'عدد الموظفين السعوديين',
+        denominatorLabel: 'إجمالي الموظفين',
+        target: 60,
+        unit: '%'
+    },
+    {
+        code: 'WFM-008',
+        category: 'WFM',
+        name: 'معدل إتمام التقييم السنوي',
+        formula: '(عدد التقييمات المكتملة / إجمالي الموظفين) × 100',
+        numeratorLabel: 'عدد التقييمات المكتملة',
+        denominatorLabel: 'إجمالي الموظفين',
+        target: 100,
+        unit: '%'
+    },
+    {
+        code: 'WFM-009',
+        category: 'WFM',
+        name: 'معدل الإجازات المرضية',
+        formula: '(أيام الإجازة المرضية / إجمالي أيام العمل) × 100',
+        numeratorLabel: 'أيام الإجازة المرضية',
+        denominatorLabel: 'إجمالي أيام العمل',
+        target: 3,
+        unit: '%'
+    },
+    {
+        code: 'WFM-010',
+        category: 'WFM',
+        name: 'معدل الترقيات الداخلية',
+        formula: '(عدد الترقيات / إجمالي الموظفين) × 100',
+        numeratorLabel: 'عدد الترقيات',
+        denominatorLabel: 'إجمالي الموظفين',
+        target: 10,
+        unit: '%'
+    },
 
-    // 2. معدلات الاستخدام (UTZ)
-    'UTZ': [
-        {
-            code: 'UTZ-01',
-            name: 'معدل إشغال الأسرة',
-            formula: '(عدد الأسرة المشغولة / إجمالي عدد الأسرة) × 100',
-            numeratorLabel: 'عدد الأسرة المشغولة',
-            denominatorLabel: 'إجمالي عدد الأسرة',
-            target: 85,
-            unit: '%',
-            category: 'UTZ'
-        },
-        {
-            code: 'UTZ-02',
-            name: 'معدل استخدام غرف العمليات',
-            formula: '(ساعات الاستخدام / إجمالي الساعات المتاحة) × 100',
-            numeratorLabel: 'ساعات الاستخدام',
-            denominatorLabel: 'إجمالي الساعات المتاحة',
-            target: 70,
-            unit: '%',
-            category: 'UTZ'
-        },
-        {
-            code: 'UTZ-03',
-            name: 'متوسط مدة الإقامة',
-            formula: 'إجمالي أيام المرضى / عدد المرضى المخرجين',
-            numeratorLabel: 'إجمالي أيام المرضى',
-            denominatorLabel: 'عدد المرضى المخرجين',
-            target: 4,
-            unit: 'يوم',
-            category: 'UTZ'
-        },
-        {
-            code: 'UTZ-04',
-            name: 'معدل استخدام العيادات الخارجية',
-            formula: '(عدد الزيارات / السعة الاستيعابية) × 100',
-            numeratorLabel: 'عدد الزيارات',
-            denominatorLabel: 'السعة الاستيعابية',
-            target: 90,
-            unit: '%',
-            category: 'UTZ'
-        },
-        {
-            code: 'UTZ-05',
-            name: 'معدل استخدام أسرة العناية المركزة',
-            formula: '(أيام إشغال ICU / إجمالي أيام ICU) × 100',
-            numeratorLabel: 'أيام إشغال ICU',
-            denominatorLabel: 'إجمالي أيام ICU',
-            target: 75,
-            unit: '%',
-            category: 'UTZ'
-        },
-        {
-            code: 'UTZ-06',
-            name: 'معدل استخدام غرف الطوارئ',
-            formula: '(عدد زيارات الطوارئ / السعة اليومية) × 100',
-            numeratorLabel: 'عدد زيارات الطوارئ',
-            denominatorLabel: 'السعة اليومية',
-            target: 80,
-            unit: '%',
-            category: 'UTZ'
-        },
-        {
-            code: 'UTZ-07',
-            name: 'معدل دوران الأسرة',
-            formula: 'عدد المرضى المخرجين / عدد الأسرة',
-            numeratorLabel: 'عدد المرضى المخرجين',
-            denominatorLabel: 'عدد الأسرة',
-            target: 30,
-            unit: 'مريض/سرير',
-            category: 'UTZ'
-        },
-        {
-            code: 'UTZ-08',
-            name: 'معدل استخدام المعدات الطبية',
-            formula: '(ساعات الاستخدام / إجمالي الساعات) × 100',
-            numeratorLabel: 'ساعات الاستخدام',
-            denominatorLabel: 'إجمالي الساعات',
-            target: 60,
-            unit: '%',
-            category: 'UTZ'
-        },
-        {
-            code: 'UTZ-09',
-            name: 'معدل إلغاء العمليات',
-            formula: '(عدد العمليات الملغاة / إجمالي العمليات المجدولة) × 100',
-            numeratorLabel: 'عدد العمليات الملغاة',
-            denominatorLabel: 'إجمالي العمليات المجدولة',
-            target: 5,
-            unit: '%',
-            category: 'UTZ'
-        },
-        {
-            code: 'UTZ-10',
-            name: 'معدل استخدام الأشعة',
-            formula: '(عدد الفحوصات / السعة اليومية) × 100',
-            numeratorLabel: 'عدد الفحوصات',
-            denominatorLabel: 'السعة اليومية',
-            target: 85,
-            unit: '%',
-            category: 'UTZ'
-        }
-    ],
+    // ===== 2. معدلات الاستخدام (UTZ) =====
+    {
+        code: 'UTZ-001',
+        category: 'UTZ',
+        name: 'معدل إشغال الأسرة',
+        formula: '(إجمالي أيام المرضى / (عدد الأسرة × عدد أيام الشهر)) × 100',
+        numeratorLabel: 'إجمالي أيام المرضى',
+        denominatorLabel: 'عدد الأسرة × عدد الأيام',
+        target: 85,
+        unit: '%'
+    },
+    {
+        code: 'UTZ-002',
+        category: 'UTZ',
+        name: 'متوسط مدة الإقامة',
+        formula: 'إجمالي أيام المرضى / عدد المرضى المخرجين',
+        numeratorLabel: 'إجمالي أيام المرضى',
+        denominatorLabel: 'عدد المرضى المخرجين',
+        target: 4,
+        unit: 'يوم'
+    },
+    {
+        code: 'UTZ-003',
+        category: 'UTZ',
+        name: 'معدل دوران الأسرة',
+        formula: 'عدد المرضى المخرجين / عدد الأسرة',
+        numeratorLabel: 'عدد المرضى المخرجين',
+        denominatorLabel: 'عدد الأسرة',
+        target: 30,
+        unit: 'مرة'
+    },
+    {
+        code: 'UTZ-004',
+        category: 'UTZ',
+        name: 'معدل استخدام غرف العمليات',
+        formula: '(ساعات استخدام الغرف / إجمالي الساعات المتاحة) × 100',
+        numeratorLabel: 'ساعات الاستخدام',
+        denominatorLabel: 'الساعات المتاحة',
+        target: 80,
+        unit: '%'
+    },
+    {
+        code: 'UTZ-005',
+        category: 'UTZ',
+        name: 'معدل إلغاء العمليات',
+        formula: '(عدد العمليات الملغاة / إجمالي العمليات المجدولة) × 100',
+        numeratorLabel: 'العمليات الملغاة',
+        denominatorLabel: 'العمليات المجدولة',
+        target: 5,
+        unit: '%'
+    },
+    {
+        code: 'UTZ-006',
+        category: 'UTZ',
+        name: 'معدل زيارات العيادات الخارجية',
+        formula: 'إجمالي الزيارات / عدد أيام العمل',
+        numeratorLabel: 'إجمالي الزيارات',
+        denominatorLabel: 'عدد أيام العمل',
+        target: 100,
+        unit: 'زيارة/يوم'
+    },
+    {
+        code: 'UTZ-007',
+        category: 'UTZ',
+        name: 'معدل استخدام الطوارئ',
+        formula: 'عدد حالات الطوارئ / إجمالي الزيارات × 100',
+        numeratorLabel: 'حالات الطوارئ',
+        denominatorLabel: 'إجمالي الزيارات',
+        target: 20,
+        unit: '%'
+    },
+    {
+        code: 'UTZ-008',
+        category: 'UTZ',
+        name: 'معدل إشغال العناية المركزة',
+        formula: '(أيام المرضى في العناية / (أسرة العناية × الأيام)) × 100',
+        numeratorLabel: 'أيام المرضى',
+        denominatorLabel: 'أسرة العناية × الأيام',
+        target: 75,
+        unit: '%'
+    },
+    {
+        code: 'UTZ-009',
+        category: 'UTZ',
+        name: 'معدل استخدام الأشعة',
+        formula: 'عدد الفحوصات / عدد المرضى × 100',
+        numeratorLabel: 'عدد الفحوصات',
+        denominatorLabel: 'عدد المرضى',
+        target: 60,
+        unit: '%'
+    },
+    {
+        code: 'UTZ-010',
+        category: 'UTZ',
+        name: 'معدل استخدام الصيدلية',
+        formula: 'عدد الوصفات / عدد الزيارات × 100',
+        numeratorLabel: 'عدد الوصفات',
+        denominatorLabel: 'عدد الزيارات',
+        target: 70,
+        unit: '%'
+    },
 
-    // 3. الأداء الطبي (MP)
-    'MP': [
-        {
-            code: 'MP-01',
-            name: 'معدل الوفيات الإجمالي',
-            formula: '(عدد الوفيات / إجمالي المرضى) × 100',
-            numeratorLabel: 'عدد الوفيات',
-            denominatorLabel: 'إجمالي المرضى',
-            target: 1,
-            unit: '%',
-            category: 'MP'
-        },
-        {
-            code: 'MP-02',
-            name: 'معدل العدوى المكتسبة من المستشفى',
-            formula: '(عدد حالات العدوى / إجمالي المرضى) × 100',
-            numeratorLabel: 'عدد حالات العدوى',
-            denominatorLabel: 'إجمالي المرضى',
-            target: 2,
-            unit: '%',
-            category: 'MP'
-        },
-        {
-            code: 'MP-03',
-            name: 'معدل إعادة الإدخال خلال 30 يوم',
-            formula: '(عدد المعادين / إجمالي المخرجين) × 100',
-            numeratorLabel: 'عدد المعادين',
-            denominatorLabel: 'إجمالي المخرجين',
-            target: 8,
-            unit: '%',
-            category: 'MP'
-        },
-        {
-            code: 'MP-04',
-            name: 'معدل رضا المرضى',
-            formula: '(عدد المرضى الراضين / إجمالي المشاركين) × 100',
-            numeratorLabel: 'عدد المرضى الراضين',
-            denominatorLabel: 'إجمالي المشاركين',
-            target: 90,
-            unit: '%',
-            category: 'MP'
-        },
-        {
-            code: 'MP-05',
-            name: 'معدل المضاعفات الجراحية',
-            formula: '(عدد المضاعفات / إجمالي العمليات) × 100',
-            numeratorLabel: 'عدد المضاعفات',
-            denominatorLabel: 'إجمالي العمليات',
-            target: 3,
-            unit: '%',
-            category: 'MP'
-        },
-        {
-            code: 'MP-06',
-            name: 'معدل نجاح العمليات الجراحية',
-            formula: '(عدد العمليات الناجحة / إجمالي العمليات) × 100',
-            numeratorLabel: 'عدد العمليات الناجحة',
-            denominatorLabel: 'إجمالي العمليات',
-            target: 98,
-            unit: '%',
-            category: 'MP'
-        },
-        {
-            code: 'MP-07',
-            name: 'معدل الشكاوى الطبية',
-            formula: '(عدد الشكاوى / إجمالي المرضى) × 100',
-            numeratorLabel: 'عدد الشكاوى',
-            denominatorLabel: 'إجمالي المرضى',
-            target: 2,
-            unit: '%',
-            category: 'MP'
-        },
-        {
-            code: 'MP-08',
-            name: 'معدل الوقت المناسب للتدخل الطبي',
-            formula: '(حالات التدخل في الوقت / إجمالي الحالات) × 100',
-            numeratorLabel: 'حالات التدخل في الوقت',
-            denominatorLabel: 'إجمالي الحالات',
-            target: 95,
-            unit: '%',
-            category: 'MP'
-        },
-        {
-            code: 'MP-09',
-            name: 'معدل تقييم الألم',
-            formula: '(عدد التقييمات / إجمالي المرضى) × 100',
-            numeratorLabel: 'عدد التقييمات',
-            denominatorLabel: 'إجمالي المرضى',
-            target: 100,
-            unit: '%',
-            category: 'MP'
-        },
-        {
-            code: 'MP-10',
-            name: 'معدل المتابعة بعد الخروج',
-            formula: '(عدد المتابعات / إجمالي المخرجين) × 100',
-            numeratorLabel: 'عدد المتابعات',
-            denominatorLabel: 'إجمالي المخرجين',
-            target: 85,
-            unit: '%',
-            category: 'MP'
-        }
-    ],
+    // ===== 3. الأداء الطبي (MP) =====
+    {
+        code: 'MP-001',
+        category: 'MP',
+        name: 'معدل الوفيات الإجمالي',
+        formula: '(عدد الوفيات / إجمالي المرضى المخرجين) × 100',
+        numeratorLabel: 'عدد الوفيات',
+        denominatorLabel: 'المرضى المخرجين',
+        target: 2,
+        unit: '%'
+    },
+    {
+        code: 'MP-002',
+        category: 'MP',
+        name: 'معدل وفيات ما بعد العمليات',
+        formula: '(وفيات ما بعد العمليات / إجمالي العمليات) × 100',
+        numeratorLabel: 'وفيات ما بعد العمليات',
+        denominatorLabel: 'إجمالي العمليات',
+        target: 0.5,
+        unit: '%'
+    },
+    {
+        code: 'MP-003',
+        category: 'MP',
+        name: 'معدل العدوى المكتسبة من المستشفى',
+        formula: '(حالات العدوى / إجمالي المرضى) × 100',
+        numeratorLabel: 'حالات العدوى',
+        denominatorLabel: 'إجمالي المرضى',
+        target: 3,
+        unit: '%'
+    },
+    {
+        code: 'MP-004',
+        category: 'MP',
+        name: 'معدل إعادة الإدخال خلال 30 يوم',
+        formula: '(عدد المعادين / المرضى المخرجين) × 100',
+        numeratorLabel: 'عدد المعادين',
+        denominatorLabel: 'المرضى المخرجين',
+        target: 8,
+        unit: '%'
+    },
+    {
+        code: 'MP-005',
+        category: 'MP',
+        name: 'معدل رضا المرضى',
+        formula: '(المرضى الراضين / إجمالي المستجيبين) × 100',
+        numeratorLabel: 'المرضى الراضين',
+        denominatorLabel: 'إجمالي المستجيبين',
+        target: 90,
+        unit: '%'
+    },
+    {
+        code: 'MP-006',
+        category: 'MP',
+        name: 'معدل مضاعفات العمليات',
+        formula: '(حالات المضاعفات / إجمالي العمليات) × 100',
+        numeratorLabel: 'حالات المضاعفات',
+        denominatorLabel: 'إجمالي العمليات',
+        target: 5,
+        unit: '%'
+    },
+    {
+        code: 'MP-007',
+        category: 'MP',
+        name: 'معدل الولادات القيصرية',
+        formula: '(الولادات القيصرية / إجمالي الولادات) × 100',
+        numeratorLabel: 'الولادات القيصرية',
+        denominatorLabel: 'إجمالي الول��دات',
+        target: 15,
+        unit: '%'
+    },
+    {
+        code: 'MP-008',
+        category: 'MP',
+        name: 'معدل وفيات الأمهات',
+        formula: '(وفيات الأمهات / إجمالي الولادات) × 100000',
+        numeratorLabel: 'وفيات الأمهات',
+        denominatorLabel: 'إجمالي الولادات',
+        target: 20,
+        unit: 'لكل 100000'
+    },
+    {
+        code: 'MP-009',
+        category: 'MP',
+        name: 'معدل وفيات الأطفال حديثي الولادة',
+        formula: '(وفيات المواليد / إجمالي المواليد) × 1000',
+        numeratorLabel: 'وفيات المواليد',
+        denominatorLabel: 'إجمالي المواليد',
+        target: 5,
+        unit: 'لكل 1000'
+    },
+    {
+        code: 'MP-010',
+        category: 'MP',
+        name: 'معدل الشكاوى الطبية',
+        formula: '(عدد الشكاوى / إجمالي المرضى) × 100',
+        numeratorLabel: 'عدد الشكاوى',
+        denominatorLabel: 'إجمالي المرضى',
+        target: 2,
+        unit: '%'
+    },
 
-    // 4. الرعاية الصحية الأولية (PHC)
-    'PHC': [
-        {
-            code: 'PHC-01',
-            name: 'معدل التطعيم للأطفال',
-            formula: '(عدد الأطفال المطعمين / إجمالي الأطفال) × 100',
-            numeratorLabel: 'عدد الأطفال المطعمين',
-            denominatorLabel: 'إجمالي الأطفال](#)*
-
+    // ===== 4. الرعاية الأولية (PHC) =====
+    {
+        code: 'PHC-001',
+        category: 'PHC',
+        name: 'معدل تغطية التطعيم للأطفال',
+        formula: '(الأطفال المطعمون / إجمالي الأطفال المستهدفين) × 100',
+        numeratorLabel: 'الأطفال المطعمون',
+        denominatorLabel: 'الأطفال المستهدفين',
+        target: 95,
+        unit: '%'
+    },
+    {
+        code: 'PHC-002',
+        category: 'PHC',
+        name: 'معدل متابعة الحوامل',
+        formula: '(الحوامل المتابعات / إجمالي الحوامل) × 100',
+        numeratorLabel: 'الحوامل المتابعات',
+        denominatorLabel: 'إجمالي الحوامل',
+        target: 90,
+        unit: '%'
+    },
+    {
+        code: 'PHC-003',
+        category: 'PHC',
+        name: 'معدل فحص السكري',
+        formula: '(المفحوصون / المستهدفون) × 100',
+        numeratorLabel: 'المفحوصون',
+        denominatorLabel: 'المستهدفون',
+        target: 80,
+        unit: '%'
+    },
+    {
+        code: 'PHC-004',
+        category: 'PHC',
+        name: 'معدل فحص ضغط الدم',
+        formula: '(المفحوصون / المستهدفون) × 100',
+        numeratorLabel: 'المفحوصون',
+        denominatorLabel: 'المستهدفون',
+        target: 85,
+        unit: '%'
+    },
+    {
+        code: 'PHC-005',
+        category: 'PHC',
+        name: 'معدل الكشف المبكر عن السرطان',
+        formula: '(الفحوصات المنجزة / المستهدفون) × 100',
+        numeratorLabel: 'الفحوصات المنجزة',
+        denominatorLabel: 'المستهدفون',
+        target: 70,
+        unit: '%'
+    },
+    {
+        code: 'PHC-006',
+        category: 'PHC',
+        name: 'معدل التثقيف الصحي',
+        formula: '(الجلسات المنفذة / الجلسات المخططة) × 100',
+        numeratorLabel: 'الجلسات المنفذة',
+        denominatorLabel: 'الجلسات المخططة',
+        target: 90,
+        unit: '%'
+    },
+    {
+        code: 'PHC-007',
+        category: 'PHC',
+        name: 'معدل متابعة الأمراض المزمنة',
+        formula: '(المتابعون / إجمالي المرضى المزمنين) × 100',
+        numeratorLabel: 'المتابعون',
+        denominatorLabel: 'المرضى المزمنين',
+        target: 85,
+        unit: '%'
+    },
+    {
+        code: 'PHC-008',
+        category: 'PHC',
+        name: 'معدل تحويل المرضى',
+        formula: '(المرضى المحولون / إجمالي الزيارات) × 100',
+        numeratorLabel: 'المرضى المحولون',
+        denominatorLabel: 'إجمالي الزيارات',
+        target: 10,
+        unit: '%'
+    },
+    {
+        code: 'PHC-009',
+        category: 'PHC',
+        name: 'معدل الزيارات المنزلية',
+        formula: 'عدد الزيارات المنزلية / عدد أيام العمل',
+        numeratorLabel: 'الزيارات المنزلية',
+        denominatorLabel: 'أيام العمل',
+        target: 5,
+        unit: 'زيارة/يوم'
+    },
+    {
+        code: 'PHC-010',
+        category: 'PHC',
+        name: 'معدل رضا المراجعين',
+        formula: '(المراجعون الراضون / إجمالي المستجيبين) × 100',
+        numeratorLabel: 'المراجعون الراضون',
+        denominatorLabel: 'إجمالي المستجيبين',
+        target: 90,
+        unit: '%'
+    },
+
+    // ===== 5. مكافحة العدوى (IPC) =====
+    {
+        code: 'IPC-001',
+        category: 'IPC',
+        name: 'معدل الالتزام بغسل اليدين',
+        formula: '(عدد مرات الالتزام / إجمالي الفرص) × 100',
+        numeratorLabel: 'مرات الالتزام',
+        denominatorLabel: 'إجمالي الفرص',
+        target: 90,
+        unit: '%'
+    },
+    {
+        code: 'IPC-002',
+        category: 'IPC',
+        name: 'معدل عدوى القسطرة البولية',
+        formula: '(حالات العدوى / أيام القسطرة) × 1000',
+        numeratorLabel: 'حالات العدوى',
+        denominatorLabel: 'أيام القسطرة',
+        target: 3,
+        unit: 'لكل 1000'
+    },
+    {
+        code: 'IPC-003',
+        category: 'IPC',
+        name: 'معدل عدوى القسطرة الوريدية',
+        formula: '(حالات العدوى / أيام القسطرة) × 1000',
+        numeratorLabel: 'حالات العدوى',
+        denominatorLabel: 'أيام القسطرة',
+        target: 2,
+        unit: 'لكل 1000'
+    },
+    {
+        code: 'IPC-004',
+        category: 'IPC',
+        name: 'معدل عدوى موقع العملية',
+        formula: '(حالات العدوى / إجمالي العمليات) × 100',
+        numeratorLabel: 'حالات العدوى',
+        denominatorLabel: 'إجمالي العمليات',
+        target: 2,
+        unit: '%'
+    },
+    {
+        code: 'IPC-005',
+        category: 'IPC',
+        name: 'معدل العزل الصحيح',
+        formula: '(الحالات المعزولة بشكل صحيح / الحالات المطلوب عزلها) × 100',
+        numeratorLabel: 'الحالات المعزولة صحيح',
+        denominatorLabel: 'الحالات المطلوب عزلها',
+        target: 95,
+        unit: '%'
+    },
+    {
+        code: 'IPC-006',
+        category: 'IPC',
+        name: 'معدل التعقيم الصحيح للأدوات',
+        formula: '(الأدوات المعقمة صحيح / إجمالي الأدوات) × 100',
+        numeratorLabel: 'الأدوات المعقمة صحيح',
+        denominatorLabel: 'إجمالي الأدوات',
+        target: 98,
+        unit: '%'
+    },
+    {
+        code: 'IPC-007',
+        category: 'IPC',
+        name: 'معدل استهلاك المطهرات',
+        formula: 'كمية المطهرات / عدد المرضى',
+        numeratorLabel: 'كمية المطهرات (لتر)',
+        denominatorLabel: 'عدد المرضى',
+        target: 0.5,
+        unit: 'لتر/مريض'
+    },
+    {
+        code: 'IPC-008',
+        category: 'IPC',
+        name: 'معدل التدريب على مكافحة العدوى',
+        formula: '(الموظفون المدربون / إجمالي الموظفين) × 100',
+        numeratorLabel: 'الموظفون المدربون',
+        denominatorLabel: 'إجمالي الموظفين',
+        target: 90,
+        unit: '%'
+    },
+    {
+        code: 'IPC-009',
+        category: 'IPC',
+        name: 'معدل فحص العينات البيئية',
+        formula: '(العينات السالبة / إجمالي العينات) × 100',
+        numeratorLabel: 'العينات السالبة',
+        denominatorLabel: 'إجمالي العينات',
+        target: 95,
+        unit: '%'
+    },
+    {
+        code: 'IPC-010',
+        category: 'IPC',
+        name: 'معدل الالتزام بمعايير التعقيم',
+        formula: '(الالتزامات / إجمالي الملاحظات) × 100',
+        numeratorLabel: 'الالتزامات',
+        denominatorLabel: 'إجمالي الملاحظات',
+        target: 95,
+        unit: '%'
+    },
+
+    // ===== 6. سلامة المرضى (PS) =====
+    {
+        code: 'PS-001',
+        category: 'PS',
+        name: 'معدل السقوط',
+        formula: '(حالات السقوط / أيام المرضى) × 1000',
+        numeratorLabel: 'حالات السقوط',
+        denominatorLabel: 'أيام المرضى',
+        target: 2,
+        unit: 'لكل 1000'
+    },
+    {
+        code: 'PS-002',
+        category: 'PS',
+        name: 'معدل أخطاء الأدوية',
+        formula: '(الأخطاء المكتشفة / إجمالي الجرعات) × 100',
+        numeratorLabel: 'الأخطاء المكتشفة',
+        denominatorLabel: 'إجمالي الجرعات',
+        target: 1,
+        unit: '%'
+    },
+    {
+        code: 'PS-003',
+        category: 'PS',
+        name: 'معدل قرح الفراش',
+        formula: '(حالات قرح الفراش / إجمالي المرضى) × 100',
+        numeratorLabel: 'حالات قرح الفراش',
+        denominatorLabel: 'إجمالي المرضى',
+        target: 3,
+        unit: '%'
+    },
+    {
+        code: 'PS-004',
+        category: 'PS',
+        name: 'معدل التعريف الصحيح للمرضى',
+        formula: '(التعريفات الصحيحة / إجمالي الملاحظات) × 100',
+        numeratorLabel: 'التعريفات الصحيحة',
+        denominatorLabel: 'إجمالي الملاحظات',
+        target: 98,
+        unit: '%'
+    },
+    {
+        code: 'PS-005',
+        category: 'PS',
+        name: 'معدل الإبلاغ عن الأحداث السلبية',
+        formula: 'عدد البلاغات / عدد المرضى × 100',
+        numeratorLabel: 'عدد البلاغات',
+        denominatorLabel: 'عدد المرضى',
+        target: 5,
+        unit: '%'
+    },
+    {
+        code: 'PS-006',
+        category: 'PS',
+        name: 'معدل تطبيق بروتوكول الجراحة الآمنة',
+        formula: '(العمليات الملتزمة / إجمالي العمليات) × 100',
+        numeratorLabel: 'العمليات الملتزمة',
+        denominatorLabel: 'إجمالي العمليات',
+        target: 100,
+        unit: '%'
+    },
+    {
+        code: 'PS-007',
+        category: 'PS',
+        name: 'معدل نقل الدم الآمن',
+        formula: '(عمليات النقل الصحيحة / إجمالي عمليات النقل) × 100',
+        numeratorLabel: 'عمليات النقل الصحيحة',
+        denominatorLabel: 'إجمالي عمليات النقل',
+        target: 100,
+        unit: '%'
+    },
+    {
+        code: 'PS-008',
+        category: 'PS',
+        name: 'معدل توثيق الموافقة المستنيرة',
+        formula: '(الموافقات الموثقة / إجمالي الإجراءات) × 100',
+        numeratorLabel: 'الموافقات الموثقة',
+        denominatorLabel: 'إجمالي الإجراءات',
+        target: 100,
+        unit: '%'
+    },
+
+    // ===== 7. الصحة المهنية (OHS) =====
+    {
+        code: 'OHS-001',
+        category: 'OHS',
+        name: 'معدل إصابات العمل',
+        formula: '(عدد الإصابات / إجمالي الموظفين) × 100',
+        numeratorLabel: 'عدد الإصابات',
+        denominatorLabel: 'إجمالي الموظفين',
+        target: 2,
+        unit: '%'
+    },
+    {
+        code: 'OHS-002',
+        category: 'OHS',
+        name: 'معدل الإصابة بالوخز بالإبر',
+        formula: '(حالات الوخز / إجمالي الموظفين) × 100',
+        numeratorLabel: 'حالات الوخز',
+        denominatorLabel: 'إجمالي الموظفين',
+        target: 3,
+        unit: '%'
+    },
+    {
+        code: 'OHS-003',
+        category: 'OHS',
+        name: 'معدل التطعيم ضد الإنفلونزا',
+        formula: '(الموظفون المطعمون / إجمالي الموظفين) × 100',
+        numeratorLabel: 'الموظفون المطعمون',
+        denominatorLabel: 'إجمالي الموظفين',
+        target: 90,
+        unit: '%'
+    },
+    {
+        code: 'OHS-004',
+        category: 'OHS',
+        name: 'معدل الفحص الطبي الدوري',
+        formula: '(الموظفون المفحوصون / إجمالي الموظفين) × 100',
+        numeratorLabel: 'الموظفون المفحوصون',
+        denominatorLabel: 'إجمالي الموظفين',
+        target: 100,
+        unit: '%'
+    },
+    {
+        code: 'OHS-005',
+        category: 'OHS',
+        name: 'معدل استخدام معدات الوقاية',
+        formula: '(الالتزامات / إجمالي الملاحظات) × 100',
+        numeratorLabel: 'الالتزامات',
+        denominatorLabel: 'إجمالي الملاحظات',
+        target: 95,
+        unit: '%'
+    },
+    {
+        code: 'OHS-006',
+        category: 'OHS',
+        name: 'معدل التدريب على السلامة',
+        formula: '(الموظفون المدربون / إجمالي الموظفين) × 100',
+        numeratorLabel: 'الموظفون المدربون',
+        denominatorLabel: 'إجمالي الموظفين',
+        target: 95,
+        unit: '%'
+    },
+    {
+        code: 'OHS-007',
+        category: 'OHS',
+        name: 'معدل الإبلاغ عن المخاطر',
+        formula: 'عدد البلاغات / عدد الموظفين × 100',
+        numeratorLabel: 'عدد البلاغات',
+        denominatorLabel: 'عدد الموظفين',
+        target: 10,
+        unit: '%'
+    },
+    {
+        code: 'OHS-008',
+        category: 'OHS',
+        name: 'معدل فحص بيئة العمل',
+        formula: '(الفحوصات المنجزة / الفحوصات المخططة) × 100',
+        numeratorLabel: 'الفحوصات المنجزة',
+        denominatorLabel: 'الفحوصات المخططة',
+        target: 100,
+        unit: '%'
+    },
+
+    // ===== 8. إدارة الأدوية (MM) =====
+    {
+        code: 'MM-001',
+        category: 'MM',
+        name: 'معدل دقة صرف الأدوية',
+        formula: '(الأدوية الصحيحة / إجمالي الوصفات) × 100',
+        numeratorLabel: 'الأدوية الصحيحة',
+        denominatorLabel: 'إجمالي الوصفات',
+        target: 99,
+        unit: '%'
+    },
+    {
+        code: 'MM-002',
+        category: 'MM',
+        name: 'معدل توفر الأدوية الأساسية',
+        formula: '(الأدوية المتوفرة / قائمة الأدوية الأساسية) × 100',
+        numeratorLabel: 'الأدوية المتوفرة',
+        denominatorLabel: 'قائمة الأدوية الأساسية',
+        target: 95,
+        unit: '%'
+    },
+    {
+        code: 'MM-003',
+        category: 'MM',
+        name: 'معدل الأدوية منتهية الصلاحية',
+        formula: '(الأدوية المنتهية / إجمالي المخزون) × 100',
+        numeratorLabel: 'الأدوية المنتهية',
+        denominatorLabel: 'إجمالي المخزون',
+        target: 1,
+        unit: '%'
+    },
+    {
+        code: 'MM-004',
+        category: 'MM',
+        name: 'معدل وقت صرف الوصفة',
+        formula: 'إجمالي أوقات الصرف / عدد الوصفات',
+        numeratorLabel: 'إجمالي أوقات الصرف (دقيقة)',
+        denominatorLabel: 'عدد الوصفات',
+        target: 15,
+        unit: 'دقيقة'
+    },
+    {
+        code: 'MM-005',
+        category: 'MM',
+        name: 'معدل التفاعلات الدوائية',
+        formula: '(حالات التفاعل / إجمالي الوصفات) × 100',
+        numeratorLabel: 'حالات التفاعل',
+        denominatorLabel: 'إجمالي الوصفات',
+        target: 2,
+        unit: '%'
+    },
+    {
+        code: 'MM-006',
+        category: 'MM',
+        name: 'معدل التخزين الصحيح',
+        formula: '(الأدوية المخزنة صحيح / إجمالي الأدوية) × 100',
+        numeratorLabel: 'الأدوية المخزنة صحيح',
+        denominatorLabel: 'إجمالي الأدوية',
+        target: 98,
+        unit: '%'
+    },
+    {
+        code: 'MM-007',
+        category: 'MM',
+        name: 'معدل المراجعة الدوائية',
+        formula: '(المراجعات المنجزة / إجمالي المرضى) × 100',
+        numeratorLabel: 'المراجعات المنجزة',
+        denominatorLabel: 'إجمالي المرضى',
+        target: 80,
+        unit: '%'
+    },
+    {
+        code: 'MM-008',
+        category: 'MM',
+        name: 'معدل استخدام الأدوية الجنيسة',
+        formula: '(الأدوية الجنيسة / إجمالي الوصفات) × 100',
+        numeratorLabel: 'الأدوية الجنيسة',
+        denominatorLabel: 'إجمالي الوصفات',
+        target: 70,
+        unit: '%'
+    },
+
+    // ===== 9. المختبر (LAB) =====
+    {
+        code: 'LAB-001',
+        category: 'LAB',
+        name: 'معدل وقت تسليم النتائج العاجلة',
+        formula: 'إجمالي الأوقات / عدد الفحوصات العاجلة',
+        numeratorLabel: 'إجمالي الأوقات (دقيقة)',
+        denominatorLabel: 'عدد الفحوصات العاجلة',
+        target: 60,
+        unit: 'دقيقة'
+    },
+    {
+        code: 'LAB-002',
+        category: 'LAB',
+        name: 'معدل دقة الفحوصات',
+        formula: '(الفحوصات الصحيحة / إجمالي الفحوصات) × 100',
+        numeratorLabel: 'الفحوصات الصحيحة',
+        denominatorLabel: 'إجمالي الفحوصات',
+        target: 98,
+        unit: '%'
+    },
+    {
+        code: 'LAB-003',
+        category: 'LAB',
+        name: 'معدل إعادة الفحوصات',
+        formula: '(الفحوصات المعادة / إجمالي الفحوصات) × 100',
+        numeratorLabel: 'الفحوصات المعادة',
+        denominatorLabel: 'إجمالي الفحوصات',
+        target: 2,
+        unit: '%'
+    },
+    {
+        code: 'LAB-004',
+        category: 'LAB',
+        name: 'معدل رفض العينات',
+        formula: '(العينات المرفوضة / إجمالي العينات) × 100',
+        numeratorLabel: 'العينات المرفوضة',
+        denominatorLabel: 'إجمالي العينات',
+        target: 1,
+        unit: '%'
+    },
+    {
+        code: 'LAB-005',
+        category: 'LAB',
+        name: 'معدل مراقبة الجودة الداخلية',
+        formula: '(الاختبارات ضمن المدى / إجمالي الاختبارات) × 100',
+        numeratorLabel: 'الاختبارات ضمن المدى',
+        denominatorLabel: 'إجمالي الاختبارات',
+        target: 95,
+        unit: '%'
+    },
+    {
+        code: 'LAB-006',
+        category: 'LAB',
+        name: 'معدل المشاركة في مراقبة الجودة الخارجية',
+        formula: '(الاختبارات المشاركة / الاختبارات المطلوبة) × 100',
+        numeratorLabel: 'الاختبارات المشاركة',
+        denominatorLabel: 'الاختبارات المطلوبة',
+        target: 100,
+        unit: '%'
+    },
+    {
+        code: 'LAB-007',
+        category: 'LAB',
+        name: 'معدل صيانة الأجهزة',
+        formula: '(الصيانات المنجزة / الصيانات المخططة) × 100',
+        numeratorLabel: 'الصيانات المنجزة',
+        denominatorLabel: 'الصيانات المخططة',
+        target: 100,
+        unit: '%'
+    },
+    {
+        code: 'LAB-008',
+        category: 'LAB',
+        name: 'معدل رضا الأطباء عن المختبر',
+        formula: '(الأطباء الراضون / إجمالي المستجيبين) × 100',
+        numeratorLabel: 'الأطباء الراضون',
+        denominatorLabel: 'إجمالي المستجيبين',
+        target: 90,
+        unit: '%'
+    },
+
+    // ===== 10. طب الأسنان (DF) =====
+    {
+        code: 'DF-001',
+        category: 'DF',
+        name: 'معدل الكشف الدوري',
+        formula: '(الكشوفات الدورية / إجمالي الزيارات) × 100',
+        numeratorLabel: 'الكشوفات الدورية',
+        denominatorLabel: 'إجمالي الزيارات',
+        target: 30,
+        unit: '%'
+    },
+    {
+        code: 'DF-002',
+        category: 'DF',
+        name: 'معدل علاج التسوس',
+        formula: '(حالات التسوس المعالجة / حالات التسوس المكتشفة) × 100',
+        numeratorLabel: 'حالات التسوس المعالجة',
+        denominatorLabel: 'حالات التسوس المكتشفة',
+        target: 80,
+        unit: '%'
+    },
+    {
+        code: 'DF-003',
+        category: 'DF',
+        name: 'معدل خلع الأسنان',
+        formula: '(حالات الخلع / إجمالي العلاجات) × 100',
+        numeratorLabel: 'حالات الخلع',
+        denominatorLabel: 'إجمالي العلاجات',
+        target: 15,
+        unit: '%'
+    },
+    {
+        code: 'DF-004',
+        category: 'DF',
+        name: 'معدل تطبيق الفلورايد للأطفال',
+        formula: '(الأطفال المعالجين / الأطفال المستهدفين) × 100',
+        numeratorLabel: 'الأطفال المعالجين',
+        denominatorLabel: 'الأطفال المستهدفين',
+        target: 70,
+        unit: '%'
+    },
+    {
+        code: 'DF-005',
+        category: 'DF',
+        name: 'معدل التثقيف الصحي للأسنان',
+        formula: '(الجلسات المنفذة / الجلسات المخططة) × 100',
+        numeratorLabel: 'الجلسات المنفذة',
+        denominatorLabel: 'الجلسات المخططة',
+        target: 90,
+        unit: '%'
+    },
+    {
+        code: 'DF-006',
+        category: 'DF',
+        name: 'معدل الإحالة لطبيب الأسنان الاستشاري',
+        formula: '(الحالات المحالة / إجمالي الحالات) × 100',
+        numeratorLabel: 'الحالات المحالة',
+        denominatorLabel: 'إجمالي الحالات',
+        target: 10,
+        unit: '%'
+    },
+    {
+        code: 'DF-007',
+        category: 'DF',
+        name: 'معدل رضا مراجعي طب الأسنان',
+        formula: '(المراجعون الراضون / إجمالي المستجيبين) × 100',
+        numeratorLabel: 'المراجعون الراضون',
+        denominatorLabel: 'إجمالي المستجيبين',
+        target: 90,
+        unit: '%'
+    },
+    {
+        code: 'DF-008',
+        category: 'DF',
+        name: 'معدل مضاعفات علاج الأسنان',
+        formula: '(حالات المضاعفات / إجمالي العلاجات) × 100',
+        numeratorLabel: 'حالات المضاعفات',
+        denominatorLabel: 'إجمالي العلاجات',
+        target: 3,
+        unit: '%'
+    }
+];
+
+// دالة للحصول على جميع المؤشرات
+function getAllKPIs() {
+    return KPI_DATA;
+}
+
+// دالة للحصول على مؤشرات فئة معينة
+function getKPIsByCategory(category) {
+    return KPI_DATA.filter(kpi => kpi.category === category);
+}
+
+// دالة للحصول على مؤشر بالكود
+function getKPIByCode(code) {
+    return KPI_DATA.find(kpi => kpi.code === code);
+}
+
+// دالة للبحث في المؤشرات
+function searchKPIs(searchTerm) {
+    const term = searchTerm.toLowerCase();
+    return KPI_DATA.filter(kpi => 
+        kpi.code.toLowerCase().includes(term) ||
+        kpi.name.toLowerCase().includes(term) ||
+        kpi.category.toLowerCase().includes(term)
+    );
+}
+
+// دالة لحساب النتيجة
+function calculateKPIResult(numerator, denominator) {
+    if (!numerator || !denominator || denominator === 0) {
+        return 0;
+    }
+    return (parseFloat(numerator) / parseFloat(denominator)) * 100;
+}
+
+console.log('✅ KPI Data loaded successfully');
+console.log(`📊 Total KPIs: ${KPI_DATA.length}`);
+console.log(`📂 Categories: ${Object.keys(KPI_CATEGORIES).length}`);
