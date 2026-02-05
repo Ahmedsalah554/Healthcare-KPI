@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام المستخدم - إدخال مؤشرات الأداء</title>
+    
+    <link rel="stylesheet" href="./css/variables.css">
+    <link rel="stylesheet" href="./css/components.css">
+    <link rel="stylesheet" href="./css/user-styles.css">
+    <link rel="stylesheet" href="./css/charts.css">
+</head>
+<body>
+    <!-- صفحة تسجيل الدخول -->
+    <div id="loginPage" class="login-page">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="login-logo">👤</div>
+                <h1>نظام المستخدم</h1>
+                <p>إدخا�� بيانات مؤشرات الأداء</p>
+            </div>
+
+            <div class="login-error" id="loginError"></div>
+
+            <form id="loginForm" class="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="loginEmail">البريد الإلكتروني</label>
+                    <input type="email" id="loginEmail" required placeholder="user@hospital.com" value="user@hospital.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="loginPassword">كلمة المرور</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••" value="user123">
+                </div>
+
+                <div class="remember-forgot">
+                    <label>
+                        <input type="checkbox"> تذكرني
+                    </label>
+                    <a href="#" onclick="alert('يرجى التواصل مع المسؤول')">نسيت كلمة المرور؟</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    🔐 تسجيل الدخول
+                </button>
+            </form>
+
+            <div class="mt-2" style="text-align: center; color: #666; font-size: 0.9rem;">
+                <p><strong>للتجربة:</strong></p>
+                <p>البريد: user@hospital.com</p>
+                <p>كلمة المرور: user123</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- صفحة التطبيق -->
+    <div id="appPage" class="app-page">
+        <!-- Header -->
+        <header class="app-header">
+            <h1>📊 نظام إدخال مؤشرات الأداء</h1>
+            <div class="app-header-right">
+                <div class="facility-badge" id="facilityNameDisplay">المنشأة</div>
+                <div class="user-badge" id="userNameDisplay">المستخدم</div>
+                <button class="btn-logout" onclick="handleLogout()">
+                    🚪 خروج
+                </button>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="app-content">
+            <!-- نموذج إدخال المؤشر -->
+            <div id="kpiFormContainer" class="kpi-form-container">
+                <div class="kpi-form">
+                    <div class="kpi-form-header">
+                        <h2 class="kpi-form-title" id="kpiFormTitle">اختر مؤشراً للبدء</h2>
+                        <button class="btn-close-form" onclick="closeKPIForm()">×</button>
+                    </div>
+
+                    <div id="formulaInfo"></div>
+
+                    <form id="kpiDataForm" onsubmit="saveKPIData(event)">
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label for="kpiDate">التاريخ *</label>
+                                <input type="date" id="kpiDate" required>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="kpiPeriod">الفترة *</label>
+                                <select id="kpiPeriod" required>
+                                    <option value="">-- اختر الفترة --</option>
+                                    <option value="شهري">شهري</option>
+                                    <option value="ربع سنوي">ربع سنوي</option>
+                                    <option value="نصف سنوي">نصف سنوي</option>
+                                    <option value="سنوي">سنوي</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label id="numeratorLabel" for="kpiNumerator">قيمة البسط *</label>
+                                <input type="number" id="kpiNumerator" step="0.01" required placeholder="0" oninput="calculateResult()">
+                            </div>
+
+                            <div class="input-group">
+                                <label id="denominatorLabel" for="kpiDenominator">قيمة المقام *</label>
+                                <input type="number" id="kpiDenominator" step="0.01" required placeholder="0" oninput="calculateResult()">
+                            </div>
+                        </div>
+
+                        <div class="result-box" id="resultBox">
+                            <div class="result-label">النتيجة المحسوبة</div>
+                            <div class="result-value" id="resultValue">0.00%</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="kpiNotes">ملاحظات (اختياري)</label>
+                            <textarea id="kpiNotes" rows="3" placeholder="أضف أي ملاحظات هنا..."></textarea>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button type="submit" class="btn btn-primary">
+                                💾 حفظ البيانات
+                            </button>
+                            <button type="button" class="btn btn-reset" onclick="resetKPIForm()">
+                                🔄 إعادة تعيين
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs-container">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('kpiList')">
+                        📋 قائمة المؤشرات
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('dataHistory')">
+                        📊 البيانات المدخلة
+                    </button>
+                    <button class="tab-btn" onclick="switchTab('export')">
+                        📥 التصدير
+                    </button>
+                </div>
+
+                <!-- Tab 1: قائمة المؤشرات -->
+                <div id="kpiList" class="tab-content active">
+                    <div class="kpi-list-header">
+                        <h2>اختر المؤشر لإدخال البيانات</h2>
+                        <div class="kpi-search">
+                            <input type="text" id="kpiSearch" placeholder="🔍 ابحث عن مؤشر..." oninput="filterKPIs()">
+                        </div>
+                    </div>
+
+                    <div class="grid" id="kpiListContainer"></div>
+                </div>
+
+                <!-- Tab 2: البيانات المدخلة -->
+                <div id="dataHistory" class="tab-content">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">📊 البيانات المدخلة</div>
+                            <button class="btn btn-danger btn-small" onclick="clearHistory()">
+                                🗑️ مسح الكل
+                            </button>
+                        </div>
+
+                        <div class="empty-message" id="emptyMessage">
+                            <div class="empty-icon">📭</div>
+                            <h3>لا توجد بيانات</h3>
+                            <p>لم تقم بإدخال أي بيانات بعد</p>
+                        </div>
+
+                        <div class="data-table-container">
+                            <table class="data-table" id="dataTable">
+                                <thead>
+                                    <tr>
+                                        <th>كود المؤشر</th>
+                                        <th>التاريخ</th>
+                                        <th>الفترة</th>
+                                        <th>البسط</th>
+                                        <th>المقام</th>
+                                        <th>النتيجة</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: التصدير -->
+                <div id="export" class="tab-content">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">📥 تصدير البيانات</div>
+                        </div>
+
+                        <div class="export-stats">
+                            <div class="stat-box">
+                                <div class="stat-box-label">إجمالي السجلات</div>
+                                <div class="stat-box-value" id="statsCount">0</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-box-label">المنشأة</div>
+                                <div class="stat-box-value" id="statsFacility" style="font-size: 1.2rem;">-</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-box-label">آخر إدخال</div>
+                                <div class="stat-box-value" id="statsDate" style="font-size: 1rem;">-</div>
+                            </div>
+                        </div>
+
+                        <div class="export-buttons">
+                            <button class="btn btn-success" onclick="exportToCSV()">
+                                📄 تصدير CSV
+                            </button>
+                            <button class="btn btn-primary" onclick="exportToJSON()">
+                                📋 تصدير JSON
+                            </button>
+                            <button class="btn btn-danger" onclick="printData()">
+                                🖨️ طباعة
+                            </button>
+                        </div>
+
+                        <div class="alert alert-info mt-3">
+                            <span>💡</span>
+                            <div>
+                                <strong>نصيحة:</strong> يمكنك تصدير البيانات بتنسيقات مختلفة لاستخدامها في التقارير أو مشاركتها مع فريقك.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
+    <script src="./js/utils.js"></script>
+    <script src="./js/kpi-data.js"></script>
+    <script src="./js/charts.js"></script>
+    <script src="./js/user-main.js"></script>
+</body>
+</html>
