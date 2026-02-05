@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="نظام إدارة مؤشرات الأداء للمنشآت الصحية">
+    <meta name="keywords" content="KPI, مؤشرات, أداء, صحة">
+    <title>نظام إدارة مؤشرات الأداء KPI</title>
+    
+    <link rel="stylesheet" href="./css/variables.css">
+    <link rel="stylesheet" href="./css/components.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 60px 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            color: #1a73e8;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        p {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 18px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            min-width: 200px;
+        }
+
+        .btn-admin {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-admin:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-user {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-user:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(245, 87, 108, 0.4);
+        }
+
+        .features {
+            margin-top: 50px;
+            text-align: right;
+        }
+
+        .feature {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-right: 4px solid #1a73e8;
+            transition: all 0.3s;
+        }
+
+        .feature:hover {
+            background: #e8f5e9;
+            border-right-color: #4caf50;
+            transform: translateX(-5px);
+        }
+
+        .feature strong {
+            color: #1a73e8;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #e0e0e0;
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 40px 20px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 نظام إدارة مؤشرات الأداء</h1>
+        <p>نظام شامل لإدارة وتتبع مؤشرات الأداء الرئيسية (KPI) في المنشآت الصحية</p>
+
+        <div class="buttons">
+            <a href="./kpi-admin-system.html" class="btn btn-admin">
+                👨‍💼 لوحة التحكم الإدارية
+            </a>
+            <a href="./kpi-user-system.html" class="btn btn-user">
+                👤 نظام المستخدم
+            </a>
+        </div>
+
+        <div class="features">
+            <div class="feature">
+                <strong>📊 9 فئات من المؤشرات</strong> - أكثر من 80 مؤشر أداء شامل
+            </div>
+            <div class="feature">
+                <strong>📈 رسوم بيانية تفاعلية</strong> - تحليل مرئي للبيانات
+            </div>
+            <div class="feature">
+                <strong>📥 تصدير متعدد</strong> - CSV, JSON, PDF
+            </div>
+            <div class="feature">
+                <strong>🔒 آمن وموثوق</strong> - حماية كاملة للبيانات
+            </div>
+            <div class="feature">
+                <strong>📱 متجاوب</strong> - يعمل على جميع الأجهزة
+            </div>
+            <div class="feature">
+                <strong>💾 حفظ تلقائي</strong> - لا تفقد بياناتك أبداً
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>صُنع بـ ❤️ في مصر 🇪🇬</p>
+            <p>Version 2.0 © 2026</p>
+        </div>
+    </div>
+
+    <script>
+        // تأثير بسيط
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 100);
+            });
+        });
+    </script>
+</body>
+</html>
