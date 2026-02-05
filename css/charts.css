@@ -1,0 +1,354 @@
+/* ===== استايلات الرسوم البيانية ===== */
+
+.charts-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.chart-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s;
+}
+
+.chart-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--light-bg);
+}
+
+.chart-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.chart-filter {
+    padding: 6px 12px;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.chart-filter:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.chart-body {
+    min-height: 300px;
+    position: relative;
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+}
+
+.chart-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    color: #999;
+}
+
+.chart-empty-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+    opacity: 0.3;
+}
+
+.chart-empty-text {
+    font-size: 1rem;
+}
+
+/* ===== Dashboard Grid ===== */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.dashboard-main-chart {
+    grid-column: span 2;
+}
+
+.dashboard-side-chart {
+    grid-column: span 1;
+}
+
+/* ===== أنواع الرسوم البيانية ===== */
+.chart-line {
+    /* إضافات خاصة بالرسم الخطي */
+}
+
+.chart-bar {
+    /* إضافات خاصة بالرسم العمودي */
+}
+
+.chart-pie {
+    /* إضافات خاصة بالرسم الدائري */
+}
+
+.chart-donut {
+    /* إضافات خاصة بالرسم الدائري المفرغ */
+}
+
+.chart-area {
+    /* إضافات خاصة بالرسم المساحي */
+}
+
+.chart-radar {
+    /* إضافات خاصة بالرسم الراداري */
+}
+
+/* ===== Loader للرسوم البيانية ===== */
+.chart-loader {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 300px;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid var(--light-bg);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ===== تخصيصات ApexCharts ===== */
+.apexcharts-tooltip {
+    direction: rtl !important;
+    font-family: var(--font-family) !important;
+    border-radius: 8px !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+.apexcharts-legend-text {
+    font-family: var(--font-family) !important;
+}
+
+.apexcharts-xaxis-label,
+.apexcharts-yaxis-label {
+    font-family: var(--font-family) !important;
+}
+
+.apexcharts-menu {
+    direction: rtl !important;
+}
+
+/* ===== Chart Controls ===== */
+.chart-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.chart-date-range {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.chart-date-range input {
+    padding: 6px 10px;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.chart-refresh-btn {
+    padding: 6px 12px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.3s;
+}
+
+.chart-refresh-btn:hover {
+    background: var(--primary-dark);
+}
+
+/* ===== Chart Export ===== */
+.chart-export-menu {
+    position: relative;
+}
+
+.chart-export-btn {
+    padding: 6px 12px;
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.3s;
+}
+
+.chart-export-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.chart-export-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: var(--shadow-md);
+    margin-top: 5px;
+    z-index: 100;
+    min-width: 150px;
+}
+
+.chart-export-dropdown.active {
+    display: block;
+}
+
+.chart-export-dropdown button {
+    display: block;
+    width: 100%;
+    padding: 10px 20px;
+    border: none;
+    background: white;
+    text-align: right;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.chart-export-dropdown button:hover {
+    background: var(--light-bg);
+}
+
+/* ===== Chart Tooltips ===== */
+.chart-tooltip {
+    background: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+    font-size: 0.9rem;
+}
+
+.chart-tooltip-title {
+    font-weight: 700;
+    margin-bottom: 5px;
+    color: var(--primary);
+}
+
+.chart-tooltip-value {
+    color: var(--text);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .dashboard-main-chart {
+        grid-column: span 1;
+    }
+    
+    .charts-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .chart-card {
+        padding: 15px;
+    }
+
+    .chart-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .chart-filter,
+    .chart-controls {
+        width: 100%;
+    }
+
+    .chart-date-range {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .chart-date-range input {
+        width: 100%;
+    }
+
+    .chart-body {
+        min-height: 250px;
+    }
+
+    .chart-legend {
+        justify-content: center;
+    }
+
+    .charts-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .chart-title {
+        font-size: 1rem;
+    }
+
+    .chart-body {
+        min-height: 200px;
+    }
+
+    .legend-item {
+        font-size: 0.8rem;
+    }
+}
