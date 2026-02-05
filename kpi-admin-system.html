@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم الإدارية - نظام KPI</title>
+    
+    <link rel="stylesheet" href="./css/variables.css">
+    <link rel="stylesheet" href="./css/components.css">
+    <link rel="stylesheet" href="./css/admin-styles.css">
+    <link rel="stylesheet" href="./css/charts.css">
+</head>
+<body>
+    <!-- صفحة تسجيل الدخول -->
+    <div id="loginPage" class="login-page">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="login-logo">👨‍💼</div>
+                <h1>لوحة التحكم الإدارية</h1>
+                <p>نظام إدارة مؤشرات ��لأداء</p>
+            </div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="loginEmail">البريد الإلكتروني</label>
+                    <input type="email" id="loginEmail" required placeholder="admin@system.com" value="admin@system.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="loginPassword">كلمة المرور</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••" value="admin123">
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    🔐 تسجيل الدخول
+                </button>
+            </form>
+
+            <div class="mt-2" style="text-align: center; color: #666; font-size: 0.9rem;">
+                <p><strong>للتجربة:</strong></p>
+                <p>البريد: admin@system.com</p>
+                <p>كلمة المرور: admin123</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- لوحة التحكم -->
+    <div id="adminPanel" class="container-fluid" style="display: none;">
+        <!-- Toggle Sidebar للموبايل -->
+        <button class="toggle-sidebar" onclick="document.getElementById('sidebar').classList.toggle('active')">
+            ☰ القائمة
+        </button>
+
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>🏥 نظام KPI</h2>
+                <p>لوحة التحكم الإدارية</p>
+            </div>
+
+            <div class="user-info">
+                <div class="user-avatar">👤</div>
+                <div class="user-name" id="userNameDisplay">المدير</div>
+                <div class="user-role" id="userRoleDisplay">مدير النظام</div>
+                <div class="user-role" id="userFacilityDisplay" style="font-size: 0.75rem; margin-top: 5px;">-</div>
+            </div>
+
+            <ul class="sidebar-nav">
+                <li><a onclick="switchView('dashboard')" class="active">📊 لوحة المعلومات</a></li>
+                <li><a onclick="switchView('facilities')">🏥 إدارة المنشآت</a></li>
+                <li><a onclick="switchView('users')">👥 إدارة المستخدمين</a></li>
+                <li><a onclick="switchView('kpis')">📈 إدارة المؤشرات</a></li>
+                <li><a onclick="switchView('data')">💾 البيانات المدخلة</a></li>
+                <li><a onclick="switchView('reports')">📑 التقارير</a></li>
+                <li><a onclick="switchView('settings')">⚙️ الإعدادات</a></li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <button class="btn btn-logout" onclick="handleLogout()">
+                    🚪 تسجيل الخروج
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" id="mainContent">
+            <!-- Dashboard -->
+            <div id="dashboard" class="tab-content active">
+                <div class="header">
+                    <h1>📊 لوحة المعلومات</h1>
+                    <div class="header-actions">
+                        <button class="btn btn-primary" onclick="location.reload()">
+                            🔄 تحديث
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🏥</div>
+                        <div class="stat-label">إجمالي المنشآت</div>
+                        <div class="stat-number" id="totalFacilities">0</div>
+                        <div class="stat-trend">↗ نشط</div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-label">إجمالي المستخدمين</div>
+                        <div class="stat-number" id="totalUsers">0</div>
+                        <div class="stat-trend">↗ فعال</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="stat-icon">📈</div>
+                        <div class="stat-label">إجمالي المؤشرات</div>
+                        <div class="stat-number" id="totalKPIs">0</div>
+                        <div class="stat-trend">9 فئات</div>
+                    </div>
+                    <div class="stat-card danger">
+                        <div class="stat-icon">💾</div>
+                        <div class="stat-label">البيانات المدخلة</div>
+                        <div class="stat-number" id="totalData">0</div>
+                        <div class="stat-trend" id="monthlyData">0 هذا الشهر</div>
+                    </div>
+                </div>
+
+                <div id="dashboardCharts"></div>
+            </div>
+
+            <!-- Facilities Management -->
+            <div id="facilities" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🏥 إدارة المنشآت</div>
+                        <button class="btn btn-primary" onclick="addFacility()">
+                            ➕ إضافة منشأة
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table id="facilitiesTable">
+                            <thead>
+                                <tr>
+                                    <th>الكود</th>
+                                    <th>اسم المنشأة</th>
+                                    <th>النوع</th>
+                                    <th>المدينة</th>
+                                    <th>الهاتف</th>
+                                    <th>السعة</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Management -->
+            <div id="users" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">👥 إدارة المستخدمين</div>
+                        <button class="btn btn-primary" onclick="addUser()">
+                            ➕ إضافة مستخدم
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table id="usersTable">
+                            <thead>
+                                <tr>
+                                    <th>الاسم</th>
+                                    <th>البريد الإلكتروني</th>
+                                    <th>المنشأة</th>
+                                    <th>الصلاحية</th>
+                                    <th>الحالة</th>
+                                    <th>الهاتف</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPIs Management -->
+            <div id="kpis" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📈 إدارة المؤشرات (80+ مؤشر)</div>
+                        <button class="btn btn-success" onclick="alert('تم تحميل جميع ��لمؤشرات!')">
+                            ✅ عرض الكل
+                        </button>
+                    </div>
+                    <div id="kpisManagementContainer"></div>
+                </div>
+            </div>
+
+            <!-- Data Management -->
+            <div id="data" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">💾 البيانات المدخلة</div>
+                        <div class="header-actions">
+                            <button class="btn btn-success" onclick="alert('تصدير Excel قريباً!')">
+                                📥 تصدير Excel
+                            </button>
+                            <button class="btn btn-danger" onclick="if(confirm('حذف كل البيانات؟')) { localStorage.clear(); location.reload(); }">
+                                🗑️ مسح الكل
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table id="dataTable">
+                            <thead>
+                                <tr>
+                                    <th>المنشأة</th>
+                                    <th>المستخدم</th>
+                                    <th>المؤشر</th>
+                                    <th>التاريخ</th>
+                                    <th>النتيجة</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports -->
+            <div id="reports" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📑 التقارير</div>
+                    </div>
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <h3>التقارير المتقدمة</h3>
+                        <p>سيتم إضافة نظام التقارير المتقدم قريباً</p>
+                        <button class="btn btn-primary mt-2" onclick="alert('قريباً!')">
+                            📈 إنشاء تقرير
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings -->
+            <div id="settings" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">⚙️ الإعدادات</div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <h3>إعدادات النظام</h3>
+                        
+                        <div class="form-group">
+                            <label>اسم النظام</label>
+                            <input type="text" value="نظام إدارة مؤشرات الأداء" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label>الإصدار</label>
+                            <input type="text" value="2.0.0" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label>اللغة</label>
+                            <select>
+                                <option selected>العربية</option>
+                                <option>English</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" checked> تفعيل الإشعارات
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox"> الحفظ التلقائي
+                            </label>
+                        </div>
+
+                        <button class="btn btn-primary">حفظ الإعدادات</button>
+                        <button class="btn btn-danger" onclick="if(confirm('استعادة الإعدادات الافتراضية؟')) alert('تم!')">
+                            استعادة الافتراضي
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Facility Modal -->
+    <div id="facilityModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="modalTitle">إضافة منشأة جديدة</span>
+                <button class="modal-close" onclick="closeModal('facilityModal')">×</button>
+            </div>
+            <form id="facilityForm" onsubmit="saveFacility(event)">
+                <input type="hidden" id="facilityId">
+                
+                <div class="form-group">
+                    <label for="facilityCode">كود المنشأة *</label>
+                    <input type="text" id="facilityCode" required placeholder="FAC001">
+                </div>
+
+                <div class="form-group">
+                    <label for="facilityName">اسم المنشأة *</label>
+                    <input type="text" id="facilityName" required placeholder="مستشفى الملك فهد">
+                </div>
+
+                <div class="form-group">
+                    <label for="facilityType">نوع المنشأة *</label>
+                    <select id="facilityType" required>
+                        <option value="">-- اختر النوع --</option>
+                        <option value="مستشفى">مستشفى</option>
+                        <option value="مركز صحي">مركز صحي</option>
+                        <option value="عيادة">عيادة</option>
+                        <option value="مختبر">مختبر</option>
+                        <option value="أخرى">أخرى</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="facilityCity">المدينة *</label>
+                    <input type="text" id="facilityCity" required placeholder="القاهرة">
+                </div>
+
+                <div class="form-group">
+                    <label for="facilityPhone">الهاتف *</label>
+                    <input type="tel" id="facilityPhone" required placeholder="0112345678">
+                </div>
+
+                <div class="form-group">
+                    <label for="facilityEmail">البريد الإلكتروني</label>
+                    <input type="email" id="facilityEmail" placeholder="info@hospital.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="facilityCapacity">السعة</label>
+                    <input type="number" id="facilityCapacity" placeholder="500">
+                </div>
+
+                <div class="form-group">
+                    <label for="facilityStatus">الحالة</label>
+                    <select id="facilityStatus">
+                        <option value="active">نشط</option>
+                        <option value="inactive">غير نشط</option>
+                    </select>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('facilityModal')">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">💾 حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="userModalTitle">إضافة مستخدم جديد</span>
+                <button class="modal-close" onclick="closeModal('userModal')">×</button>
+            </div>
+            <form id="userForm" onsubmit="saveUser(event)">
+                <input type="hidden" id="userId">
+                
+                <div class="form-group">
+                    <label for="userName">الاسم *</label>
+                    <input type="text" id="userName" required placeholder="أحمد محمد">
+                </div>
+
+                <div class="form-group">
+                    <label for="userEmail">البريد الإلكتروني *</label>
+                    <input type="email" id="userEmail" required placeholder="ahmed@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="userPassword">كلمة المرور</label>
+                    <input type="password" id="userPassword" placeholder="اتركه فارغاً للإبقاء على القديم">
+                </div>
+
+                <div class="form-group">
+                    <label for="userPhone">الهاتف</label>
+                    <input type="tel" id="userPhone" placeholder="0501234567">
+                </div>
+
+                <div class="form-group">
+                    <label for="userFacility">المنشأة *</label>
+                    <select id="userFacility" required></select>
+                </div>
+
+                <div class="form-group">
+                    <label for="userRole">الصلاحية *</label>
+                    <select id="userRole" required>
+                        <option value="user">مستخدم</option>
+                        <option value="supervisor">مشرف</option>
+                        <option value="admin">مدير</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="userStatus">الحالة</label>
+                    <select id="userStatus">
+                        <option value="active">نشط</option>
+                        <option value="inactive">غير نشط</option>
+                    </select>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('userModal')">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">💾 حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
+    <script src="./js/utils.js"></script>
+    <script src="./js/kpi-data.js"></script>
+    <script src="./js/charts.js"></script>
+    <script src="./js/admin-main.js"></script>
+</body>
+</html>
