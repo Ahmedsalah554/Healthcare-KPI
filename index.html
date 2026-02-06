@@ -3,42 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="نظام إدارة مؤشرات الأداء للمنشآت الصحية">
-    <meta name="keywords" content="KPI, مؤشرات, أداء, صحة">
-    <title>نظام إدارة مؤشرات الأداء KPI</title>
-    
-    <link rel="stylesheet" href="./css/variables.css">
-    <link rel="stylesheet" href="./css/components.css">
-    
+    <title>نظام KPI - الرعاية الصحية</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
             padding: 20px;
         }
 
         .container {
-            background: white;
-            border-radius: 20px;
-            padding: 60px 40px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
+            max-width: 1200px;
             width: 100%;
-            text-align: center;
-            animation: slideUp 0.6s ease-out;
         }
 
-        @keyframes slideUp {
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            margin-bottom: 15px;
+            text-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.95;
+        }
+
+        .cards-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .card:hover {
+            transform: translateY(-15px) scale(1.03);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-icon {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .card h2 {
+            font-size: 1.8rem;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .card p {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .card .btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .card .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .card.admin {
+            border-top: 5px solid #1a73e8;
+        }
+
+        .card.user {
+            border-top: 5px solid #4caf50;
+        }
+
+        .card.reports {
+            border-top: 5px solid #ff9800;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 50px;
+            opacity: 0.9;
+            animation: fadeIn 1s ease-out 0.5s both;
+        }
+
+        .footer p {
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
             from {
                 opacity: 0;
                 transform: translateY(30px);
@@ -49,158 +151,60 @@
             }
         }
 
-        h1 {
-            color: #1a73e8;
-            font-size: 2.5rem;
-            margin-bottom: 20px;
-            font-weight: 700;
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
-        p {
-            color: #666;
-            font-size: 1.1rem;
-            margin-bottom: 40px;
-            line-height: 1.6;
-        }
-
-        .buttons {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .btn {
-            padding: 18px 40px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
-            min-width: 200px;
-        }
-
-        .btn-admin {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-admin:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-user {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-        }
-
-        .btn-user:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(245, 87, 108, 0.4);
-        }
-
-        .features {
-            margin-top: 50px;
-            text-align: right;
-        }
-
-        .feature {
-            margin-bottom: 15px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border-right: 4px solid #1a73e8;
-            transition: all 0.3s;
-        }
-
-        .feature:hover {
-            background: #e8f5e9;
-            border-right-color: #4caf50;
-            transform: translateX(-5px);
-        }
-
-        .feature strong {
-            color: #1a73e8;
-        }
-
-        .footer {
-            margin-top: 40px;
-            padding-top: 30px;
-            border-top: 2px solid #e0e0e0;
-            color: #999;
-            font-size: 0.9rem;
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                padding: 40px 20px;
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5rem;
             }
 
-            h1 {
-                font-size: 2rem;
+            .cards-container {
+                grid-template-columns: 1fr;
             }
 
-            .btn {
-                width: 100%;
+            .card {
+                padding: 30px 20px;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🏥 نظام إدارة مؤشرات الأداء</h1>
-        <p>نظام شامل لإدارة وتتبع مؤشرات الأداء الرئيسية (KPI) في المنشآت الصحية</p>
-
-        <div class="buttons">
-            <a href="./kpi-admin-system.html" class="btn btn-admin">
-                👨‍💼 لوحة التحكم الإدارية
-            </a>
-            <a href="./kpi-user-system.html" class="btn btn-user">
-                👤 نظام المستخدم
-            </a>
+        <div class="header">
+            <h1>🏥 نظام إدارة مؤشرات الأداء</h1>
+            <p>نظام متكامل لإدارة وتحليل مؤشرات الأداء في الرعاية الصحية</p>
         </div>
 
-        <div class="features">
-            <div class="feature">
-                <strong>📊 9 فئات من المؤشرات</strong> - أكثر من 80 مؤشر أداء شامل
+        <div class="cards-container">
+            <div class="card admin">
+                <span class="card-icon">👨‍💼</span>
+                <h2>لوحة التحكم الإدارية</h2>
+                <p>إدارة المنشآت، المستخدمين، المؤشرات، والبيانات المدخلة</p>
+                <a href="./kpi-admin-system.html" class="btn">الدخول للنظام</a>
             </div>
-            <div class="feature">
-                <strong>📈 رسوم بيانية تفاعلية</strong> - تحليل مرئي للبيانات
+
+            <div class="card user">
+                <span class="card-icon">👤</span>
+                <h2>نظام المستخدم</h2>
+                <p>إدخال بيانات المؤشرات، المتابعة، والتصدير</p>
+                <a href="./kpi-user-system.html" class="btn">الدخول للنظام</a>
             </div>
-            <div class="feature">
-                <strong>📥 تصدير متعدد</strong> - CSV, JSON, PDF
-            </div>
-            <div class="feature">
-                <strong>🔒 آمن وموثوق</strong> - حماية كاملة للبيانات
-            </div>
-            <div class="feature">
-                <strong>📱 متجاوب</strong> - يعمل على جميع الأجهزة
-            </div>
-            <div class="feature">
-                <strong>💾 حفظ تلقائي</strong> - لا تفقد بياناتك أبداً
+
+            <div class="card reports">
+                <span class="card-icon">📊</span>
+                <h2>التقارير والتحليلات</h2>
+                <p>عرض التقارير المتقدمة والرسوم البيانية التفصيلية</p>
+                <a href="./reports.html" class="btn">عرض التقارير</a>
             </div>
         </div>
 
         <div class="footer">
-            <p>صُنع بـ ❤️ في مصر 🇪🇬</p>
-            <p>Version 2.0 © 2026</p>
+            <p><strong>نظام KPI للرعاية الصحية</strong> - الإصدار 2.0</p>
+            <p>© 2024 جميع الحقوق محفوظة</p>
         </div>
     </div>
-
-    <script>
-        // تأثير بسيط
-        document.querySelectorAll('.btn').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                this.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    this.style.transform = '';
-                }, 100);
-            });
-        });
-    </script>
 </body>
 </html>
