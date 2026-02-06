@@ -15,7 +15,7 @@
     <div id="loginPage" class="login-page">
         <div class="login-container">
             <div class="login-header">
-                <div class="login-logo">👨‍💼</div>
+                <div class="login-logo">👨‍���</div>
                 <h1>لوحة التحكم الإدارية</h1>
                 <p>نظام إدارة مؤشرات الأداء</p>
             </div>
@@ -189,9 +189,6 @@
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">📈 إدارة المؤشرات (80+ مؤشر)</div>
-                        <button class="btn btn-success" onclick="alert('تم تحميل جميع المؤشرات!')">
-                            ✅ عرض الكل
-                        </button>
                     </div>
                     <div id="kpisManagementContainer"></div>
                 </div>
@@ -332,7 +329,7 @@
 
                 <div class="form-group">
                     <label for="facilityCity">المدينة *</label>
-                    <input type="text" id="facilityCity" required placeholder="القاهرة">
+                    <input type="text" id="facilityCity" required placeholder="الرياض">
                 </div>
 
                 <div class="form-group">
@@ -421,6 +418,84 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('userModal')">إلغاء</button>
                     <button type="submit" class="btn btn-primary">💾 حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- KPI Modal - الفورم الجديد -->
+    <div id="kpiModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="kpiModalTitle">إضافة مؤشر جديد</span>
+                <button class="modal-close" onclick="closeModal('kpiModal')">×</button>
+            </div>
+            <form id="kpiForm" onsubmit="saveKPI(event)">
+                <input type="hidden" id="kpiIdField">
+                <input type="hidden" id="kpiCustomField" value="true">
+                
+                <div class="form-group">
+                    <label for="kpiCode">كود المؤشر *</label>
+                    <input type="text" id="kpiCode" required placeholder="مثال: CUSTOM-001" pattern="[A-Z0-9\-]+" title="يجب أن يحتوي على أحرف كبيرة وأرقام وشرطة فقط" style="text-transform: uppercase;">
+                    <small class="form-help">استخدم أحرف كبيرة وأرقام وشرطة فقط (مثال: CUSTOM-001)</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="kpiName">اسم المؤشر *</label>
+                    <input type="text" id="kpiName" required placeholder="مثال: معدل رضا المرضى">
+                </div>
+
+                <div class="form-group">
+                    <label for="kpiCategory">الفئة *</label>
+                    <select id="kpiCategory" required>
+                        <option value="">-- اختر الفئة --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="kpiFormula">الصيغة الحسابية *</label>
+                    <input type="text" id="kpiFormula" required placeholder="مثال: (البسط / المقام) × 100">
+                    <small class="form-help">اكتب الصيغة الرياضية للمؤشر</small>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="kpiNumeratorLabel">اسم البسط *</label>
+                        <input type="text" id="kpiNumeratorLabel" required placeholder="مثال: عدد المرضى الراضين">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="kpiDenominatorLabel">اسم المقام *</label>
+                        <input type="text" id="kpiDenominatorLabel" required placeholder="مثال: إجمالي المرضى">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="kpiTarget">القيمة المستهدفة *</label>
+                        <input type="number" id="kpiTarget" step="0.01" required placeholder="مثال: 85">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="kpiUnit">الوحدة *</label>
+                        <select id="kpiUnit" required>
+                            <option value="%">نسبة مئوية (%)</option>
+                            <option value="يوم">يوم</option>
+                            <option value="مرة">مرة</option>
+                            <option value="نسبة">نسبة</option>
+                            <option value="لكل 1000">لكل 1000</option>
+                            <option value="لكل 100000">لكل 100000</option>
+                            <option value="دقيقة">دقيقة</option>
+                            <option value="ساعة">ساعة</option>
+                            <option value="لتر">لتر</option>
+                            <option value="عدد">عدد</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('kpiModal')">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">💾 حفظ المؤشر</button>
                 </div>
             </form>
         </div>
