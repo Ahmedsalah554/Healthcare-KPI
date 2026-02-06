@@ -46,15 +46,15 @@
 
         .cards-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
             margin-bottom: 40px;
         }
 
         .card {
             background: white;
             border-radius: 20px;
-            padding: 40px 30px;
+            padding: 50px 35px;
             text-align: center;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -68,39 +68,39 @@
         }
 
         .card-icon {
-            font-size: 5rem;
-            margin-bottom: 20px;
+            font-size: 5.5rem;
+            margin-bottom: 25px;
             display: block;
         }
 
         .card h2 {
-            font-size: 1.8rem;
+            font-size: 2rem;
             color: #333;
-            margin-bottom: 15px;
+            margin-bottom: 18px;
         }
 
         .card p {
             color: #666;
-            font-size: 1.1rem;
-            margin-bottom: 25px;
-            line-height: 1.6;
+            font-size: 1.15rem;
+            margin-bottom: 30px;
+            line-height: 1.7;
         }
 
         .card .btn {
             display: inline-block;
-            padding: 15px 40px;
+            padding: 16px 45px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             text-decoration: none;
             border-radius: 50px;
             font-weight: 600;
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             transition: all 0.3s;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
 
         .card .btn:hover {
-            transform: translateY(-2px);
+            transform: translateY(-3px);
             box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
         }
 
@@ -112,21 +112,49 @@
             border-top: 5px solid #4caf50;
         }
 
-        .card.reports {
-            border-top: 5px solid #ff9800;
-        }
-
         .footer {
             text-align: center;
             color: white;
-            margin-top: 50px;
+            margin-top: 60px;
             opacity: 0.9;
             animation: fadeIn 1s ease-out 0.5s both;
         }
 
         .footer p {
-            font-size: 1rem;
+            font-size: 1.05rem;
             margin-bottom: 10px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .feature {
+            text-align: center;
+            color: white;
+            padding: 20px;
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .feature h3 {
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+        }
+
+        .feature p {
+            font-size: 0.95rem;
+            opacity: 0.9;
         }
 
         @keyframes fadeInDown {
@@ -166,7 +194,11 @@
             }
 
             .card {
-                padding: 30px 20px;
+                padding: 35px 25px;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -182,28 +214,51 @@
             <div class="card admin">
                 <span class="card-icon">👨‍💼</span>
                 <h2>لوحة التحكم الإدارية</h2>
-                <p>إدارة المنشآت، المستخدمين، المؤشرات، والبيانات المدخلة</p>
+                <p>إدارة المنشآت، المستخدمين، المؤشرات، البيانات، والتقارير المتقدمة</p>
                 <a href="./kpi-admin-system.html" class="btn">الدخول للنظام</a>
             </div>
 
             <div class="card user">
                 <span class="card-icon">👤</span>
                 <h2>نظام المستخدم</h2>
-                <p>إدخال بيانات المؤشرات، المتابعة، والتصدير</p>
+                <p>إدخال بيانات المؤشرات، المتابعة، والتصدير بكل سهولة</p>
                 <a href="./kpi-user-system.html" class="btn">الدخول للنظام</a>
             </div>
+        </div>
 
-            <div class="card reports">
-                <span class="card-icon">📊</span>
-                <h2>التقارير والتحليلات</h2>
-                <p>عرض التقارير المتقدمة والرسوم البيانية التفصيلية</p>
-                <a href="./reports.html" class="btn">عرض التقارير</a>
+        <!-- Features Section -->
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">📊</div>
+                <h3>تقارير متقدمة</h3>
+                <p>رسوم بيانية تفاعلية وتحليلات شاملة</p>
+            </div>
+
+            <div class="feature">
+                <div class="feature-icon">🎯</div>
+                <h3>+80 مؤشر</h3>
+                <p>مؤشرات أداء معتمدة من وزارة الصحة</p>
+            </div>
+
+            <div class="feature">
+                <div class="feature-icon">📥</div>
+                <h3>تصدير سهل</h3>
+                <p>تصدير البيانات بصيغ CSV و JSON</p>
+            </div>
+
+            <div class="feature">
+                <div class="feature-icon">🔒</div>
+                <h3>آمن وموثوق</h3>
+                <p>نظام محلي بدون اتصال بالإنترنت</p>
             </div>
         </div>
 
         <div class="footer">
             <p><strong>نظام KPI للرعاية الصحية</strong> - الإصدار 2.0</p>
             <p>© 2024 جميع الحقوق محفوظة</p>
+            <p style="font-size: 0.9rem; margin-top: 15px; opacity: 0.8;">
+                💡 التقارير والتحليلات متوفرة داخل لوحة التحكم الإدارية
+            </p>
         </div>
     </div>
 </body>
