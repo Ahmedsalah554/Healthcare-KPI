@@ -143,7 +143,8 @@ function getDefaultUsers() {
         {
             id: 'user1',
             name: 'أحمد محمد',
-            email: 'ahmed@hospital.com',
+            email: 'user@hospital.com',
+            password: 'user123',
             phone: '0501234567',
             facility: 'fac1',
             role: 'supervisor',
@@ -154,6 +155,7 @@ function getDefaultUsers() {
             id: 'user2',
             name: 'فاطمة علي',
             email: 'fatima@center.com',
+            password: 'user123',
             phone: '0501234568',
             facility: 'fac2',
             role: 'user',
@@ -171,9 +173,13 @@ function loadDashboard() {
 
 // تحديث الإحصائيات
 function updateStatistics() {
+    // جلب المؤشرات المخصصة
+    const customKPIs = getFromStorage('customKPIs', []);
+    const totalKPIs = KPI_DATA.length + customKPIs.length;
+    
     document.getElementById('totalFacilities').textContent = facilities.length;
     document.getElementById('totalUsers').textContent = users.length;
-    document.getElementById('totalKPIs').textContent = KPI_DATA.length;
+    document.getElementById('totalKPIs').textContent = totalKPIs;
     document.getElementById('totalData').textContent = kpiData.length;
     
     // حساب البيانات الشهرية
@@ -448,6 +454,11 @@ function saveUser(event) {
         updatedAt: new Date().toISOString()
     };
     
+    const password = document.getElementById('userPassword').value;
+    if (password) {
+        userData.password = password;
+    }
+    
     if (id) {
         const index = users.findIndex(u => u.id === id);
         if (index !== -1) {
@@ -455,6 +466,7 @@ function saveUser(event) {
             showSuccess('تم تحديث المستخدم بنجاح');
         }
     } else {
+        userData.password = password || 'user123';
         userData.createdAt = new Date().toISOString();
         users.push(userData);
         showSuccess('تم إضافة المستخدم بنجاح');
@@ -471,7 +483,7 @@ function deleteUser(id) {
     
     users = users.filter(u => u.id !== id);
     saveToStorage('users', users);
-    showSuccess('تم حذف المستخدم بنجاح');
+    showSuccess('تم ح��ف المستخدم بنجاح');
     loadUsers();
 }
 
@@ -479,15 +491,33 @@ function deleteUser(id) {
 function loadKPIsManagement() {
     const container = document.getElementById('kpisManagementContainer');
     
+    // جلب المؤشرات المخصصة من LocalStorage
+    let customKPIs = getFromStorage('customKPIs', []);
+    
+    // دمج المؤشرات الافتراضية مع المخصصة
+    const allKPIs = [...KPI_DATA, ...customKPIs];
+    
     const categorizedKPIs = {};
-    KPI_DATA.forEach(kpi => {
+    allKPIs.forEach(kpi => {
         if (!categorizedKPIs[kpi.category]) {
             categorizedKPIs[kpi.category] = [];
         }
         categorizedKPIs[kpi.category].push(kpi);
     });
     
-    container.innerHTML = Object.keys(categorizedKPIs).map(category => `
+    container.innerHTML = `
+        <div class="mb-2" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="addKPI()">
+                ➕ إضافة مؤشر جديد
+            </button>
+            <button class="btn btn-success" onclick="exportKPIs()">
+                📥 تصدير المؤشرات المخصصة
+            </button>
+            <button class="btn btn-warning" onclick="importKPIs()">
+                📤 استيراد مؤشرات
+            </button>
+        </div>
+    ` + Object.keys(categorizedKPIs).map(category => `
         <div class="card mb-2">
             <div class="card-header">
                 <div class="card-title">${KPI_CATEGORIES[category]} (${categorizedKPIs[category].length} مؤشر)</div>
@@ -499,7 +529,18 @@ function loadKPIsManagement() {
                             <div class="kpi-code">${kpi.code}</div>
                             <div class="kpi-name">${kpi.name}</div>
                             <div class="mt-1">
-                                <span class="badge badge-primary">المستهدف: ${kpi.target}${kpi.unit}</span>
+                                <span class="badge badge-primary">المستهدف: ${kpi.target}${kpi.unit || '%'}</span>
+                                ${kpi.custom ? '<span class="badge badge-success" style="margin-right: 5px;">مخصص</span>' : ''}
+                            </div>
+                            <div class="action-buttons mt-1" style="display: flex; gap: 5px;">
+                                ${kpi.custom ? `
+                                    <button class="btn btn-small btn-primary" onclick="editKPI('${kpi.code}')">
+                                        ✏️ تعديل
+                                    </button>
+                                    <button class="btn btn-small btn-danger" onclick="deleteKPI('${kpi.code}')">
+                                        🗑️ حذف
+                                    </button>
+                                ` : '<span style="font-size: 0.8rem; color: #999;">مؤشر افتراضي</span>'}
                             </div>
                         </div>
                     `).join('')}
@@ -507,6 +548,193 @@ function loadKPIsManagement() {
             </div>
         </div>
     `).join('');
+    
+    // تحديث الإحصائيات
+    updateStatistics();
+}
+
+// إضافة مؤشر جديد
+function addKPI() {
+    const code = prompt('كود المؤشر (مثال: CUSTOM-001):');
+    if (!code) return;
+    
+    const name = prompt('اسم المؤشر:');
+    if (!name) return;
+    
+    const category = prompt('الفئة (WFM, UTZ, MP, PHC, IPC, PS, OHS, MM, LAB, DF):');
+    if (!category || !KPI_CATEGORIES[category]) {
+        showError('الفئة غير صحيحة');
+        return;
+    }
+    
+    const formula = prompt('الصيغة الحسابية:');
+    if (!formula) return;
+    
+    const numeratorLabel = prompt('اسم البسط:');
+    if (!numeratorLabel) return;
+    
+    const denominatorLabel = prompt('اسم المقام:');
+    if (!denominatorLabel) return;
+    
+    const target = parseFloat(prompt('القيمة المستهدفة:'));
+    if (isNaN(target)) {
+        showError('القيمة المستهدفة يجب أن تكون رقم');
+        return;
+    }
+    
+    const unit = prompt('الوحدة (مثال: %):') || '%';
+    
+    // التحقق من عدم تكرار الكود
+    const customKPIs = getFromStorage('customKPIs', []);
+    const allKPIs = [...KPI_DATA, ...customKPIs];
+    
+    if (allKPIs.find(k => k.code === code)) {
+        showError('هذا الكود موجود بالفعل');
+        return;
+    }
+    
+    const newKPI = {
+        code,
+        name,
+        category,
+        formula,
+        numeratorLabel,
+        denominatorLabel,
+        target,
+        unit,
+        custom: true,
+        createdAt: new Date().toISOString()
+    };
+    
+    customKPIs.push(newKPI);
+    saveToStorage('customKPIs', customKPIs);
+    
+    showSuccess('تم إضافة المؤشر بنجاح');
+    loadKPIsManagement();
+}
+
+// تعديل مؤشر
+function editKPI(code) {
+    const customKPIs = getFromStorage('customKPIs', []);
+    const kpiIndex = customKPIs.findIndex(k => k.code === code);
+    
+    if (kpiIndex === -1) {
+        showWarning('لا يمكن تعديل المؤشرات الافتراضية');
+        return;
+    }
+    
+    const kpi = customKPIs[kpiIndex];
+    
+    const name = prompt('اسم المؤشر:', kpi.name);
+    if (!name) return;
+    
+    const formula = prompt('الصيغة الحسابية:', kpi.formula);
+    if (!formula) return;
+    
+    const numeratorLabel = prompt('اسم البسط:', kpi.numeratorLabel);
+    if (!numeratorLabel) return;
+    
+    const denominatorLabel = prompt('اسم المقام:', kpi.denominatorLabel);
+    if (!denominatorLabel) return;
+    
+    const target = parseFloat(prompt('القيمة المستهدفة:', kpi.target));
+    if (isNaN(target)) {
+        showError('القيمة المستهدفة يجب أن تكون رقم');
+        return;
+    }
+    
+    const unit = prompt('الوحدة:', kpi.unit) || '%';
+    
+    customKPIs[kpiIndex] = {
+        ...kpi,
+        name,
+        formula,
+        numeratorLabel,
+        denominatorLabel,
+        target,
+        unit,
+        updatedAt: new Date().toISOString()
+    };
+    
+    saveToStorage('customKPIs', customKPIs);
+    
+    showSuccess('تم تحديث المؤشر بنجاح');
+    loadKPIsManagement();
+}
+
+// حذف مؤشر
+function deleteKPI(code) {
+    if (!confirmAction('هل أنت متأكد من حذف هذا المؤشر؟')) return;
+    
+    let customKPIs = getFromStorage('customKPIs', []);
+    customKPIs = customKPIs.filter(k => k.code !== code);
+    
+    saveToStorage('customKPIs', customKPIs);
+    
+    showSuccess('تم حذف المؤشر بنجاح');
+    loadKPIsManagement();
+}
+
+// تصدير المؤشرات
+function exportKPIs() {
+    const customKPIs = getFromStorage('customKPIs', []);
+    
+    if (customKPIs.length === 0) {
+        showWarning('لا توجد مؤشرات مخصصة للتصدير');
+        return;
+    }
+    
+    const filename = `Custom_KPIs_${new Date().toISOString().split('T')[0]}.json`;
+    downloadJSON(customKPIs, filename);
+    showSuccess('تم تصدير المؤشرات بنجاح');
+}
+
+// استيراد المؤشرات
+function importKPIs() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.onchange = function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedKPIs = JSON.parse(e.target.result);
+                
+                if (!Array.isArray(importedKPIs)) {
+                    showError('صيغة الملف غير صحيحة');
+                    return;
+                }
+                
+                const customKPIs = getFromStorage('customKPIs', []);
+                const merged = [...customKPIs];
+                
+                let addedCount = 0;
+                importedKPIs.forEach(kpi => {
+                    if (!merged.find(k => k.code === kpi.code)) {
+                        merged.push({...kpi, custom: true});
+                        addedCount++;
+                    }
+                });
+                
+                saveToStorage('customKPIs', merged);
+                
+                showSuccess(`تم استيراد ${addedCount} مؤشر بنجاح`);
+                loadKPIsManagement();
+                
+            } catch (error) {
+                showError('خطأ في قراءة الملف');
+                console.error(error);
+            }
+        };
+        
+        reader.readAsText(file);
+    };
+    
+    input.click();
 }
 
 // تحميل جدول البيانات
@@ -601,6 +829,7 @@ function deleteData(id) {
     saveToStorage('kpiData', kpiData);
     showSuccess('تم حذف البيانات بنجاح');
     loadDataTable();
+    updateStatistics();
 }
 
 // فتح نافذة منبثقة
