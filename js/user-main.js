@@ -66,26 +66,37 @@ function handleLogin(event) {
     const password = document.getElementById('loginPassword').value;
     const errorDiv = document.getElementById('loginError');
 
-    // التحقق البسيط (في الإنتاج يجب استخدام API)
-    if (email === 'user@hospital.com' && password === 'user123') {
+    // البحث عن المستخدم في قاعدة البيانات
+    const users = getFromStorage('users', []);
+    const user = users.find(u => u.email === email && u.password === password && u.status === 'active');
+    
+    if (user) {
+        // جلب معلومات المنشأة
+        const facilities = getFromStorage('facilities', []);
+        const facility = facilities.find(f => f.id === user.facility);
+        
         currentUser = {
-            id: 'user1',
-            name: 'أحمد محمد',
-            email: email,
-            role: 'user',
-            facility: 'fac1',
-            facilityName: 'مستشفى الملك فهد العام'
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            facility: user.facility,
+            facilityName: facility ? facility.name : 'غير محدد'
         };
         
         saveToStorage('currentUserApp', currentUser);
         showSuccess('تم تسجيل الدخول بنجاح');
         showAppPage();
     } else {
-        errorDiv.style.display = 'block';
-        errorDiv.textContent = '❌ بيانات الدخول غير صحيحة';
-        setTimeout(() => {
-            errorDiv.style.display = 'none';
-        }, 3000);
+        if (errorDiv) {
+            errorDiv.style.display = 'block';
+            errorDiv.textContent = '❌ بيانات الدخول غير صحيحة أو الحساب غير نشط';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 3000);
+        } else {
+            showError('بيانات الدخول غير صحيحة');
+        }
     }
 }
 
@@ -110,11 +121,13 @@ function displayUserInfo() {
 
 // تحميل بيانات المستخدم
 function loadUserData() {
-    userKPIData = getFromStorage('kpiData', []);
+    const allData = getFromStorage('kpiData', []);
     
     // تصفية البيانات الخاصة بالمستخدم الحالي
     if (currentUser) {
-        userKPIData = userKPIData.filter(data => data.user === currentUser.id);
+        userKPIData = allData.filter(data => data.user === currentUser.id);
+    } else {
+        userKPIData = [];
     }
 }
 
@@ -124,7 +137,9 @@ function loadKPIList() {
     
     if (!container) return;
     
-    const allKPIs = getAllKPIs();
+    // جلب المؤشرات المخصصة
+    const customKPIs = getFromStorage('customKPIs', []);
+    const allKPIs = [...getAllKPIs(), ...customKPIs];
     
     container.innerHTML = allKPIs.map(kpi => `
         <div class="kpi-card" onclick="selectKPI('${kpi.code}')">
@@ -132,6 +147,7 @@ function loadKPIList() {
             <div class="kpi-name">${kpi.name}</div>
             <div class="kpi-status">
                 <span class="badge badge-primary">${KPI_CATEGORIES[kpi.category]}</span>
+                ${kpi.custom ? '<span class="badge badge-success" style="margin-right: 5px;">مخصص</span>' : ''}
             </div>
         </div>
     `).join('');
@@ -147,7 +163,14 @@ function filterKPIs() {
         return;
     }
     
-    const filteredKPIs = searchKPIs(searchTerm);
+    const customKPIs = getFromStorage('customKPIs', []);
+    const allKPIs = [...getAllKPIs(), ...customKPIs];
+    
+    const filteredKPIs = allKPIs.filter(kpi => 
+        kpi.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        kpi.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        kpi.category.toLowerCase().includes(searchTerm.toLowerCase())
+    );
     
     if (filteredKPIs.length === 0) {
         container.innerHTML = `
@@ -166,6 +189,7 @@ function filterKPIs() {
             <div class="kpi-name">${kpi.name}</div>
             <div class="kpi-status">
                 <span class="badge badge-primary">${KPI_CATEGORIES[kpi.category]}</span>
+                ${kpi.custom ? '<span class="badge badge-success" style="margin-right: 5px;">مخصص</span>' : ''}
             </div>
         </div>
     `).join('');
@@ -173,7 +197,14 @@ function filterKPIs() {
 
 // اختيار مؤشر
 function selectKPI(kpiCode) {
+    // البحث في المؤشرات الافتراضية
     selectedKPI = getKPIByCode(kpiCode);
+    
+    // إذا لم يوجد، ابحث في المؤشرات المخصصة
+    if (!selectedKPI) {
+        const customKPIs = getFromStorage('customKPIs', []);
+        selectedKPI = customKPIs.find(k => k.code === kpiCode);
+    }
     
     if (!selectedKPI) {
         showError('المؤشر غير موجود');
@@ -570,14 +601,6 @@ function printData() {
     setTimeout(() => {
         printWindow.print();
     }, 500);
-}
-
-// تهيئة الرسوم البيانية (اختياري)
-function initializeUserCharts() {
-    if (userKPIData.length === 0) return;
-    
-    // يمكن إضافة رسوم بيانية للمستخدم هنا
-    // createTrendChart, createCategoryChart, etc.
 }
 
 console.log('✅ User Main loaded successfully');
