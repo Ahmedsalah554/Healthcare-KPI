@@ -164,7 +164,7 @@ function getDefaultFacilities() {
     ];
 }
 
-// الحصول على مستخدمين افترا��يين
+// الحصول على مستخدمين افتراضيين
 function getDefaultUsers() {
     return [
         {
@@ -262,6 +262,9 @@ function switchView(viewName) {
             break;
         case 'data':
             loadDataTable();
+            break;
+        case 'reports':
+            loadReportsData();
             break;
     }
 }
@@ -913,6 +916,465 @@ function closeModal(modalId) {
     if (modal) {
         modal.classList.remove('active');
     }
+}
+
+// ===== دوال التقارير والتحليلات المتقدمة =====
+
+let reportFilteredData = [];
+
+// تحميل بيانات التقارير
+function loadReportsData() {
+    const allData = Array.isArray(kpiData) ? kpiData : [];
+    reportFilteredData = [...allData];
+    
+    // تحديث الفلاتر
+    updateReportFilters();
+    
+    // تحديث الإحصائيات
+    updateReportStatistics();
+    
+    // تحديث التنبيهات
+    updateReportAlerts();
+    
+    // إنشاء الرسوم البيانية
+    createReportCharts();
+    
+    // تحميل الجدول التفصيلي
+    loadDetailedReportTable();
+}
+
+// تحديث الفلاتر
+function updateReportFilters() {
+    // فلتر المنشآت
+    const facilityFilter = document.getElementById('reportFacilityFilter');
+    if (facilityFilter && Array.isArray(facilities)) {
+        facilityFilter.innerHTML = '<option value="">جميع المنشآت</option>' +
+            facilities.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+    }
+    
+    // فلتر الفئات
+    const categoryFilter = document.getElementById('reportCategoryFilter');
+    if (categoryFilter) {
+        categoryFilter.innerHTML = '<option value="">جميع الفئات</option>' +
+            Object.keys(KPI_CATEGORIES).map(key => 
+                `<option value="${key}">${KPI_CATEGORIES[key]}</option>`
+            ).join('');
+    }
+}
+
+// تحديث إحصائيات التقارير
+function updateReportStatistics() {
+    const totalData = reportFilteredData.length;
+    const approvedData = reportFilteredData.filter(d => d.status === 'approved').length;
+    const pendingData = reportFilteredData.filter(d => d.status === 'pending').length;
+    const activeFacilitiesCount = Array.isArray(facilities) ? facilities.filter(f => f.status === 'active').length : 0;
+    
+    // تحديث الأرقام
+    const totalEl = document.getElementById('reportTotalData');
+    const approvedEl = document.getElementById('reportApprovedData');
+    const pendingEl = document.getElementById('reportPendingData');
+    const facilitiesEl = document.getElementById('reportActiveFacilities');
+    
+    if (totalEl) totalEl.textContent = totalData;
+    if (approvedEl) approvedEl.textContent = approvedData;
+    if (pendingEl) pendingEl.textContent = pendingData;
+    if (facilitiesEl) facilitiesEl.textContent = activeFacilitiesCount;
+    
+    // حساب نسبة القبول
+    const approvalRate = totalData > 0 ? ((approvedData / totalData) * 100).toFixed(1) : 0;
+    const rateElement = document.getElementById('reportApprovedRate');
+    if (rateElement) {
+        rateElement.textContent = `${approvalRate}% معدل القبول`;
+        
+        // تلوين حسب النسبة
+        if (approvalRate >= 85) {
+            rateElement.style.color = '#4caf50';
+        } else if (approvalRate >= 70) {
+            rateElement.style.color = '#ff9800';
+        } else {
+            rateElement.style.color = '#f44336';
+        }
+    }
+}
+
+// تحديث التنبيهات
+function updateReportAlerts() {
+    // البيانات الجديدة
+    const today = new Date();
+    const recentData = reportFilteredData.filter(d => {
+        if (!d.createdAt) return false;
+        const dataDate = new Date(d.createdAt);
+        const diffDays = Math.floor((today - dataDate) / (1000 * 60 * 60 * 24));
+        return diffDays <= 1;
+    });
+    
+    const alertNewData = document.getElementById('alertNewData');
+    if (alertNewData) {
+        if (recentData.length > 0) {
+            const latestData = recentData[recentData.length - 1];
+            alertNewData.textContent = 
+                `${latestData.facilityName || 'منشأة'} أرسل ${recentData.length} بيانات جديدة - اليوم`;
+        } else {
+            alertNewData.textContent = 'لا توجد بيانات جديدة';
+        }
+    }
+    
+    // البيانات المعتمدة حديثاً
+    const recentApproved = reportFilteredData.filter(d => {
+        if (d.status !== 'approved' || !d.approvedAt) return false;
+        const approvedDate = new Date(d.approvedAt);
+        const diffDays = Math.floor((today - approvedDate) / (1000 * 60 * 60 * 24));
+        return diffDays <= 1;
+    });
+    
+    const alertApproved = document.getElementById('alertApproved');
+    if (alertApproved) {
+        if (recentApproved.length > 0) {
+            alertApproved.textContent = 
+                `تم اعتماد ${recentApproved.length} بيانات جديدة - خلال 24 ساعة`;
+        } else {
+            alertApproved.textContent = 'لا توجد بيانات معتمدة حديثاً';
+        }
+    }
+    
+    // التنبيهات
+    const pendingCount = reportFilteredData.filter(d => d.status === 'pending').length;
+    const alertWarning = document.getElementById('alertWarning');
+    if (alertWarning) {
+        if (pendingCount > 0) {
+            alertWarning.textContent = 
+                `${pendingCount} بيانات تحتاج إلى مراجعة واعتماد`;
+        } else {
+            alertWarning.textContent = 'لا توجد بيانات تحتاج مراجعة ✓';
+        }
+    }
+}
+
+// تطبيق الفلاتر
+function applyReportFilters() {
+    const facilityId = document.getElementById('reportFacilityFilter')?.value || '';
+    const period = document.getElementById('reportPeriodFilter')?.value || '';
+    const category = document.getElementById('reportCategoryFilter')?.value || '';
+    const status = document.getElementById('reportStatusFilter')?.value || '';
+    
+    const allData = Array.isArray(kpiData) ? kpiData : [];
+    
+    reportFilteredData = allData.filter(item => {
+        let match = true;
+        
+        if (facilityId && item.facility !== facilityId) match = false;
+        if (category && item.category !== category) match = false;
+        if (status && item.status !== status) match = false;
+        if (period) {
+            const itemDate = item.date ? item.date.substring(0, 7) : '';
+            if (itemDate !== period) match = false;
+        }
+        
+        return match;
+    });
+    
+    // تحديث كل شيء
+    updateReportStatistics();
+    updateReportAlerts();
+    createReportCharts();
+    loadDetailedReportTable();
+    
+    showSuccess(`تم العثور على ${reportFilteredData.length} سجل`);
+}
+
+// إعادة تعيين الفلاتر
+function resetReportFilters() {
+    const facilityFilter = document.getElementById('reportFacilityFilter');
+    const periodFilter = document.getElementById('reportPeriodFilter');
+    const categoryFilter = document.getElementById('reportCategoryFilter');
+    const statusFilter = document.getElementById('reportStatusFilter');
+    
+    if (facilityFilter) facilityFilter.value = '';
+    if (periodFilter) periodFilter.value = '';
+    if (categoryFilter) categoryFilter.value = '';
+    if (statusFilter) statusFilter.value = '';
+    
+    applyReportFilters();
+}
+
+// إنشاء الرسوم البيانية
+function createReportCharts() {
+    createFacilityPerformanceChart();
+    createCategoryDistributionChart();
+    createMonthlyPerformanceChart();
+}
+
+// رسم بياني لأداء المنشآت
+function createFacilityPerformanceChart() {
+    const element = document.getElementById('facilityPerformanceChart');
+    if (!element) return;
+    
+    if (reportFilteredData.length === 0) {
+        element.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">لا توجد بيانات</div>';
+        return;
+    }
+    
+    // تجميع حسب المنشأة
+    const facilityData = {};
+    reportFilteredData.forEach(item => {
+        const name = item.facilityName || 'غير محدد';
+        if (!facilityData[name]) {
+            facilityData[name] = { results: [], targets: [] };
+        }
+        facilityData[name].results.push(item.result || 0);
+        facilityData[name].targets.push(item.target || 0);
+    });
+    
+    const categories = Object.keys(facilityData);
+    const avgResults = categories.map(name => {
+        const results = facilityData[name].results;
+        return results.reduce((sum, val) => sum + val, 0) / results.length;
+    });
+    
+    const avgTargets = categories.map(name => {
+        const targets = facilityData[name].targets;
+        return targets.reduce((sum, val) => sum + val, 0) / targets.length;
+    });
+    
+    const chartOptions = {
+        chart: { type: 'bar', height: 350, fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif' },
+        series: [
+            { name: 'النتيجة الفعلية', data: avgResults },
+            { name: 'المستهدف', data: avgTargets }
+        ],
+        xaxis: { categories: categories },
+        yaxis: { title: { text: 'النسبة المئوية (%)' } },
+        colors: ['#1a73e8', '#f44336'],
+        plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },
+        dataLabels: { enabled: false },
+        legend: { position: 'top' }
+    };
+    
+    element.innerHTML = '';
+    const chart = new ApexCharts(element, chartOptions);
+    chart.render();
+}
+
+// رسم بياني للتوزيع حسب الفئة
+function createCategoryDistributionChart() {
+    const element = document.getElementById('categoryDistributionChart');
+    if (!element) return;
+    
+    if (reportFilteredData.length === 0) {
+        element.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">لا توجد بيانات</div>';
+        return;
+    }
+    
+    const categoryCount = {};
+    reportFilteredData.forEach(item => {
+        const cat = KPI_CATEGORIES[item.category] || 'أخرى';
+        categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+    });
+    
+    const chartOptions = {
+        chart: { type: 'donut', height: 350, fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif' },
+        series: Object.values(categoryCount),
+        labels: Object.keys(categoryCount),
+        colors: ['#1a73e8', '#4caf50', '#ff9800', '#f44336', '#9c27b0', '#00bcd4', '#8bc34a', '#ff5722', '#607d8b'],
+        legend: { position: 'bottom' },
+        dataLabels: {
+            enabled: true,
+            formatter: function(val) {
+                return val.toFixed(1) + '%';
+            }
+        },
+        plotOptions: {
+            pie: {
+                donut: {
+                    size: '65%',
+                    labels: {
+                        show: true,
+                        total: {
+                            show: true,
+                            label: 'الإجمالي',
+                            fontSize: '16px',
+                            fontWeight: 600,
+                            formatter: function (w) {
+                                return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    };
+    
+    element.innerHTML = '';
+    const chart = new ApexCharts(element, chartOptions);
+    chart.render();
+}
+
+// رسم بياني للأداء الشهري
+function createMonthlyPerformanceChart() {
+    const element = document.getElementById('monthlyPerformanceChart');
+    if (!element) return;
+    
+    if (reportFilteredData.length === 0) {
+        element.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">لا توجد بيانات</div>';
+        return;
+    }
+    
+    const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 
+                    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    
+    const monthlyData = new Array(12).fill(0);
+    const monthlyCounts = new Array(12).fill(0);
+    
+    reportFilteredData.forEach(item => {
+        if (!item.date) return;
+        const month = new Date(item.date).getMonth();
+        monthlyData[month] += item.result || 0;
+        monthlyCounts[month]++;
+    });
+    
+    const averages = monthlyData.map((sum, index) => 
+        monthlyCounts[index] > 0 ? sum / monthlyCounts[index] : 0
+    );
+    
+    const chartOptions = {
+        chart: { type: 'area', height: 350, fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif' },
+        series: [{ name: 'متوسط الأداء', data: averages }],
+        xaxis: { categories: months },
+        yaxis: { title: { text: 'النسبة المئوية (%)' } },
+        colors: ['#1a73e8'],
+        fill: {
+            type: 'gradient',
+            gradient: { shadeIntensity: 1, opacityFrom: 0.7, opacityTo: 0.3 }
+        },
+        stroke: { curve: 'smooth', width: 2 },
+        dataLabels: { enabled: false }
+    };
+    
+    element.innerHTML = '';
+    const chart = new ApexCharts(element, chartOptions);
+    chart.render();
+}
+
+// تحميل الجدول التفصيلي
+function loadDetailedReportTable() {
+    const tbody = document.getElementById('detailedReportBody');
+    if (!tbody) return;
+    
+    if (reportFilteredData.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="text-center">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <h3>لا توجد بيانات</h3>
+                        <p>لم يتم العثور على بيانات تطابق الفلاتر</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    const sortedData = [...reportFilteredData].sort((a, b) => 
+        new Date(b.createdAt) - new Date(a.createdAt)
+    );
+    
+    tbody.innerHTML = sortedData.map(item => {
+        const kpi = getKPIByCode(item.kpiCode);
+        const kpiName = kpi ? kpi.name : item.kpiName || item.kpiCode;
+        
+        const target = item.target || 0;
+        const result = item.result || 0;
+        const deviation = result - target;
+        const deviationPercent = target > 0 ? ((deviation / target) * 100).toFixed(1) : 0;
+        
+        let performance = '';
+        let performanceClass = '';
+        
+        if (result >= target * 0.95) {
+            performance = 'ممتاز';
+            performanceClass = 'badge-success';
+        } else if (result >= target * 0.85) {
+            performance = 'جيد';
+            performanceClass = 'badge-primary';
+        } else if (result >= target * 0.70) {
+            performance = 'متوسط';
+            performanceClass = 'badge-warning';
+        } else {
+            performance = 'ضعيف';
+            performanceClass = 'badge-danger';
+        }
+        
+        return `
+            <tr>
+                <td>
+                    <strong>${item.kpiCode}</strong><br>
+                    <small style="color:#666;">${kpiName.substring(0, 40)}...</small>
+                </td>
+                <td>${item.facilityName || '-'}</td>
+                <td><span class="badge badge-primary">${KPI_CATEGORIES[item.category] || item.category}</span></td>
+                <td><strong>${target}${item.unit || '%'}</strong></td>
+                <td><strong>${result.toFixed(1)}${item.unit || '%'}</strong></td>
+                <td style="color: ${deviation >= 0 ? '#4caf50' : '#f44336'}; font-weight: 700;">
+                    ${deviation >= 0 ? '+' : ''}${deviationPercent}%
+                </td>
+                <td><span class="badge ${performanceClass}">${performance}</span></td>
+                <td>${formatDate(item.date)}</td>
+                <td>
+                    <span class="status-badge status-${item.status}">
+                        ${item.status === 'approved' ? 'معتمد' : 
+                          item.status === 'pending' ? 'قيد المراجعة' : 'مرفوض'}
+                    </span>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// تصدير التقرير الكامل
+function exportFullReport() {
+    if (reportFilteredData.length === 0) {
+        showWarning('لا توجد بيانات للتصدير');
+        return;
+    }
+    
+    const data = reportFilteredData.map(item => {
+        const kpi = getKPIByCode(item.kpiCode);
+        const deviation = (item.result || 0) - (item.target || 0);
+        const deviationPercent = item.target > 0 ? ((deviation / item.target) * 100).toFixed(1) : 0;
+        
+        return {
+            'كود المؤشر': item.kpiCode,
+            'اسم المؤشر': kpi ? kpi.name : item.kpiName,
+            'الفئة': KPI_CATEGORIES[item.category] || item.category,
+            'المنشأة': item.facilityName,
+            'التاريخ': formatDate(item.date),
+            'الفترة': item.period,
+            'المستهدف': item.target + (item.unit || '%'),
+            'النتيجة': (item.result || 0).toFixed(1) + (item.unit || '%'),
+            'الانحراف': deviationPercent + '%',
+            'الحالة': item.status === 'approved' ? 'معتمد' : 
+                      item.status === 'pending' ? 'قيد المراجعة' : 'مرفوض',
+            'المستخدم': item.userName || '-',
+            'تاريخ الإدخال': formatDateArabic(item.createdAt)
+        };
+    });
+    
+    const filename = `KPI_Full_Report_${new Date().toISOString().split('T')[0]}.csv`;
+    downloadCSV(data, filename);
+    showSuccess('✅ تم تصدير التقرير الكامل بنجاح');
+}
+
+// تصدير التقرير التفصيلي
+function exportDetailedReport() {
+    exportFullReport();
+}
+
+// تحديث التقارير
+function refreshReports() {
+    loadData();
+    loadReportsData();
+    showSuccess('تم تحديث التقارير بنجاح');
 }
 
 console.log('✅ Admin Main loaded successfully');
