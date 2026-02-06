@@ -122,14 +122,23 @@ function handleLogout() {
 // عرض معلومات المستخدم
 function displayUserInfo() {
     if (currentUser) {
-        document.getElementById('userNameDisplay').textContent = currentUser.name;
-        document.getElementById('facilityNameDisplay').textContent = currentUser.facilityName;
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        const facilityNameDisplay = document.getElementById('facilityNameDisplay');
+        
+        if (userNameDisplay) userNameDisplay.textContent = currentUser.name;
+        if (facilityNameDisplay) facilityNameDisplay.textContent = currentUser.facilityName;
     }
 }
 
 // تحميل بيانات المستخدم
 function loadUserData() {
     const allData = getFromStorage('kpiData', []);
+    
+    // التأكد من أن البيانات array
+    if (!Array.isArray(allData)) {
+        userKPIData = [];
+        return;
+    }
     
     // تصفية البيانات الخاصة بالمستخدم الحالي
     if (currentUser) {
@@ -145,7 +154,9 @@ function loadCategoriesView() {
     if (!container) return;
     
     // جلب المؤشرات المخصصة
-    const customKPIs = getFromStorage('customKPIs', []);
+    let customKPIs = getFromStorage('customKPIs', []);
+    if (!Array.isArray(customKPIs)) customKPIs = [];
+    
     const allKPIs = [...getAllKPIs(), ...customKPIs];
     
     // تجميع المؤشرات حسب الفئة
@@ -159,12 +170,14 @@ function loadCategoriesView() {
     
     // حساب التقدم لكل فئة
     const userDataByCat = {};
-    userKPIData.forEach(data => {
-        if (!userDataByCat[data.category]) {
-            userDataByCat[data.category] = 0;
-        }
-        userDataByCat[data.category]++;
-    });
+    if (Array.isArray(userKPIData)) {
+        userKPIData.forEach(data => {
+            if (!userDataByCat[data.category]) {
+                userDataByCat[data.category] = 0;
+            }
+            userDataByCat[data.category]++;
+        });
+    }
     
     // عرض البطاقات
     container.innerHTML = Object.keys(categorized).map(catCode => {
@@ -217,7 +230,9 @@ function filterKPIsBySearch() {
         return;
     }
     
-    const customKPIs = getFromStorage('customKPIs', []);
+    let customKPIs = getFromStorage('customKPIs', []);
+    if (!Array.isArray(customKPIs)) customKPIs = [];
+    
     const allKPIs = [...getAllKPIs(), ...customKPIs];
     
     const filtered = allKPIs.filter(kpi => 
@@ -264,8 +279,10 @@ function selectKPI(kpiCode) {
     
     // إذا لم يوجد، ابحث في المؤشرات المخصصة
     if (!selectedKPI) {
-        const customKPIs = getFromStorage('customKPIs', []);
-        selectedKPI = customKPIs.find(k => k.code === kpiCode);
+        let customKPIs = getFromStorage('customKPIs', []);
+        if (Array.isArray(customKPIs)) {
+            selectedKPI = customKPIs.find(k => k.code === kpiCode);
+        }
     }
     
     if (!selectedKPI) {
@@ -274,29 +291,45 @@ function selectKPI(kpiCode) {
     }
     
     // إخفاء عرض الفئات وإظهار النموذج
-    document.getElementById('categoriesView').style.display = 'none';
-    document.getElementById('kpiFormContainer').style.display = 'block';
+    const categoriesView = document.getElementById('categoriesView');
+    const kpiFormContainer = document.getElementById('kpiFormContainer');
+    
+    if (categoriesView) categoriesView.style.display = 'none';
+    if (kpiFormContainer) kpiFormContainer.style.display = 'block';
     
     // تحديث عنوان النموذج
-    document.getElementById('kpiFormTitle').textContent = 
-        `${selectedKPI.code} - ${selectedKPI.name}`;
+    const kpiFormTitle = document.getElementById('kpiFormTitle');
+    if (kpiFormTitle) {
+        kpiFormTitle.textContent = `${selectedKPI.code} - ${selectedKPI.name}`;
+    }
     
     // عرض معلومات الصيغة
-    document.getElementById('formulaInfo').innerHTML = `
-        <div class="formula-box">
-            <strong>📐 الصيغة:</strong> ${selectedKPI.formula}<br>
-            <strong>🎯 المستهدف:</strong> ${selectedKPI.target}${selectedKPI.unit}
-        </div>
-    `;
+    const formulaInfo = document.getElementById('formulaInfo');
+    if (formulaInfo) {
+        formulaInfo.innerHTML = `
+            <div class="formula-box">
+                <strong>📐 الصيغة:</strong> ${selectedKPI.formula}<br>
+                <strong>🎯 المستهدف:</strong> ${selectedKPI.target}${selectedKPI.unit}
+            </div>
+        `;
+    }
     
     // تحديث تسميات الحقول
-    document.getElementById('numeratorLabel').textContent = selectedKPI.numeratorLabel + ' *';
-    document.getElementById('denominatorLabel').textContent = selectedKPI.denominatorLabel + ' *';
+    const numeratorLabel = document.getElementById('numeratorLabel');
+    const denominatorLabel = document.getElementById('denominatorLabel');
+    
+    if (numeratorLabel) numeratorLabel.textContent = selectedKPI.numeratorLabel + ' *';
+    if (denominatorLabel) denominatorLabel.textContent = selectedKPI.denominatorLabel + ' *';
     
     // إعادة تعيين النموذج
-    document.getElementById('kpiDataForm').reset();
-    document.getElementById('kpiDate').value = new Date().toISOString().split('T')[0];
-    document.getElementById('resultBox').style.display = 'none';
+    const kpiDataForm = document.getElementById('kpiDataForm');
+    if (kpiDataForm) kpiDataForm.reset();
+    
+    const kpiDate = document.getElementById('kpiDate');
+    if (kpiDate) kpiDate.value = new Date().toISOString().split('T')[0];
+    
+    const resultBox = document.getElementById('resultBox');
+    if (resultBox) resultBox.style.display = 'none';
     
     // التمرير للنموذج
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -304,8 +337,12 @@ function selectKPI(kpiCode) {
 
 // إغلاق نموذج الإدخال
 function closeKPIForm() {
-    document.getElementById('kpiFormContainer').style.display = 'none';
-    document.getElementById('categoriesView').style.display = 'block';
+    const kpiFormContainer = document.getElementById('kpiFormContainer');
+    const categoriesView = document.getElementById('categoriesView');
+    
+    if (kpiFormContainer) kpiFormContainer.style.display = 'none';
+    if (categoriesView) categoriesView.style.display = 'block';
+    
     selectedKPI = null;
 }
 
@@ -317,12 +354,16 @@ function calculateResult() {
     if (numerator && denominator && denominator !== 0) {
         const result = calculateKPIResult(numerator, denominator);
         
-        document.getElementById('resultValue').textContent = formatPercentage(result);
-        document.getElementById('resultBox').style.display = 'block';
+        const resultValue = document.getElementById('resultValue');
+        const resultBox = document.getElementById('resultBox');
+        
+        if (resultValue) resultValue.textContent = formatPercentage(result);
+        if (resultBox) resultBox.style.display = 'block';
         
         return result;
     } else {
-        document.getElementById('resultBox').style.display = 'none';
+        const resultBox = document.getElementById('resultBox');
+        if (resultBox) resultBox.style.display = 'none';
         return 0;
     }
 }
@@ -372,7 +413,9 @@ function saveKPIData(event) {
     };
     
     // حفظ البيانات
-    const allData = getFromStorage('kpiData', []);
+    let allData = getFromStorage('kpiData', []);
+    if (!Array.isArray(allData)) allData = [];
+    
     allData.push(kpiData);
     saveToStorage('kpiData', allData);
     
@@ -397,9 +440,14 @@ function saveKPIData(event) {
 
 // إعادة تعيين النموذج
 function resetKPIForm() {
-    document.getElementById('kpiDataForm').reset();
-    document.getElementById('kpiDate').value = new Date().toISOString().split('T')[0];
-    document.getElementById('resultBox').style.display = 'none';
+    const kpiDataForm = document.getElementById('kpiDataForm');
+    if (kpiDataForm) kpiDataForm.reset();
+    
+    const kpiDate = document.getElementById('kpiDate');
+    if (kpiDate) kpiDate.value = new Date().toISOString().split('T')[0];
+    
+    const resultBox = document.getElementById('resultBox');
+    if (resultBox) resultBox.style.display = 'none';
 }
 
 // التبديل بين التبويبات
@@ -414,13 +462,20 @@ function switchTab(tabName) {
     
     // إظهار/إخفاء المحتوى المناسب
     if (tabName === 'categoriesTab') {
-        document.getElementById('categoriesView').style.display = 'block';
-        document.getElementById('categoriesTab').classList.add('active');
+        const categoriesView = document.getElementById('categoriesView');
+        const categoriesTab = document.getElementById('categoriesTab');
+        
+        if (categoriesView) categoriesView.style.display = 'block';
+        if (categoriesTab) categoriesTab.classList.add('active');
         if (event && event.target) event.target.classList.add('active');
+        
         loadCategoriesView();
     } else {
-        document.getElementById('categoriesView').style.display = 'none';
-        document.getElementById(tabName).classList.add('active');
+        const categoriesView = document.getElementById('categoriesView');
+        const selectedTab = document.getElementById(tabName);
+        
+        if (categoriesView) categoriesView.style.display = 'none';
+        if (selectedTab) selectedTab.classList.add('active');
         if (event && event.target) event.target.classList.add('active');
         
         if (tabName === 'dataHistory') {
@@ -440,7 +495,7 @@ function loadDataHistory() {
     
     loadUserData(); // تحديث البيانات
     
-    if (userKPIData.length === 0) {
+    if (!Array.isArray(userKPIData) || userKPIData.length === 0) {
         if (emptyMessage) emptyMessage.style.display = 'block';
         tbody.innerHTML = '';
         return;
@@ -483,8 +538,10 @@ function deleteMyData(id) {
     
     // حذف من البيانات العامة
     let allData = getFromStorage('kpiData', []);
-    allData = allData.filter(d => d.id !== id);
-    saveToStorage('kpiData', allData);
+    if (Array.isArray(allData)) {
+        allData = allData.filter(d => d.id !== id);
+        saveToStorage('kpiData', allData);
+    }
     
     // حذف من البيانات المحلية
     userKPIData = userKPIData.filter(d => d.id !== id);
@@ -501,8 +558,10 @@ function clearHistory() {
     
     // حذف بيانات المستخدم فقط
     let allData = getFromStorage('kpiData', []);
-    allData = allData.filter(d => d.user !== currentUser.id);
-    saveToStorage('kpiData', allData);
+    if (Array.isArray(allData)) {
+        allData = allData.filter(d => d.user !== currentUser.id);
+        saveToStorage('kpiData', allData);
+    }
     
     userKPIData = [];
     
@@ -516,23 +575,32 @@ function clearHistory() {
 function updateExportStats() {
     loadUserData();
     
-    document.getElementById('statsCount').textContent = userKPIData.length;
-    document.getElementById('statsFacility').textContent = currentUser ? currentUser.facilityName : '-';
+    const statsCount = document.getElementById('statsCount');
+    const statsFacility = document.getElementById('statsFacility');
+    const statsDate = document.getElementById('statsDate');
     
-    if (userKPIData.length > 0) {
+    if (statsCount) {
+        statsCount.textContent = Array.isArray(userKPIData) ? userKPIData.length : 0;
+    }
+    
+    if (statsFacility) {
+        statsFacility.textContent = currentUser ? currentUser.facilityName : '-';
+    }
+    
+    if (statsDate && Array.isArray(userKPIData) && userKPIData.length > 0) {
         const latestDate = userKPIData.reduce((latest, data) => {
             return new Date(data.createdAt) > new Date(latest) ? data.createdAt : latest;
         }, userKPIData[0].createdAt);
         
-        document.getElementById('statsDate').textContent = formatDateArabic(latestDate);
-    } else {
-        document.getElementById('statsDate').textContent = '-';
+        statsDate.textContent = formatDateArabic(latestDate);
+    } else if (statsDate) {
+        statsDate.textContent = '-';
     }
 }
 
 // تصدير إلى CSV
 function exportToCSV() {
-    if (userKPIData.length === 0) {
+    if (!Array.isArray(userKPIData) || userKPIData.length === 0) {
         showWarning('لا توجد بيانات للتصدير');
         return;
     }
@@ -559,7 +627,7 @@ function exportToCSV() {
 
 // تصدير إلى JSON
 function exportToJSON() {
-    if (userKPIData.length === 0) {
+    if (!Array.isArray(userKPIData) || userKPIData.length === 0) {
         showWarning('لا توجد بيانات للتصدير');
         return;
     }
@@ -582,8 +650,8 @@ function exportToJSON() {
 
 // طباعة البيانات
 function printData() {
-    if (userKPIData.length === 0) {
-        showWarning('لا توجد بيانات لل��باعة');
+    if (!Array.isArray(userKPIData) || userKPIData.length === 0) {
+        showWarning('لا توجد بيانات للطباعة');
         return;
     }
     
