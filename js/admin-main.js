@@ -24,7 +24,7 @@ function initializeAdminPanel() {
         showAdminPanel();
     }
 
-    // تحميل البيا��ات من LocalStorage
+    // تحميل البيانات من LocalStorage
     loadData();
 }
 
@@ -88,7 +88,7 @@ function displayUserInfo() {
         document.getElementById('userRoleDisplay').textContent = 
             currentUser.role === 'admin' ? 'مدير النظام' : 'مشرف';
         
-        if (currentUser.facility) {
+        if (currentUser.facility && Array.isArray(facilities)) {
             const facility = facilities.find(f => f.id === currentUser.facility);
             document.getElementById('userFacilityDisplay').textContent = 
                 facility ? facility.name : '-';
@@ -96,15 +96,42 @@ function displayUserInfo() {
     }
 }
 
-// تحميل البيانات
+// تحميل البيانات - محدث
 function loadData() {
-    facilities = getFromStorage('facilities', getDefaultFacilities());
-    users = getFromStorage('users', getDefaultUsers());
-    kpiData = getFromStorage('kpiData', []);
+    // جلب البيانات من LocalStorage
+    let storedFacilities = getFromStorage('facilities', null);
+    let storedUsers = getFromStorage('users', null);
+    let storedKpiData = getFromStorage('kpiData', null);
     
-    // حفظ البيانات الافتراضية إذا لم تكن موجودة
-    if (facilities.length > 0) saveToStorage('facilities', facilities);
-    if (users.length > 0) saveToStorage('users', users);
+    // التحقق من أنها arrays صحيحة
+    if (Array.isArray(storedFacilities)) {
+        facilities = storedFacilities;
+    } else {
+        facilities = getDefaultFacilities();
+    }
+    
+    if (Array.isArray(storedUsers)) {
+        users = storedUsers;
+    } else {
+        users = getDefaultUsers();
+    }
+    
+    if (Array.isArray(storedKpiData)) {
+        kpiData = storedKpiData;
+    } else {
+        kpiData = [];
+    }
+    
+    // حفظ البيانات الافتراضية
+    saveToStorage('facilities', facilities);
+    saveToStorage('users', users);
+    saveToStorage('kpiData', kpiData);
+    
+    console.log('✅ Data loaded:', {
+        facilities: facilities.length,
+        users: users.length,
+        kpiData: kpiData.length
+    });
 }
 
 // الحصول على منشآت افتراضية
@@ -137,7 +164,7 @@ function getDefaultFacilities() {
     ];
 }
 
-// الحصول على مستخدمين افتراضيين
+// الحصول على مستخدمين افترا��يين
 function getDefaultUsers() {
     return [
         {
@@ -171,20 +198,26 @@ function loadDashboard() {
     createDashboardCharts('dashboardCharts');
 }
 
-// تحديث الإحصائيات
+// تحديث الإحصائيات - محدث
 function updateStatistics() {
     // جلب المؤشرات المخصصة
     const customKPIs = getFromStorage('customKPIs', []);
-    const totalKPIs = KPI_DATA.length + customKPIs.length;
+    const totalKPIs = KPI_DATA.length + (Array.isArray(customKPIs) ? customKPIs.length : 0);
     
-    document.getElementById('totalFacilities').textContent = facilities.length;
-    document.getElementById('totalUsers').textContent = users.length;
+    // التأكد من أن البيانات arrays
+    const safeFacilities = Array.isArray(facilities) ? facilities : [];
+    const safeUsers = Array.isArray(users) ? users : [];
+    const safeKpiData = Array.isArray(kpiData) ? kpiData : [];
+    
+    document.getElementById('totalFacilities').textContent = safeFacilities.length;
+    document.getElementById('totalUsers').textContent = safeUsers.length;
     document.getElementById('totalKPIs').textContent = totalKPIs;
-    document.getElementById('totalData').textContent = kpiData.length;
+    document.getElementById('totalData').textContent = safeKpiData.length;
     
     // حساب البيانات الشهرية
     const thisMonth = new Date().getMonth();
-    const monthlyData = kpiData.filter(item => {
+    const monthlyData = safeKpiData.filter(item => {
+        if (!item || !item.date) return false;
         const itemMonth = new Date(item.date).getMonth();
         return itemMonth === thisMonth;
     });
@@ -209,7 +242,9 @@ function switchView(viewName) {
     }
     
     // تفعيل الرابط المحدد
-    event.target.classList.add('active');
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
     
     // تحميل محتوى الصفحة
     switch(viewName) {
@@ -235,7 +270,11 @@ function switchView(viewName) {
 function loadFacilities() {
     const tbody = document.querySelector('#facilitiesTable tbody');
     
-    if (facilities.length === 0) {
+    if (!tbody) return;
+    
+    const safeFacilities = Array.isArray(facilities) ? facilities : [];
+    
+    if (safeFacilities.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="8" class="text-center">
@@ -250,7 +289,7 @@ function loadFacilities() {
         return;
     }
     
-    tbody.innerHTML = facilities.map(facility => `
+    tbody.innerHTML = safeFacilities.map(facility => `
         <tr>
             <td>${facility.code}</td>
             <td>${facility.name}</td>
@@ -355,7 +394,11 @@ function deleteFacility(id) {
 function loadUsers() {
     const tbody = document.querySelector('#usersTable tbody');
     
-    if (users.length === 0) {
+    if (!tbody) return;
+    
+    const safeUsers = Array.isArray(users) ? users : [];
+    
+    if (safeUsers.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="7" class="text-center">
@@ -370,7 +413,7 @@ function loadUsers() {
         return;
     }
     
-    tbody.innerHTML = users.map(user => {
+    tbody.innerHTML = safeUsers.map(user => {
         const facility = facilities.find(f => f.id === user.facility);
         return `
             <tr>
@@ -491,8 +534,11 @@ function deleteUser(id) {
 function loadKPIsManagement() {
     const container = document.getElementById('kpisManagementContainer');
     
+    if (!container) return;
+    
     // جلب المؤشرات المخصصة من LocalStorage
     let customKPIs = getFromStorage('customKPIs', []);
+    if (!Array.isArray(customKPIs)) customKPIs = [];
     
     // دمج المؤشرات الافتراضية مع المخصصة
     const allKPIs = [...KPI_DATA, ...customKPIs];
@@ -586,7 +632,7 @@ function editKPI(code) {
     document.getElementById('kpiModalTitle').textContent = 'تعديل المؤشر';
     document.getElementById('kpiIdField').value = kpi.code;
     document.getElementById('kpiCode').value = kpi.code;
-    document.getElementById('kpiCode').disabled = true; // منع تعديل الكود
+    document.getElementById('kpiCode').disabled = true;
     document.getElementById('kpiName').value = kpi.name;
     document.getElementById('kpiFormula').value = kpi.formula;
     document.getElementById('kpiNumeratorLabel').value = kpi.numeratorLabel;
@@ -625,7 +671,8 @@ function saveKPI(event) {
         return;
     }
     
-    const customKPIs = getFromStorage('customKPIs', []);
+    let customKPIs = getFromStorage('customKPIs', []);
+    if (!Array.isArray(customKPIs)) customKPIs = [];
     
     if (oldCode) {
         // تحديث مؤشر موجود
@@ -757,7 +804,11 @@ function importKPIs() {
 function loadDataTable() {
     const tbody = document.querySelector('#dataTable tbody');
     
-    if (kpiData.length === 0) {
+    if (!tbody) return;
+    
+    const safeKpiData = Array.isArray(kpiData) ? kpiData : [];
+    
+    if (safeKpiData.length === 0) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="7" class="text-center">
@@ -772,7 +823,7 @@ function loadDataTable() {
         return;
     }
     
-    tbody.innerHTML = kpiData.map(data => {
+    tbody.innerHTML = safeKpiData.map(data => {
         const facility = facilities.find(f => f.id === data.facility);
         const user = users.find(u => u.id === data.user);
         const kpi = getKPIByCode(data.kpiCode);
