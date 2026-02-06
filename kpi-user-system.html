@@ -66,6 +66,11 @@
         .category-card.mp .category-code { background: rgba(244, 67, 54, 0.1); color: #f44336; }
         .category-card.phc .category-code { background: rgba(255, 152, 0, 0.1); color: #ff9800; }
         .category-card.ipc .category-code { background: rgba(156, 39, 176, 0.1); color: #9c27b0; }
+        .category-card.ps .category-code { background: rgba(233, 30, 99, 0.1); color: #e91e63; }
+        .category-card.ohs .category-code { background: rgba(0, 188, 212, 0.1); color: #00bcd4; }
+        .category-card.mm .category-code { background: rgba(139, 195, 74, 0.1); color: #8bc34a; }
+        .category-card.lab .category-code { background: rgba(255, 87, 34, 0.1); color: #ff5722; }
+        .category-card.df .category-code { background: rgba(96, 125, 139, 0.1); color: #607d8b; }
 
         .category-name {
             font-size: 1.2rem;
@@ -171,6 +176,18 @@
             background: #f5f5f5;
             transform: translateX(5px);
         }
+
+        .kpi-form-container {
+            display: none;
+        }
+
+        .formula-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-right: 4px solid #1a73e8;
+        }
     </style>
 </head>
 <body>
@@ -180,10 +197,10 @@
             <div class="login-header">
                 <div class="login-logo">👤</div>
                 <h1>نظام المستخدم</h1>
-                <p>إدخال ب��انات مؤشرات الأداء</p>
+                <p>إدخال بيانات مؤشرات الأداء</p>
             </div>
 
-            <div class="login-error" id="loginError"></div>
+            <div class="login-error" id="loginError" style="display: none;"></div>
 
             <form id="loginForm" class="login-form" onsubmit="handleLogin(event)">
                 <div class="form-group">
@@ -200,7 +217,7 @@
                     <label>
                         <input type="checkbox"> تذكرني
                     </label>
-                    <a href="#" onclick="alert('يرجى التواصل مع المسؤول')">نسيت كلمة المرور؟</a>
+                    <a href="#" onclick="alert('يرجى التواصل مع المسؤول'); return false;">نسيت كلمة المرور؟</a>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-block">
@@ -217,7 +234,7 @@
     </div>
 
     <!-- صفحة التطبيق -->
-    <div id="appPage" class="app-page">
+    <div id="appPage" class="app-page" style="display: none;">
         <!-- Header -->
         <header class="app-header">
             <h1>📊 نظام إدخال مؤشرات الأداء</h1>
@@ -276,7 +293,7 @@
                             </div>
                         </div>
 
-                        <div class="result-box" id="resultBox">
+                        <div class="result-box" id="resultBox" style="display: none;">
                             <div class="result-label">النتيجة المحسوبة</div>
                             <div class="result-value" id="resultValue">0.00%</div>
                         </div>
@@ -315,7 +332,7 @@
             <!-- Tabs -->
             <div class="tabs-container">
                 <div class="tabs">
-                    <button class="tab-btn" onclick="switchTab('categoriesTab')">
+                    <button class="tab-btn active" onclick="switchTab('categoriesTab')">
                         📋 المؤشرات
                     </button>
                     <button class="tab-btn" onclick="switchTab('dataHistory')">
@@ -341,7 +358,7 @@
                             </button>
                         </div>
 
-                        <div class="empty-message" id="emptyMessage">
+                        <div class="empty-message" id="emptyMessage" style="display: none;">
                             <div class="empty-icon">📭</div>
                             <h3>لا توجد بيانات</h3>
                             <p>لم تقم بإدخال أي بيانات بعد</p>
@@ -400,7 +417,7 @@
                             </button>
                         </div>
 
-                        <div class="alert alert-info mt-3">
+                        <div class="alert alert-info mt-3" style="background: #e3f2fd; padding: 15px; border-radius: 8px; display: flex; gap: 10px;">
                             <span>💡</span>
                             <div>
                                 <strong>نصيحة:</strong> يمكنك تصدير البيانات بتنسيقات مختلفة لاستخدامها في التقارير أو مشاركتها مع فريقك.
@@ -416,9 +433,6 @@
     <script src="./js/utils.js"></script>
     <script src="./js/kpi-data.js"></script>
     <script src="./js/charts.js"></script>
-    <script>
-        // إضافة دالة loadCategoriesView في user-main.js
-    </script>
     <script src="./js/user-main.js"></script>
 </body>
 </html>
