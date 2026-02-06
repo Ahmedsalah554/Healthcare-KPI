@@ -9,6 +9,169 @@
     <link rel="stylesheet" href="./css/components.css">
     <link rel="stylesheet" href="./css/user-styles.css">
     <link rel="stylesheet" href="./css/charts.css">
+    
+    <style>
+        /* استايل إضافي للتصميم الجديد */
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .category-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-right: 5px solid;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .category-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .category-card.wfm { border-right-color: #1a73e8; }
+        .category-card.utz { border-right-color: #4caf50; }
+        .category-card.mp { border-right-color: #f44336; }
+        .category-card.phc { border-right-color: #ff9800; }
+        .category-card.ipc { border-right-color: #9c27b0; }
+        .category-card.ps { border-right-color: #e91e63; }
+        .category-card.ohs { border-right-color: #00bcd4; }
+        .category-card.mm { border-right-color: #8bc34a; }
+        .category-card.lab { border-right-color: #ff5722; }
+        .category-card.df { border-right-color: #607d8b; }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .category-code {
+            font-size: 0.9rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(26, 115, 232, 0.1);
+            color: #1a73e8;
+        }
+
+        .category-card.wfm .category-code { background: rgba(26, 115, 232, 0.1); color: #1a73e8; }
+        .category-card.utz .category-code { background: rgba(76, 175, 80, 0.1); color: #4caf50; }
+        .category-card.mp .category-code { background: rgba(244, 67, 54, 0.1); color: #f44336; }
+        .category-card.phc .category-code { background: rgba(255, 152, 0, 0.1); color: #ff9800; }
+        .category-card.ipc .category-code { background: rgba(156, 39, 176, 0.1); color: #9c27b0; }
+
+        .category-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .category-progress {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .kpis-list {
+            margin-top: 20px;
+            display: none;
+        }
+
+        .kpis-list.active {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                max-height: 0;
+            }
+            to {
+                opacity: 1;
+                max-height: 2000px;
+            }
+        }
+
+        .kpi-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-right: 3px solid #1a73e8;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .kpi-item:hover {
+            background: #e3f2fd;
+            transform: translateX(-5px);
+        }
+
+        .kpi-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .kpi-item-code {
+            font-weight: 700;
+            color: #1a73e8;
+            font-size: 0.9rem;
+        }
+
+        .kpi-item-name {
+            font-size: 0.95rem;
+            color: #333;
+            margin-top: 5px;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .page-header .breadcrumb {
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            color: #1a73e8;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .back-button:hover {
+            background: #f5f5f5;
+            transform: translateX(5px);
+        }
+    </style>
 </head>
 <body>
     <!-- صفحة تسجيل الدخول -->
@@ -17,7 +180,7 @@
             <div class="login-header">
                 <div class="login-logo">👤</div>
                 <h1>نظام المستخدم</h1>
-                <p>إدخا�� بيانات مؤشرات الأداء</p>
+                <p>إدخال ب��انات مؤشرات الأداء</p>
             </div>
 
             <div class="login-error" id="loginError"></div>
@@ -72,9 +235,12 @@
             <!-- نموذج إدخال المؤشر -->
             <div id="kpiFormContainer" class="kpi-form-container">
                 <div class="kpi-form">
+                    <button class="back-button" onclick="closeKPIForm()">
+                        ← العودة للقائمة
+                    </button>
+
                     <div class="kpi-form-header">
                         <h2 class="kpi-form-title" id="kpiFormTitle">اختر مؤشراً للبدء</h2>
-                        <button class="btn-close-form" onclick="closeKPIForm()">×</button>
                     </div>
 
                     <div id="formulaInfo"></div>
@@ -132,11 +298,25 @@
                 </div>
             </div>
 
+            <!-- قائمة الفئات والمؤشرات -->
+            <div id="categoriesView">
+                <div class="page-header">
+                    <h1>📋 إدخال بيانات المؤشرات</h1>
+                    <div class="breadcrumb">الوحدة: وحدة الطوارئ — المستشفى: <span id="facilityBreadcrumb">مستشفى القصر العيني</span></div>
+                </div>
+
+                <div class="kpi-search" style="margin-bottom: 20px;">
+                    <input type="text" id="kpiSearch" placeholder="🔍 ابحث عن مؤشر..." oninput="filterKPIsBySearch()">
+                </div>
+
+                <div id="categoriesContainer" class="categories-grid"></div>
+            </div>
+
             <!-- Tabs -->
             <div class="tabs-container">
                 <div class="tabs">
-                    <button class="tab-btn active" onclick="switchTab('kpiList')">
-                        📋 قائمة المؤشرات
+                    <button class="tab-btn" onclick="switchTab('categoriesTab')">
+                        📋 المؤشرات
                     </button>
                     <button class="tab-btn" onclick="switchTab('dataHistory')">
                         📊 البيانات المدخلة
@@ -146,16 +326,9 @@
                     </button>
                 </div>
 
-                <!-- Tab 1: قائمة المؤشرات -->
-                <div id="kpiList" class="tab-content active">
-                    <div class="kpi-list-header">
-                        <h2>اختر المؤشر لإدخال البيانات</h2>
-                        <div class="kpi-search">
-                            <input type="text" id="kpiSearch" placeholder="🔍 ابحث عن مؤشر..." oninput="filterKPIs()">
-                        </div>
-                    </div>
-
-                    <div class="grid" id="kpiListContainer"></div>
+                <!-- Tab 1: المؤشرات -->
+                <div id="categoriesTab" class="tab-content active">
+                    <!-- المحتوى يظهر في categoriesView -->
                 </div>
 
                 <!-- Tab 2: البيانات المدخلة -->
@@ -243,6 +416,9 @@
     <script src="./js/utils.js"></script>
     <script src="./js/kpi-data.js"></script>
     <script src="./js/charts.js"></script>
+    <script>
+        // إضافة دالة loadCategoriesView في user-main.js
+    </script>
     <script src="./js/user-main.js"></script>
 </body>
 </html>
