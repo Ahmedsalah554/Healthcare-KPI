@@ -48,14 +48,22 @@ function showAppPage() {
     // عرض معلومات المستخدم
     displayUserInfo();
     
-    // تحميل قائمة المؤشرات
-    loadKPIList();
+    // تحميل عرض الفئات الجديد
+    loadCategoriesView();
     
     // تحميل البيانات المدخلة
     loadDataHistory();
     
     // تحديث إحصائيات التصدير
     updateExportStats();
+    
+    // تحديث breadcrumb
+    if (currentUser) {
+        const breadcrumb = document.getElementById('facilityBreadcrumb');
+        if (breadcrumb) {
+            breadcrumb.textContent = currentUser.facilityName;
+        }
+    }
 }
 
 // معالجة تسجيل الدخول
@@ -131,51 +139,96 @@ function loadUserData() {
     }
 }
 
-// تحميل قائمة المؤشرات
-function loadKPIList() {
-    const container = document.getElementById('kpiListContainer');
-    
+// عرض الفئات والمؤشرات بالتصميم الجديد
+function loadCategoriesView() {
+    const container = document.getElementById('categoriesContainer');
     if (!container) return;
     
     // جلب المؤشرات المخصصة
     const customKPIs = getFromStorage('customKPIs', []);
     const allKPIs = [...getAllKPIs(), ...customKPIs];
     
-    container.innerHTML = allKPIs.map(kpi => `
-        <div class="kpi-card" onclick="selectKPI('${kpi.code}')">
-            <div class="kpi-code">${kpi.code}</div>
-            <div class="kpi-name">${kpi.name}</div>
-            <div class="kpi-status">
-                <span class="badge badge-primary">${KPI_CATEGORIES[kpi.category]}</span>
-                ${kpi.custom ? '<span class="badge badge-success" style="margin-right: 5px;">مخصص</span>' : ''}
+    // تجميع المؤشرات حسب الفئة
+    const categorized = {};
+    allKPIs.forEach(kpi => {
+        if (!categorized[kpi.category]) {
+            categorized[kpi.category] = [];
+        }
+        categorized[kpi.category].push(kpi);
+    });
+    
+    // حساب التقدم لكل فئة
+    const userDataByCat = {};
+    userKPIData.forEach(data => {
+        if (!userDataByCat[data.category]) {
+            userDataByCat[data.category] = 0;
+        }
+        userDataByCat[data.category]++;
+    });
+    
+    // عرض البطاقات
+    container.innerHTML = Object.keys(categorized).map(catCode => {
+        const kpis = categorized[catCode];
+        const completed = userDataByCat[catCode] || 0;
+        const total = kpis.length;
+        const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+        
+        return `
+            <div class="category-card ${catCode.toLowerCase()}" onclick="toggleCategory('${catCode}')">
+                <div class="category-header">
+                    <span class="category-code">${catCode}</span>
+                </div>
+                <div class="category-name">${KPI_CATEGORIES[catCode]}</div>
+                <div class="category-progress">
+                    ${completed}/${total} مؤشر مكتمل (${percentage}%)
+                </div>
+                
+                <div class="kpis-list" id="cat-${catCode}">
+                    ${kpis.map(kpi => `
+                        <div class="kpi-item" onclick="event.stopPropagation(); selectKPI('${kpi.code}')">
+                            <div class="kpi-item-header">
+                                <span class="kpi-item-code">${kpi.code}</span>
+                                ${kpi.custom ? '<span class="badge badge-success" style="font-size: 0.75rem;">مخصص</span>' : ''}
+                            </div>
+                            <div class="kpi-item-name">${kpi.name}</div>
+                        </div>
+                    `).join('')}
+                </div>
             </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
+}
+
+// التبديل بين إظهار وإخفاء مؤشرات الفئة
+function toggleCategory(catCode) {
+    const list = document.getElementById(`cat-${catCode}`);
+    if (list) {
+        list.classList.toggle('active');
+    }
 }
 
 // البحث في المؤشرات
-function filterKPIs() {
-    const searchTerm = document.getElementById('kpiSearch').value;
-    const container = document.getElementById('kpiListContainer');
+function filterKPIsBySearch() {
+    const searchTerm = document.getElementById('kpiSearch').value.toLowerCase();
+    const container = document.getElementById('categoriesContainer');
     
     if (!searchTerm) {
-        loadKPIList();
+        loadCategoriesView();
         return;
     }
     
     const customKPIs = getFromStorage('customKPIs', []);
     const allKPIs = [...getAllKPIs(), ...customKPIs];
     
-    const filteredKPIs = allKPIs.filter(kpi => 
-        kpi.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        kpi.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        kpi.category.toLowerCase().includes(searchTerm.toLowerCase())
+    const filtered = allKPIs.filter(kpi => 
+        kpi.code.toLowerCase().includes(searchTerm) ||
+        kpi.name.toLowerCase().includes(searchTerm)
     );
     
-    if (filteredKPIs.length === 0) {
+    if (filtered.length === 0) {
         container.innerHTML = `
-            <div class="empty-state" style="grid-column: 1/-1;">
-                <div class="empty-state-icon">🔍</div>
+            <div style="grid-column: 1/-1; text-align: center; padding: 60px 20px; color: #999;">
+                <div style="font-size: 4rem; margin-bottom: 20px;">🔍</div>
                 <h3>لا توجد نتائج</h3>
                 <p>لم يتم العثور على مؤشرات تطابق البحث</p>
             </div>
@@ -183,16 +236,25 @@ function filterKPIs() {
         return;
     }
     
-    container.innerHTML = filteredKPIs.map(kpi => `
-        <div class="kpi-card" onclick="selectKPI('${kpi.code}')">
-            <div class="kpi-code">${kpi.code}</div>
-            <div class="kpi-name">${kpi.name}</div>
-            <div class="kpi-status">
+    container.innerHTML = filtered.map(kpi => `
+        <div class="kpi-item" onclick="selectKPI('${kpi.code}')" style="cursor: pointer; padding: 15px; background: white; border-radius: 8px; border-right: 3px solid #1a73e8; margin-bottom: 10px;">
+            <div class="kpi-item-header">
+                <span class="kpi-item-code">${kpi.code}</span>
                 <span class="badge badge-primary">${KPI_CATEGORIES[kpi.category]}</span>
-                ${kpi.custom ? '<span class="badge badge-success" style="margin-right: 5px;">مخصص</span>' : ''}
             </div>
+            <div class="kpi-item-name">${kpi.name}</div>
         </div>
     `).join('');
+}
+
+// تحميل قائمة المؤشرات (القديمة - للتوافق)
+function loadKPIList() {
+    loadCategoriesView();
+}
+
+// البحث في المؤشرات (القديمة - للتوافق)
+function filterKPIs() {
+    filterKPIsBySearch();
 }
 
 // اختيار مؤشر
@@ -211,9 +273,9 @@ function selectKPI(kpiCode) {
         return;
     }
     
-    // إظهار نموذج الإدخال
-    const formContainer = document.getElementById('kpiFormContainer');
-    formContainer.style.display = 'block';
+    // إخفاء عرض الفئات وإظهار النموذج
+    document.getElementById('categoriesView').style.display = 'none';
+    document.getElementById('kpiFormContainer').style.display = 'block';
     
     // تحديث عنوان النموذج
     document.getElementById('kpiFormTitle').textContent = 
@@ -237,12 +299,13 @@ function selectKPI(kpiCode) {
     document.getElementById('resultBox').style.display = 'none';
     
     // التمرير للنموذج
-    smoothScrollTo('kpiFormContainer');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // إغلاق نموذج الإدخال
 function closeKPIForm() {
     document.getElementById('kpiFormContainer').style.display = 'none';
+    document.getElementById('categoriesView').style.display = 'block';
     selectedKPI = null;
 }
 
@@ -321,6 +384,10 @@ function saveKPIData(event) {
     // إعادة تعيين النموذج
     resetKPIForm();
     
+    // العودة لعرض الفئات
+    closeKPIForm();
+    loadCategoriesView();
+    
     // تحديث جدول البيانات
     loadDataHistory();
     
@@ -345,15 +412,22 @@ function switchTab(tabName) {
     const buttons = document.querySelectorAll('.tab-btn');
     buttons.forEach(btn => btn.classList.remove('active'));
     
-    // إظهار التبويب المحدد
-    document.getElementById(tabName).classList.add('active');
-    event.target.classList.add('active');
-    
-    // تحميل محتوى التبويب
-    if (tabName === 'dataHistory') {
-        loadDataHistory();
-    } else if (tabName === 'export') {
-        updateExportStats();
+    // إظهار/إخفاء المحتوى المناسب
+    if (tabName === 'categoriesTab') {
+        document.getElementById('categoriesView').style.display = 'block';
+        document.getElementById('categoriesTab').classList.add('active');
+        if (event && event.target) event.target.classList.add('active');
+        loadCategoriesView();
+    } else {
+        document.getElementById('categoriesView').style.display = 'none';
+        document.getElementById(tabName).classList.add('active');
+        if (event && event.target) event.target.classList.add('active');
+        
+        if (tabName === 'dataHistory') {
+            loadDataHistory();
+        } else if (tabName === 'export') {
+            updateExportStats();
+        }
     }
 }
 
@@ -388,7 +462,7 @@ function loadDataHistory() {
             <td>${formatNumber(data.denominator)}</td>
             <td><strong>${formatPercentage(data.result)}</strong></td>
             <td>
-                <div style="display: flex; gap: 5px;">
+                <div style="display: flex; gap: 5px; align-items: center;">
                     <span class="status-badge status-${data.status}">
                         ${data.status === 'approved' ? '✅ معتمد' : 
                           data.status === 'pending' ? '⏳ قيد المراجعة' : 
@@ -418,6 +492,7 @@ function deleteMyData(id) {
     showSuccess('تم حذف البيانات بنجاح');
     loadDataHistory();
     updateExportStats();
+    loadCategoriesView(); // تحديث العداد
 }
 
 // مسح كل البيانات
@@ -434,6 +509,7 @@ function clearHistory() {
     showSuccess('تم مسح جميع البيانات');
     loadDataHistory();
     updateExportStats();
+    loadCategoriesView(); // تحديث العداد
 }
 
 // تحديث إحصائيات التصدير
@@ -507,7 +583,7 @@ function exportToJSON() {
 // طباعة البيانات
 function printData() {
     if (userKPIData.length === 0) {
-        showWarning('لا توجد بيانات للطباعة');
+        showWarning('لا توجد بيانات لل��باعة');
         return;
     }
     
@@ -605,3 +681,4 @@ function printData() {
 
 console.log('✅ User Main loaded successfully');
 console.log('📊 KPI System - User Panel Ready!');
+console.log('🎨 New Categories View Loaded!');
