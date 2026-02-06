@@ -96,9 +96,13 @@ function createLineChart(elementId, data, options = {}) {
         ...options
     };
 
-    const chart = new ApexCharts(document.querySelector(`#${elementId}`), chartOptions);
-    chart.render();
-    return chart;
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = '';
+        const chart = new ApexCharts(element, chartOptions);
+        chart.render();
+        return chart;
+    }
 }
 
 // رسم بياني عمودي
@@ -130,9 +134,13 @@ function createBarChart(elementId, data, options = {}) {
         ...options
     };
 
-    const chart = new ApexCharts(document.querySelector(`#${elementId}`), chartOptions);
-    chart.render();
-    return chart;
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = '';
+        const chart = new ApexCharts(element, chartOptions);
+        chart.render();
+        return chart;
+    }
 }
 
 // رسم بياني دائري
@@ -158,9 +166,13 @@ function createPieChart(elementId, data, options = {}) {
         ...options
     };
 
-    const chart = new ApexCharts(document.querySelector(`#${elementId}`), chartOptions);
-    chart.render();
-    return chart;
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = '';
+        const chart = new ApexCharts(element, chartOptions);
+        chart.render();
+        return chart;
+    }
 }
 
 // رسم بياني دائري مفرغ (Donut)
@@ -193,9 +205,13 @@ function createDonutChart(elementId, data, options = {}) {
         ...options
     };
 
-    const chart = new ApexCharts(document.querySelector(`#${elementId}`), chartOptions);
-    chart.render();
-    return chart;
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = '';
+        const chart = new ApexCharts(element, chartOptions);
+        chart.render();
+        return chart;
+    }
 }
 
 // رسم بياني مساحي
@@ -223,9 +239,13 @@ function createAreaChart(elementId, data, options = {}) {
         ...options
     };
 
-    const chart = new ApexCharts(document.querySelector(`#${elementId}`), chartOptions);
-    chart.render();
-    return chart;
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = '';
+        const chart = new ApexCharts(element, chartOptions);
+        chart.render();
+        return chart;
+    }
 }
 
 // رسم بياني راداري
@@ -244,9 +264,13 @@ function createRadarChart(elementId, data, options = {}) {
         ...options
     };
 
-    const chart = new ApexCharts(document.querySelector(`#${elementId}`), chartOptions);
-    chart.render();
-    return chart;
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = '';
+        const chart = new ApexCharts(element, chartOptions);
+        chart.render();
+        return chart;
+    }
 }
 
 // رسم بياني مختلط
@@ -270,13 +294,25 @@ function createMixedChart(elementId, data, options = {}) {
         ...options
     };
 
-    const chart = new ApexCharts(document.querySelector(`#${elementId}`), chartOptions);
-    chart.render();
-    return chart;
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = '';
+        const chart = new ApexCharts(element, chartOptions);
+        chart.render();
+        return chart;
+    }
 }
 
 // رسم بياني للاتجاهات
 function createTrendChart(elementId, kpiData) {
+    if (!Array.isArray(kpiData) || kpiData.length === 0) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">لا توجد بيانات لعرض الرسم البياني</div>';
+        }
+        return;
+    }
+
     const categories = kpiData.map(item => formatDate(item.date));
     const results = kpiData.map(item => item.result);
     const targets = kpiData.map(item => item.target || 0);
@@ -316,13 +352,25 @@ function createTrendChart(elementId, kpiData) {
         }
     };
 
-    const chart = new ApexCharts(document.querySelector(`#${elementId}`), chartOptions);
-    chart.render();
-    return chart;
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = '';
+        const chart = new ApexCharts(element, chartOptions);
+        chart.render();
+        return chart;
+    }
 }
 
 // رسم بياني للمقارنة بين المنشآت
 function createFacilityComparisonChart(elementId, data) {
+    if (!Array.isArray(data) || data.length === 0) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">لا توجد بيانات لعرض الرسم البياني</div>';
+        }
+        return;
+    }
+
     const facilities = [...new Set(data.map(item => item.facilityName))];
     const kpiCodes = [...new Set(data.map(item => item.kpiCode))];
 
@@ -354,26 +402,53 @@ function createFacilityComparisonChart(elementId, data) {
         colors: CHART_COLORS_ARRAY
     };
 
-    const chart = new ApexCharts(document.querySelector(`#${elementId}`), chartOptions);
-    chart.render();
-    return chart;
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = '';
+        const chart = new ApexCharts(element, chartOptions);
+        chart.render();
+        return chart;
+    }
 }
 
-// رسم بياني حسب الفئة
+// رسم بياني حسب الفئة - محدث
 function createCategoryChart(elementId, data) {
+    // التحقق من البيانات
+    if (!data || !Array.isArray(data) || data.length === 0) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">لا توجد بيانات لعرض الرسم البياني</div>';
+        }
+        return;
+    }
+    
     const categories = {};
     
     data.forEach(item => {
+        if (!item || !item.category) return;
+        
         const category = KPI_CATEGORIES[item.category] || item.category;
         if (!categories[category]) {
             categories[category] = [];
         }
-        categories[category].push(item.result);
+        if (typeof item.result === 'number') {
+            categories[category].push(item.result);
+        }
     });
 
     const labels = Object.keys(categories);
+    
+    if (labels.length === 0) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">لا توجد بيانات صالحة</div>';
+        }
+        return;
+    }
+    
     const averages = labels.map(label => {
         const values = categories[label];
+        if (values.length === 0) return 0;
         return values.reduce((sum, val) => sum + val, 0) / values.length;
     });
 
@@ -396,13 +471,25 @@ function createCategoryChart(elementId, data) {
         }
     };
 
-    const chart = new ApexCharts(document.querySelector(`#${elementId}`), chartOptions);
-    chart.render();
-    return chart;
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = '';
+        const chart = new ApexCharts(element, chartOptions);
+        chart.render();
+        return chart;
+    }
 }
 
 // رسم بياني للحالة (معتمد، قيد المراجعة، مرفوض)
 function createStatusChart(elementId, data) {
+    if (!Array.isArray(data) || data.length === 0) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">لا توجد بيانات لعرض الرسم البياني</div>';
+        }
+        return;
+    }
+
     const statusCounts = {
         'معتمد': 0,
         'قيد المراجعة': 0,
@@ -410,6 +497,8 @@ function createStatusChart(elementId, data) {
     };
 
     data.forEach(item => {
+        if (!item || !item.status) return;
+        
         if (item.status === 'approved') statusCounts['معتمد']++;
         else if (item.status === 'pending') statusCounts['قيد المراجعة']++;
         else if (item.status === 'rejected') statusCounts['مرفوض']++;
@@ -428,13 +517,25 @@ function createStatusChart(elementId, data) {
         }
     };
 
-    const chart = new ApexCharts(document.querySelector(`#${elementId}`), chartOptions);
-    chart.render();
-    return chart;
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = '';
+        const chart = new ApexCharts(element, chartOptions);
+        chart.render();
+        return chart;
+    }
 }
 
 // رسم بياني شهري
 function createMonthlyChart(elementId, data) {
+    if (!Array.isArray(data) || data.length === 0) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">لا توجد بيانات لعرض الرسم البياني</div>';
+        }
+        return;
+    }
+
     const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 
                     'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
     
@@ -442,9 +543,13 @@ function createMonthlyChart(elementId, data) {
     const monthlyCounts = new Array(12).fill(0);
 
     data.forEach(item => {
+        if (!item || !item.date) return;
+        
         const month = new Date(item.date).getMonth();
-        monthlyData[month] += item.result;
-        monthlyCounts[month]++;
+        if (typeof item.result === 'number') {
+            monthlyData[month] += item.result;
+            monthlyCounts[month]++;
+        }
     });
 
     const averages = monthlyData.map((sum, index) => 
@@ -476,22 +581,38 @@ function createMonthlyChart(elementId, data) {
         }
     };
 
-    const chart = new ApexCharts(document.querySelector(`#${elementId}`), chartOptions);
-    chart.render();
-    return chart;
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = '';
+        const chart = new ApexCharts(element, chartOptions);
+        chart.render();
+        return chart;
+    }
 }
 
 // رسم بياني ربع سنوي
 function createQuarterlyChart(elementId, data) {
+    if (!Array.isArray(data) || data.length === 0) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.innerHTML = '<div style="text-align:center; padding:40px; color:#999;">لا توجد بيانات لعرض الرسم البياني</div>';
+        }
+        return;
+    }
+
     const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
     const quarterlyData = [0, 0, 0, 0];
     const quarterlyCounts = [0, 0, 0, 0];
 
     data.forEach(item => {
+        if (!item || !item.date) return;
+        
         const month = new Date(item.date).getMonth();
         const quarter = Math.floor(month / 3);
-        quarterlyData[quarter] += item.result;
-        quarterlyCounts[quarter]++;
+        if (typeof item.result === 'number') {
+            quarterlyData[quarter] += item.result;
+            quarterlyCounts[quarter]++;
+        }
     });
 
     const averages = quarterlyData.map((sum, index) => 
@@ -521,9 +642,13 @@ function createQuarterlyChart(elementId, data) {
         }
     };
 
-    const chart = new ApexCharts(document.querySelector(`#${elementId}`), chartOptions);
-    chart.render();
-    return chart;
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = '';
+        const chart = new ApexCharts(element, chartOptions);
+        chart.render();
+        return chart;
+    }
 }
 
 // تحديث رسم بياني موجود
@@ -566,7 +691,7 @@ function createDashboardCharts(containerId) {
 
     const kpiData = getFromStorage('kpiData', []);
     
-    if (kpiData.length === 0) {
+    if (!Array.isArray(kpiData) || kpiData.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">📊</div>
