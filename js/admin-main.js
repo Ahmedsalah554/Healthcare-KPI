@@ -24,7 +24,7 @@ function initializeAdminPanel() {
         showAdminPanel();
     }
 
-    // تحميل البيانات من LocalStorage
+    // تحميل البيا��ات من LocalStorage
     loadData();
 }
 
@@ -483,7 +483,7 @@ function deleteUser(id) {
     
     users = users.filter(u => u.id !== id);
     saveToStorage('users', users);
-    showSuccess('تم ح��ف المستخدم بنجاح');
+    showSuccess('تم حذف المستخدم بنجاح');
     loadUsers();
 }
 
@@ -553,67 +553,25 @@ function loadKPIsManagement() {
     updateStatistics();
 }
 
-// إضافة مؤشر جديد
+// إضافة مؤشر جديد - فتح الفورم
 function addKPI() {
-    const code = prompt('كود المؤشر (مثال: CUSTOM-001):');
-    if (!code) return;
+    document.getElementById('kpiModalTitle').textContent = 'إضافة مؤشر جديد';
+    document.getElementById('kpiForm').reset();
+    document.getElementById('kpiIdField').value = '';
+    document.getElementById('kpiCustomField').value = 'true';
+    document.getElementById('kpiCode').disabled = false;
     
-    const name = prompt('اسم المؤشر:');
-    if (!name) return;
+    // ملء قائمة الفئات
+    const categorySelect = document.getElementById('kpiCategory');
+    categorySelect.innerHTML = '<option value="">-- اختر الفئة --</option>' +
+        Object.keys(KPI_CATEGORIES).map(key => 
+            `<option value="${key}">${KPI_CATEGORIES[key]}</option>`
+        ).join('');
     
-    const category = prompt('الفئة (WFM, UTZ, MP, PHC, IPC, PS, OHS, MM, LAB, DF):');
-    if (!category || !KPI_CATEGORIES[category]) {
-        showError('الفئة غير صحيحة');
-        return;
-    }
-    
-    const formula = prompt('الصيغة الحسابية:');
-    if (!formula) return;
-    
-    const numeratorLabel = prompt('اسم البسط:');
-    if (!numeratorLabel) return;
-    
-    const denominatorLabel = prompt('اسم المقام:');
-    if (!denominatorLabel) return;
-    
-    const target = parseFloat(prompt('القيمة المستهدفة:'));
-    if (isNaN(target)) {
-        showError('القيمة المستهدفة يجب أن تكون رقم');
-        return;
-    }
-    
-    const unit = prompt('الوحدة (مثال: %):') || '%';
-    
-    // التحقق من عدم تكرار الكود
-    const customKPIs = getFromStorage('customKPIs', []);
-    const allKPIs = [...KPI_DATA, ...customKPIs];
-    
-    if (allKPIs.find(k => k.code === code)) {
-        showError('هذا الكود موجود بالفعل');
-        return;
-    }
-    
-    const newKPI = {
-        code,
-        name,
-        category,
-        formula,
-        numeratorLabel,
-        denominatorLabel,
-        target,
-        unit,
-        custom: true,
-        createdAt: new Date().toISOString()
-    };
-    
-    customKPIs.push(newKPI);
-    saveToStorage('customKPIs', customKPIs);
-    
-    showSuccess('تم إضافة المؤشر بنجاح');
-    loadKPIsManagement();
+    openModal('kpiModal');
 }
 
-// تعديل مؤشر
+// تعديل مؤشر - فتح الفورم
 function editKPI(code) {
     const customKPIs = getFromStorage('customKPIs', []);
     const kpiIndex = customKPIs.findIndex(k => k.code === code);
@@ -625,40 +583,98 @@ function editKPI(code) {
     
     const kpi = customKPIs[kpiIndex];
     
-    const name = prompt('اسم المؤشر:', kpi.name);
-    if (!name) return;
+    document.getElementById('kpiModalTitle').textContent = 'تعديل المؤشر';
+    document.getElementById('kpiIdField').value = kpi.code;
+    document.getElementById('kpiCode').value = kpi.code;
+    document.getElementById('kpiCode').disabled = true; // منع تعديل الكود
+    document.getElementById('kpiName').value = kpi.name;
+    document.getElementById('kpiFormula').value = kpi.formula;
+    document.getElementById('kpiNumeratorLabel').value = kpi.numeratorLabel;
+    document.getElementById('kpiDenominatorLabel').value = kpi.denominatorLabel;
+    document.getElementById('kpiTarget').value = kpi.target;
+    document.getElementById('kpiUnit').value = kpi.unit;
+    document.getElementById('kpiCustomField').value = 'true';
     
-    const formula = prompt('الصيغة الحسابية:', kpi.formula);
-    if (!formula) return;
+    // ملء قائمة الفئات
+    const categorySelect = document.getElementById('kpiCategory');
+    categorySelect.innerHTML = '<option value="">-- اختر الفئة --</option>' +
+        Object.keys(KPI_CATEGORIES).map(key => 
+            `<option value="${key}" ${key === kpi.category ? 'selected' : ''}>${KPI_CATEGORIES[key]}</option>`
+        ).join('');
     
-    const numeratorLabel = prompt('اسم البسط:', kpi.numeratorLabel);
-    if (!numeratorLabel) return;
+    openModal('kpiModal');
+}
+
+// حفظ المؤشر من الفورم
+function saveKPI(event) {
+    event.preventDefault();
     
-    const denominatorLabel = prompt('اسم المقام:', kpi.denominatorLabel);
-    if (!denominatorLabel) return;
+    const code = document.getElementById('kpiCode').value.trim().toUpperCase();
+    const name = document.getElementById('kpiName').value.trim();
+    const category = document.getElementById('kpiCategory').value;
+    const formula = document.getElementById('kpiFormula').value.trim();
+    const numeratorLabel = document.getElementById('kpiNumeratorLabel').value.trim();
+    const denominatorLabel = document.getElementById('kpiDenominatorLabel').value.trim();
+    const target = parseFloat(document.getElementById('kpiTarget').value);
+    const unit = document.getElementById('kpiUnit').value;
+    const oldCode = document.getElementById('kpiIdField').value;
     
-    const target = parseFloat(prompt('القيمة المستهدفة:', kpi.target));
-    if (isNaN(target)) {
-        showError('القيمة المستهدفة يجب أن تكون رقم');
+    // التحقق من البيانات
+    if (!code || !name || !category || !formula || !numeratorLabel || !denominatorLabel || isNaN(target)) {
+        showError('الرجاء ملء جميع الحقول المطلوبة');
         return;
     }
     
-    const unit = prompt('الوحدة:', kpi.unit) || '%';
+    const customKPIs = getFromStorage('customKPIs', []);
     
-    customKPIs[kpiIndex] = {
-        ...kpi,
-        name,
-        formula,
-        numeratorLabel,
-        denominatorLabel,
-        target,
-        unit,
-        updatedAt: new Date().toISOString()
-    };
+    if (oldCode) {
+        // تحديث مؤشر موجود
+        const index = customKPIs.findIndex(k => k.code === oldCode);
+        if (index !== -1) {
+            customKPIs[index] = {
+                ...customKPIs[index],
+                name,
+                category,
+                formula,
+                numeratorLabel,
+                denominatorLabel,
+                target,
+                unit,
+                custom: true,
+                updatedAt: new Date().toISOString()
+            };
+            
+            saveToStorage('customKPIs', customKPIs);
+            showSuccess('تم تحديث المؤشر بنجاح');
+        }
+    } else {
+        // إضافة مؤشر جديد
+        // التحقق من عدم تكرار الكود
+        const allKPIs = [...KPI_DATA, ...customKPIs];
+        if (allKPIs.find(k => k.code === code)) {
+            showError('هذا الكود موجود بالفعل');
+            return;
+        }
+        
+        const newKPI = {
+            code,
+            name,
+            category,
+            formula,
+            numeratorLabel,
+            denominatorLabel,
+            target,
+            unit,
+            custom: true,
+            createdAt: new Date().toISOString()
+        };
+        
+        customKPIs.push(newKPI);
+        saveToStorage('customKPIs', customKPIs);
+        showSuccess('تم إضافة المؤشر بنجاح');
+    }
     
-    saveToStorage('customKPIs', customKPIs);
-    
-    showSuccess('تم تحديث المؤشر بنجاح');
+    closeModal('kpiModal');
     loadKPIsManagement();
 }
 
