@@ -136,7 +136,7 @@ function updateKPI(kpiId, updatedData) {
     // حفظ
     saveToStorage(storageKey, kpis);
     
-    return { success: true, message: 'تم تحديث المؤش�� بنجاح', kpi: kpis[index] };
+    return { success: true, message: 'تم تحديث المؤشر بنجاح', kpi: kpis[index] };
 }
 
 // حذف مؤشر
@@ -232,7 +232,48 @@ function exportKPIsToCSV(dataType) {
     return csv;
 }
 
+// جلب اسم الفئة
+function getCategoryName(dataType, categoryKey) {
+    const categories = getCategoriesByDataType(dataType);
+    return categories[categoryKey] || categoryKey;
+}
+
+// جلب نص أنواع المنشآت المتاحة
+function getApplicableFacilitiesText(applicableTo) {
+    const facilities = [];
+    
+    if (applicableTo.hospital) facilities.push('🏥 مستشفى');
+    if (applicableTo.healthCenter) facilities.push('🏥 مركز صحي');
+    if (applicableTo.healthUnit) facilities.push('🏥 وحدة صحية');
+    
+    return facilities.length > 0 ? facilities.join(', ') : 'غير محدد';
+}
+
 // توليد ID فريد
 function generateId() {
     return 'kpi_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+/**
+ * ===== دوال مساعدة للتوافق مع الكود القديم =====
+ */
+
+// جلب مؤشرات حسب الفئة (للتوافق)
+function getKPIsByOldCategory(category) {
+    // جلب من نوع الأداء فقط (للتوافق)
+    const performanceKPIs = getAllKPIsByType('performance');
+    return performanceKPIs.filter(kpi => kpi.category === category);
+}
+
+// جلب جميع المؤشرات (للتوافق)
+function getAllKPIs() {
+    const allKPIs = [];
+    const dataTypes = ['performance', 'excellence', 'monitoring', 'workforce'];
+    
+    dataTypes.forEach(dataType => {
+        const kpis = getAllKPIsByType(dataType);
+        allKPIs.push(...kpis);
+    });
+    
+    return allKPIs;
 }
