@@ -40,7 +40,6 @@ function getKPIsByCategory(dataType, category) {
 function getKPIsForFacilityType(dataType, facilityType) {
     const allKPIs = getAllKPIsByType(dataType);
     return allKPIs.filter(kpi => {
-        // التحقق من أن المؤشر متاح لهذا النوع من المنشآت
         return kpi.applicableTo && kpi.applicableTo[facilityType] === true;
     });
 }
@@ -49,7 +48,6 @@ function getKPIsForFacilityType(dataType, facilityType) {
 function getAvailableKPIs(dataType, category, facilityType) {
     const categoryKPIs = getKPIsByCategory(dataType, category);
     
-    // فلترة حسب نوع المنشأة
     return categoryKPIs.filter(kpi => {
         return kpi.applicableTo && kpi.applicableTo[facilityType] === true;
     });
@@ -155,9 +153,6 @@ function deleteKPI(kpiId, dataType) {
     // حفظ
     saveToStorage(storageKey, kpis);
     
-    // يمكن أيضاً حذف البيانات المرتبطة (اختياري)
-    // deleteRelatedEntries(kpiId);
-    
     return { success: true, message: 'تم حذف المؤشر بنجاح' };
 }
 
@@ -183,11 +178,9 @@ function getKPIStats(dataType) {
     };
     
     kpis.forEach(kpi => {
-        // حسب الفئة
         const category = kpi.category || kpi.department || kpi.section || 'other';
         stats.byCategory[category] = (stats.byCategory[category] || 0) + 1;
         
-        // حسب نوع المنشأة
         if (kpi.applicableTo) {
             if (kpi.applicableTo.hospital) stats.byFacilityType.hospital++;
             if (kpi.applicableTo.healthCenter) stats.byFacilityType.healthCenter++;
@@ -206,10 +199,8 @@ function exportKPIsToCSV(dataType) {
         return null;
     }
     
-    // إنشاء CSV Header
     let csv = 'الكود,الاسم,الفئة,الصيغة,البسط,المقام,المستهدف,الوحدة,مستشفى,مركز صحي,وحدة صحية\n';
     
-    // إضافة البيانات
     kpis.forEach(kpi => {
         const row = [
             kpi.code || '',
@@ -251,17 +242,6 @@ function getApplicableFacilitiesText(applicableTo) {
 // توليد ID فريد
 function generateId() {
     return 'kpi_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-}
-
-/**
- * ===== دوال مساعدة للتوافق مع الكود القديم =====
- */
-
-// جلب مؤشرات حسب الفئة (للتوافق)
-function getKPIsByOldCategory(category) {
-    // جلب من نوع الأداء فقط (للتوافق)
-    const performanceKPIs = getAllKPIsByType('performance');
-    return performanceKPIs.filter(kpi => kpi.category === category);
 }
 
 // جلب جميع المؤشرات (للتوافق)
