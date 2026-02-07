@@ -63,20 +63,22 @@ function showAdminPanel() {
 }
 
 // معالجة تسجيل الدخول
+// معالجة تسجيل الدخول
 function handleLogin(event) {
     event.preventDefault();
+    event.stopPropagation(); // ← مهم!
     
-    console.log('🔐 Login attempt started...');
+    console.log('🔐 Login attempt...');
     
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
     const errorDiv = document.getElementById('loginError');
-    
-    console.log('Email:', email);
+    const loginPage = document.getElementById('loginPage');
+    const adminPanel = document.getElementById('adminPanel');
 
-    // التحقق البسيط
+    // التحقق
     if (email === 'admin@system.com' && password === 'admin123') {
-        console.log('✅ Login credentials valid');
+        console.log('✅ Login successful');
         
         currentUser = {
             id: 'admin1',
@@ -88,44 +90,49 @@ function handleLogin(event) {
         
         // حفظ في LocalStorage
         saveToStorage('currentUser', currentUser);
-        console.log('💾 User saved to storage');
         
         // تحميل البيانات
         loadData();
-        console.log('📊 Data loaded');
         
         // إخفاء رسالة الخطأ
         if (errorDiv) {
             errorDiv.style.display = 'none';
         }
         
-        // إخفاء صفحة اللوجن
-        const loginPage = document.getElementById('loginPage');
+        // ✅ إخفاء صفحة اللوجن بكل الطرق الممكنة
         if (loginPage) {
             loginPage.style.display = 'none';
+            loginPage.style.visibility = 'hidden';
+            loginPage.style.opacity = '0';
+            loginPage.style.pointerEvents = 'none';
+            loginPage.classList.add('hide');
             console.log('✅ Login page hidden');
-        } else {
-            console.error('❌ Login page element not found');
         }
         
-        // إظهار لوحة التحكم
-        const adminPanel = document.getElementById('adminPanel');
+        // ✅ إظهار لوحة التحكم
         if (adminPanel) {
             adminPanel.style.display = 'flex';
+            adminPanel.style.visibility = 'visible';
+            adminPanel.style.opacity = '1';
+            adminPanel.classList.add('show');
             console.log('✅ Admin panel shown');
-        } else {
-            console.error('❌ Admin panel element not found');
         }
         
         // تحديث البيانات
         setTimeout(() => {
             displayUserInfo();
-            loadDashboard();
             updateDashboardStats();
-            console.log('✅ Dashboard loaded');
+            loadDashboard();
         }, 100);
         
         showSuccess('تم تسجيل الدخول بنجاح');
+        
+        // ✅ إزالة صفحة اللوجن من الـ DOM تماماً (اختياري)
+        setTimeout(() => {
+            if (loginPage && loginPage.parentNode) {
+                loginPage.remove();
+            }
+        }, 500);
         
     } else {
         console.log('❌ Invalid credentials');
@@ -137,6 +144,7 @@ function handleLogin(event) {
             errorDiv.style.padding = '15px';
             errorDiv.style.borderRadius = '8px';
             errorDiv.style.marginBottom = '20px';
+            errorDiv.style.borderRight = '4px solid #f44336';
         }
     }
 }
