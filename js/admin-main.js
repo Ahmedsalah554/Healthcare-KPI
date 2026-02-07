@@ -66,12 +66,18 @@ function showAdminPanel() {
 function handleLogin(event) {
     event.preventDefault();
     
+    console.log('🔐 Login attempt started...');
+    
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
     const errorDiv = document.getElementById('loginError');
+    
+    console.log('Email:', email);
 
-    // التحقق البسيط (في الإنتاج يجب استخدام API)
+    // التحقق البسيط
     if (email === 'admin@system.com' && password === 'admin123') {
+        console.log('✅ Login credentials valid');
+        
         currentUser = {
             id: 'admin1',
             name: 'المدير العام',
@@ -82,27 +88,58 @@ function handleLogin(event) {
         
         // حفظ في LocalStorage
         saveToStorage('currentUser', currentUser);
+        console.log('💾 User saved to storage');
         
         // تحميل البيانات
         loadData();
+        console.log('📊 Data loaded');
         
         // إخفاء رسالة الخطأ
         if (errorDiv) {
             errorDiv.style.display = 'none';
         }
         
-        // عرض لوحة التحكم
-        showAdminPanel();
+        // إخفاء صفحة اللوجن
+        const loginPage = document.getElementById('loginPage');
+        if (loginPage) {
+            loginPage.style.display = 'none';
+            console.log('✅ Login page hidden');
+        } else {
+            console.error('❌ Login page element not found');
+        }
+        
+        // إظهار لوحة التحكم
+        const adminPanel = document.getElementById('adminPanel');
+        if (adminPanel) {
+            adminPanel.style.display = 'flex';
+            console.log('✅ Admin panel shown');
+        } else {
+            console.error('❌ Admin panel element not found');
+        }
+        
+        // تحديث البيانات
+        setTimeout(() => {
+            displayUserInfo();
+            loadDashboard();
+            updateDashboardStats();
+            console.log('✅ Dashboard loaded');
+        }, 100);
         
         showSuccess('تم تسجيل الدخول بنجاح');
+        
     } else {
+        console.log('❌ Invalid credentials');
         if (errorDiv) {
             errorDiv.textContent = '⚠️ بيانات الدخول غير صحيحة';
             errorDiv.style.display = 'block';
+            errorDiv.style.background = '#ffebee';
+            errorDiv.style.color = '#c62828';
+            errorDiv.style.padding = '15px';
+            errorDiv.style.borderRadius = '8px';
+            errorDiv.style.marginBottom = '20px';
         }
     }
 }
-
 // معالجة تسجيل الخروج
 function handleLogout() {
     if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
