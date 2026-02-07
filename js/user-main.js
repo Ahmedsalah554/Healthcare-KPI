@@ -72,6 +72,9 @@ function handleLogin(event) {
     const password = document.getElementById('loginPassword').value;
     const errorDiv = document.getElementById('loginError');
     
+    console.log('Email:', email);
+    console.log('Password:', password);
+    
     // التحقق من المستخدمين المخزنين
     const users = getFromStorage('users', []);
     const user = users.find(u => u.email === email && u.password === password && u.status === 'active');
@@ -88,13 +91,30 @@ function handleLogin(event) {
         };
         
         saveToStorage('currentUser', currentUser);
-        loadUserData();
         
         if (errorDiv) {
             errorDiv.style.display = 'none';
         }
         
-        showUserPanel();
+        // إخفاء صفحة تسجيل الدخول
+        const loginPage = document.getElementById('loginPage');
+        if (loginPage) {
+            loginPage.style.display = 'none';
+        }
+        
+        // إظهار واجهة المستخدم
+        const userPanel = document.getElementById('userPanel');
+        if (userPanel) {
+            userPanel.style.display = 'flex';
+        }
+        
+        loadUserData();
+        displayUserInfo();
+        
+        setTimeout(() => {
+            loadDataEntry();
+        }, 100);
+        
         showSuccess('تم تسجيل الدخول بنجاح');
     } else {
         console.log('❌ Invalid credentials');
@@ -109,8 +129,9 @@ function handleLogin(event) {
             errorDiv.style.borderRight = '4px solid #f44336';
         }
     }
+    
+    return false;
 }
-
 function handleLogout() {
     if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
         removeFromStorage('currentUser');
