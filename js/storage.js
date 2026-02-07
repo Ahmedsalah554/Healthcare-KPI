@@ -241,6 +241,174 @@ function initializeDefaultData() {
         console.log('✅ Default data initialized');
     }
 }
+// ========================================
+// دوال مساعدة للتاريخ والوقت
+// ========================================
+
+function formatDateArabic(dateString) {
+    if (!dateString) return '-';
+    
+    try {
+        const date = new Date(dateString);
+        
+        if (isNaN(date.getTime())) {
+            return '-';
+        }
+        
+        const day = date.getDate();
+        const month = date.getMonth() + 1;
+        const year = date.getFullYear();
+        const hours = date.getHours();
+        const minutes = date.getMinutes();
+        
+        const monthName = getMonthNameArabic(month);
+        
+        return `${day} ${monthName} ${year} - ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return '-';
+    }
+}
+
+function getMonthNameArabic(month) {
+    const months = {
+        1: 'يناير',
+        2: 'فبراير',
+        3: 'مارس',
+        4: 'أبريل',
+        5: 'مايو',
+        6: 'يونيو',
+        7: 'يوليو',
+        8: 'أغسطس',
+        9: 'سبتمبر',
+        10: 'أكتوبر',
+        11: 'نوفمبر',
+        12: 'ديسمبر'
+    };
+    
+    return months[month] || '';
+}
+
+function getInputTypeLabel(inputType) {
+    const labels = {
+        'count': '📊 عدد',
+        'formula': '🧮 صيغة حسابية',
+        'assessment': '⭐ تقييم',
+        'monthly_data': '📅 بيانات شهرية',
+        'direct': '🔢 قيمة مباشرة'
+    };
+    
+    return labels[inputType] || inputType;
+}
+
+function getFacilityTypeName(typeId) {
+    const types = getAllFacilityTypes();
+    const type = types.find(t => t.id === typeId);
+    return type ? `${type.icon} ${type.name}` : typeId;
+}
+
+function getAllFacilityTypes() {
+    return [
+        { id: 'hospital', name: 'مستشفى', icon: '🏥' },
+        { id: 'clinic', name: 'عيادة', icon: '🏪' },
+        { id: 'center', name: 'مركز صحي', icon: '🏢' },
+        { id: 'laboratory', name: 'مختبر', icon: '🔬' },
+        { id: 'pharmacy', name: 'صيدلية', icon: '💊' }
+    ];
+}
+
+function formatNumber(num, decimals = 2) {
+    if (num === null || num === undefined || isNaN(num)) {
+        return '0';
+    }
+    
+    return parseFloat(num).toFixed(decimals);
+}
+
+function formatPercentage(value, decimals = 2) {
+    if (value === null || value === undefined || isNaN(value)) {
+        return '0%';
+    }
+    
+    return formatNumber(value, decimals) + '%';
+}
+
+function getCurrentDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+}
+
+function getCurrentTime() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    
+    return `${hours}:${minutes}`;
+}
+
+function getCurrentDateTime() {
+    return new Date().toISOString();
+}
+
+function getDaysDifference(date1, date2) {
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    const diffTime = Math.abs(d2 - d1);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
+}
+
+function isToday(dateString) {
+    const date = new Date(dateString);
+    const today = new Date();
+    
+    return date.getDate() === today.getDate() &&
+           date.getMonth() === today.getMonth() &&
+           date.getFullYear() === today.getFullYear();
+}
+
+function isThisMonth(dateString) {
+    const date = new Date(dateString);
+    const today = new Date();
+    
+    return date.getMonth() === today.getMonth() &&
+           date.getFullYear() === today.getFullYear();
+}
+
+function isThisYear(dateString) {
+    const date = new Date(dateString);
+    const today = new Date();
+    
+    return date.getFullYear() === today.getFullYear();
+}
+
+function getRelativeTime(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) {
+        return 'الآن';
+    } else if (diffMins < 60) {
+        return `منذ ${diffMins} دقيقة`;
+    } else if (diffHours < 24) {
+        return `منذ ${diffHours} ساعة`;
+    } else if (diffDays < 7) {
+        return `منذ ${diffDays} يوم`;
+    } else {
+        return formatDateArabic(dateString);
+    }
+}
+
+console.log('✅ Date/Time helper functions loaded');
 
 // تشغيل التهيئة عند تحميل الصفحة
 document.addEventListener('DOMContentLoaded', function() {
