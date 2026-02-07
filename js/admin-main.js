@@ -84,14 +84,13 @@ function handleLogout() {
 // عرض معلومات المستخدم
 function displayUserInfo() {
     if (currentUser) {
-        document.getElementById('userNameDisplay').textContent = currentUser.name;
-        document.getElementById('userRoleDisplay').textContent = 
-            currentUser.role === 'admin' ? 'مدير النظام' : 'مشرف';
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        const userRoleDisplay = document.getElementById('userRoleDisplay');
         
-        if (currentUser.facility && Array.isArray(facilities)) {
-            const facility = facilities.find(f => f.id === currentUser.facility);
-            document.getElementById('userFacilityDisplay').textContent = 
-                facility ? facility.name : '-';
+        if (userNameDisplay) userNameDisplay.textContent = currentUser.name;
+        if (userRoleDisplay) {
+            userRoleDisplay.textContent = 
+                currentUser.role === 'admin' ? 'مدير النظام' : 'مشرف';
         }
     }
 }
@@ -209,10 +208,15 @@ function updateStatistics() {
     const safeUsers = Array.isArray(users) ? users : [];
     const safeKpiData = Array.isArray(kpiData) ? kpiData : [];
     
-    document.getElementById('totalFacilities').textContent = safeFacilities.length;
-    document.getElementById('totalUsers').textContent = safeUsers.length;
-    document.getElementById('totalKPIs').textContent = totalKPIs;
-    document.getElementById('totalData').textContent = safeKpiData.length;
+    const totalFacilitiesEl = document.getElementById('totalFacilities');
+    const totalUsersEl = document.getElementById('totalUsers');
+    const totalKPIsEl = document.getElementById('totalKPIs');
+    const totalDataEl = document.getElementById('totalData');
+    
+    if (totalFacilitiesEl) totalFacilitiesEl.textContent = safeFacilities.length;
+    if (totalUsersEl) totalUsersEl.textContent = safeUsers.length;
+    if (totalKPIsEl) totalKPIsEl.textContent = totalKPIs;
+    if (totalDataEl) totalDataEl.textContent = safeKpiData.length;
     
     // حساب البيانات الشهرية
     const thisMonth = new Date().getMonth();
@@ -222,12 +226,15 @@ function updateStatistics() {
         return itemMonth === thisMonth;
     });
     
-    document.getElementById('monthlyData').textContent = `${monthlyData.length} هذا الشهر`;
+    const monthlyDataEl = document.getElementById('monthlyData');
+    if (monthlyDataEl) {
+        monthlyDataEl.textContent = `${monthlyData.length} هذا الشهر`;
+    }
 }
 
 // التبديل بين الصفحات
 function switchView(viewName) {
-    // إخفاء كل التبويبات
+    // إخفاء كل ال��بويبات
     const tabs = document.querySelectorAll('.tab-content');
     tabs.forEach(tab => tab.classList.remove('active'));
     
@@ -391,6 +398,7 @@ function deleteFacility(id) {
     saveToStorage('facilities', facilities);
     showSuccess('تم حذف المنشأة بنجاح');
     loadFacilities();
+    updateStatistics();
 }
 
 // تحميل المستخدمين
@@ -521,6 +529,7 @@ function saveUser(event) {
     saveToStorage('users', users);
     closeModal('userModal');
     loadUsers();
+    updateStatistics();
 }
 
 // حذف مستخدم
@@ -531,6 +540,7 @@ function deleteUser(id) {
     saveToStorage('users', users);
     showSuccess('تم حذف المستخدم بنجاح');
     loadUsers();
+    updateStatistics();
 }
 
 // تحميل إدارة المؤشرات
@@ -562,8 +572,8 @@ function loadKPIsManagement() {
             <button class="btn btn-success" onclick="exportKPIs()">
                 📥 تصدير المؤشرات المخصصة
             </button>
-            <button class="btn btn-warning" onclick="importKPIs()">
-                📤 استيراد مؤشرات
+            <button class="btn btn-warning" onclick="openImportModal()">
+                📤 استيراد من Excel/CSV
             </button>
         </div>
     ` + Object.keys(categorizedKPIs).map(category => `
@@ -755,52 +765,9 @@ function exportKPIs() {
     showSuccess('تم تصدير المؤشرات بنجاح');
 }
 
-// استيراد المؤشرات
+// تحديث دالة استيراد المؤشرات - استخدام الـ Modal الجديد
 function importKPIs() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    
-    input.onchange = function(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const importedKPIs = JSON.parse(e.target.result);
-                
-                if (!Array.isArray(importedKPIs)) {
-                    showError('صيغة الملف غير صحيحة');
-                    return;
-                }
-                
-                const customKPIs = getFromStorage('customKPIs', []);
-                const merged = [...customKPIs];
-                
-                let addedCount = 0;
-                importedKPIs.forEach(kpi => {
-                    if (!merged.find(k => k.code === kpi.code)) {
-                        merged.push({...kpi, custom: true});
-                        addedCount++;
-                    }
-                });
-                
-                saveToStorage('customKPIs', merged);
-                
-                showSuccess(`تم استيراد ${addedCount} مؤشر بنجاح`);
-                loadKPIsManagement();
-                
-            } catch (error) {
-                showError('خطأ في قراءة الملف');
-                console.error(error);
-            }
-        };
-        
-        reader.readAsText(file);
-    };
-    
-    input.click();
+    openImportModal();
 }
 
 // تحميل جدول البيانات
