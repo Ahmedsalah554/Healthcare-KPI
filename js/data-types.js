@@ -3,7 +3,7 @@
  */
 
 const DATA_TYPES = {
-    performance: {
+    PERFORMANCE: {
         id: 'performance',
         name: 'مؤشرات الأداء',
         nameEn: 'Performance Indicators',
@@ -14,10 +14,10 @@ const DATA_TYPES = {
         hasNumeratorDenominator: true,
         hasScore: false,
         hasCount: false,
-        frequency: 'monthly' // شهري
+        frequency: 'monthly'
     },
     
-    excellence: {
+    EXCELLENCE: {
         id: 'excellence',
         name: 'مؤشرات التميز',
         nameEn: 'Excellence Indicators',
@@ -28,10 +28,10 @@ const DATA_TYPES = {
         hasNumeratorDenominator: true,
         hasScore: false,
         hasCount: false,
-        frequency: 'yearly' // سنوي
+        frequency: 'yearly'
     },
     
-    monitoring: {
+    MONITORING: {
         id: 'monitoring',
         name: 'المتابعة الشهرية',
         nameEn: 'Monthly Monitoring',
@@ -45,7 +45,7 @@ const DATA_TYPES = {
         frequency: 'monthly'
     },
     
-    workforce: {
+    WORKFORCE: {
         id: 'workforce',
         name: 'القوى البشرية',
         nameEn: 'Human Resources',
@@ -88,112 +88,70 @@ const FACILITY_TYPES = {
 // الفئات لمؤشرات الأداء
 const PERFORMANCE_CATEGORIES = {
     WFM: 'إدارة القوى العاملة',
-    UTZ: 'استخدام الأسرة',
-    MP: 'إدارة المرضى',
-    ST: 'الجراحة',
-    FM: 'الإدارة المالية',
-    IMT: 'العلاج المكثف',
+    UTZ: 'معدلات الاستخدام',
+    MP: 'الأداء الطبي',
+    PHC: 'الرعاية الأولية',
+    IPC: 'مكافحة العدوى',
+    PS: 'سلامة المرضى',
+    OHS: 'الصحة المهنية',
     MM: 'إدارة الأدوية',
     LAB: 'المختبر',
-    PS: 'سلامة المرضى',
-    IPC: 'مكافحة العدوى',
-    OHS: 'الصحة المهنية',
-    PHC: 'الرعاية الصحية الأولية'
+    DF: 'طب الأسنان'
 };
 
-// الإدارات المسؤولة (لمؤشرات التميز)
-const EXCELLENCE_DEPARTMENTS = {
-    'DEPT_PREV': 'إدارة الوقائي',
-    'DEPT_QUALITY': 'إدارة الجودة',
-    'DEPT_SAFETY': 'إدارة السلامة والصحة المهنية',
-    'DEPT_ENV': 'إدارة الرصد البيئي',
-    'DEPT_LIVER': 'إدارة الفيروسات الكبدية',
-    'DEPT_EMERGENCY': 'إدارة الطوارئ',
-    'DEPT_NURSING': 'إدارة التمريض',
-    'DEPT_PHARMACY': 'إدارة الصيدلة'
+// الفئات لمؤشرات التميز
+const EXCELLENCE_CATEGORIES = {
+    LEADERSHIP: 'القيادة',
+    PLANNING: 'التخطيط الاستراتيجي',
+    CUSTOMER: 'التركيز على العملاء',
+    MEASUREMENT: 'القياس والتحليل',
+    WORKFORCE_FOCUS: 'التركيز على القوى العاملة',
+    OPERATIONS: 'العمليات',
+    RESULTS: 'النتائج'
 };
 
-// أقسام المتابعة الشهرية
-const MONITORING_SECTIONS = {
-    'SEC_HEALTH_SERVICES': 'الطلاب الصحي والخدمات',
-    'SEC_LEADERSHIP': 'القيادة والإدارة',
-    'SEC_HR': 'الموارد البشرية',
-    'SEC_MEDICAL': 'المعايير الطبية',
-    'SEC_INFECTION': 'مكافحة العدوى',
-    'SEC_SAFETY': 'السلامة'
+// الفئات للمتابعة الشهرية
+const MONITORING_CATEGORIES = {
+    QUALITY: 'معايير الجودة',
+    SAFETY: 'معايير السلامة',
+    INFECTION: 'معايير مكافحة العدوى',
+    PHARMACY: 'معايير الصيدلية',
+    EMERGENCY: 'معايير الطوارئ',
+    LAB: 'معايير المختبر',
+    RADIOLOGY: 'معايير الأشعة'
 };
 
-// فئات القوى البشرية
+// الفئات للقوى البشرية
 const WORKFORCE_CATEGORIES = {
-    'staff': {
-        id: 'staff',
-        name: 'الموظفين',
-        fields: [
-            { id: 'saudiDoctors', name: 'أطباء سعوديون', unit: 'عدد' },
-            { id: 'nonSaudiDoctors', name: 'أطباء غير سعوديين', unit: 'عدد' },
-            { id: 'pharmacists', name: 'صيادلة', unit: 'عدد' },
-            { id: 'physiotherapy', name: 'علاج طبيعي', unit: 'عدد' },
-            { id: 'dentists', name: 'أطباء أسنان', unit: 'عدد' },
-            { id: 'nurses', name: 'تمريض', unit: 'عدد' },
-            { id: 'chemists', name: 'كيميائيون', unit: 'عدد' },
-            { id: 'administrative', name: 'إداريون', unit: 'عدد' },
-            { id: 'workers', name: 'عمال', unit: 'عدد' }
-        ]
-    },
-    'statistics': {
-        id: 'statistics',
-        name: 'الإحصائيات الشهرية',
-        fields: [
-            { id: 'emergencyPatients', name: 'مرضى الطوارئ', unit: 'عدد' },
-            { id: 'outpatientVisits', name: 'زيارات العيادات الخارجية', unit: 'عدد' },
-            { id: 'deaths', name: 'حالات الوفاة', unit: 'عدد' },
-            { id: 'criticalCare', name: 'حالات الرعاية المركزة', unit: 'عدد' },
-            { id: 'specializedServices', name: 'الخدمات التخصصية', unit: 'عدد' },
-            { id: 'nursingHours', name: 'ساعات التمريض', unit: 'ساعة' },
-            { id: 'administrativeLoad', name: 'العبء الإداري', unit: 'عدد' }
-        ]
-    }
+    DOCTORS: 'الأطباء',
+    NURSES: 'التمريض',
+    TECHNICIANS: 'الفنيون',
+    ADMIN: 'الإداريون',
+    SUPPORT: 'الخدمات المساندة'
 };
 
-// تنسيق أنواع المنشآت للعرض
-function getApplicableFacilitiesText(applicableTo) {
-    const facilities = [];
-    if (applicableTo.hospital) facilities.push('مستشفى');
-    if (applicableTo.healthCenter) facilities.push('مركز صحي');
-    if (applicableTo.healthUnit) facilities.push('وحدة صحية');
-    
-    if (facilities.length === 3) return 'الكل';
-    if (facilities.length === 0) return 'غير محدد';
-    return facilities.join('، ');
-}
-
-// الحصول على اسم الفئة حسب نوع البيانات
-function getCategoryName(dataType, categoryCode) {
-    if (dataType === 'performance') {
-        return PERFORMANCE_CATEGORIES[categoryCode] || categoryCode;
-    } else if (dataType === 'excellence') {
-        return EXCELLENCE_DEPARTMENTS[categoryCode] || categoryCode;
-    } else if (dataType === 'monitoring') {
-        return MONITORING_SECTIONS[categoryCode] || categoryCode;
-    } else if (dataType === 'workforce') {
-        return WORKFORCE_CATEGORIES[categoryCode]?.name || categoryCode;
-    }
-    return categoryCode;
-}
-
-// الحصول على قائمة الفئات حسب نوع البيانات
+// دالة للحصول على الفئات حسب نوع البيانات
 function getCategoriesByDataType(dataType) {
-    if (dataType === 'performance') {
-        return PERFORMANCE_CATEGORIES;
-    } else if (dataType === 'excellence') {
-        return EXCELLENCE_DEPARTMENTS;
-    } else if (dataType === 'monitoring') {
-        return MONITORING_SECTIONS;
-    } else if (dataType === 'workforce') {
-        return Object.keys(WORKFORCE_CATEGORIES).reduce((acc, key) => {
-            acc[key] = WORKFORCE_CATEGORIES[key].name;
-            return acc;
-        }, {});
+    switch(dataType) {
+        case 'performance':
+            return PERFORMANCE_CATEGORIES;
+        case 'excellence':
+            return EXCELLENCE_CATEGORIES;
+        case 'monitoring':
+            return MONITORING_CATEGORIES;
+        case 'workforce':
+            return WORKFORCE_CATEGORIES;
+        default:
+            return {};
     }
-    return {};
+}
+
+// دالة للحصول على معلومات نوع البيانات
+function getDataTypeInfo(dataTypeId) {
+    return Object.values(DATA_TYPES).find(dt => dt.id === dataTypeId) || null;
+}
+
+// دالة للحصول على جميع أنواع البيانات
+function getAllDataTypes() {
+    return Object.values(DATA_TYPES);
 }
