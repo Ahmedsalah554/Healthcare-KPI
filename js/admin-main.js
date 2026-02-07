@@ -2,19 +2,16 @@
  * ===== السكريبت الرئيسي للوحة التحكم الإدارية =====
  */
 
-// متغيرات عامة
 let currentUser = null;
 let facilities = [];
 let users = [];
 let kpiData = [];
 
-// تهيئة الصفحة عند التحميل
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Admin panel initializing...');
     initializeAdminPanel();
 });
 
-// تهيئة لوحة التحكم
 function initializeAdminPanel() {
     currentUser = getFromStorage('currentUser');
     
@@ -28,7 +25,6 @@ function initializeAdminPanel() {
     }
 }
 
-// عرض صفحة تسجيل الدخول
 function showLoginPage() {
     const loginPage = document.getElementById('loginPage');
     const adminPanel = document.getElementById('adminPanel');
@@ -43,7 +39,6 @@ function showLoginPage() {
     }
 }
 
-// عرض لوحة التحكم
 function showAdminPanel() {
     const loginPage = document.getElementById('loginPage');
     const adminPanel = document.getElementById('adminPanel');
@@ -68,7 +63,6 @@ function showAdminPanel() {
     }, 100);
 }
 
-// معالجة تسجيل الدخول
 function handleLogin(event) {
     event.preventDefault();
     event.stopPropagation();
@@ -114,7 +108,6 @@ function handleLogin(event) {
     }
 }
 
-// معالجة تسجيل الخروج
 function handleLogout() {
     if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
         removeFromStorage('currentUser');
@@ -124,7 +117,6 @@ function handleLogout() {
     }
 }
 
-// عرض معلومات المستخدم
 function displayUserInfo() {
     if (currentUser) {
         const userNameDisplay = document.getElementById('userNameDisplay');
@@ -135,7 +127,6 @@ function displayUserInfo() {
     }
 }
 
-// الحصول على اسم الدور بالعربية
 function getRoleNameArabic(role) {
     const roles = {
         admin: 'مدير النظام',
@@ -145,7 +136,6 @@ function getRoleNameArabic(role) {
     return roles[role] || role;
 }
 
-// تحميل البيانات
 function loadData() {
     facilities = getFromStorage('facilities', []);
     users = getFromStorage('users', []);
@@ -157,10 +147,6 @@ function loadData() {
         kpiData: kpiData.length 
     });
 }
-
-/**
- * ===== لوحة المعلومات =====
- */
 
 function loadDashboard() {
     console.log('📈 Loading dashboard...');
@@ -189,13 +175,6 @@ function updateDashboardStats() {
     if (totalData) {
         totalData.textContent = kpiData.length;
     }
-    
-    const monthlyData = document.getElementById('monthlyData');
-    if (monthlyData) {
-        const currentMonth = new Date().toISOString().slice(0, 7);
-        const monthlyCount = kpiData.filter(d => d.month && d.month.startsWith(currentMonth)).length;
-        monthlyData.textContent = `${monthlyCount} هذا الشهر`;
-    }
 }
 
 function loadDashboardCharts() {
@@ -204,11 +183,6 @@ function loadDashboardCharts() {
     
     if (typeof ApexCharts === 'undefined') {
         console.error('❌ ApexCharts library not loaded');
-        container.innerHTML = `
-            <div class="alert alert-danger">
-                ⚠️ مكتبة الرسوم البيانية غير محملة
-            </div>
-        `;
         return;
     }
     
@@ -222,21 +196,11 @@ function loadDashboardCharts() {
                     <div id="facilitiesChart" style="min-height: 300px;"></div>
                 </div>
             </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <h3>👥 توزيع المستخدمين</h3>
-                </div>
-                <div class="card-body">
-                    <div id="usersChart" style="min-height: 300px;"></div>
-                </div>
-            </div>
         </div>
     `;
     
     setTimeout(() => {
         renderFacilitiesChart();
-        renderUsersChart();
     }, 100);
 }
 
@@ -253,129 +217,33 @@ function renderFacilitiesChart() {
     const labels = Object.keys(distribution);
     const series = Object.values(distribution);
     
-    if (labels.length === 0 || series.length === 0) {
-        chartDiv.innerHTML = `
-            <div class="empty-state" style="padding: 40px; text-align: center; color: #999;">
-                <div style="font-size: 3rem; margin-bottom: 10px;">📊</div>
-                <p>لا توجد بيانات لعرضها</p>
-            </div>
-        `;
+    if (labels.length === 0) {
+        chartDiv.innerHTML = `<div class="empty-state"><p>لا توجد بيانات</p></div>`;
         return;
     }
     
     const options = {
         series: series,
-        chart: {
-            type: 'donut',
-            height: 300
-        },
+        chart: { type: 'donut', height: 300 },
         labels: labels,
-        colors: ['#667eea', '#764ba2', '#f093fb', '#4facfe'],
-        legend: {
-            position: 'bottom'
-        },
-        dataLabels: {
-            enabled: true
-        }
-    };
-    
-    try {
-        const chart = new ApexCharts(chartDiv, options);
-        chart.render();
-    } catch (error) {
-        console.error('خطأ في رسم المخطط:', error);
-        chartDiv.innerHTML = `
-            <div class="empty-state" style="padding: 40px; text-align: center; color: #f44336;">
-                <p>⚠️ حدث خطأ في رسم المخطط</p>
-            </div>
-        `;
-    }
-}
-
-function renderUsersChart() {
-    const chartDiv = document.getElementById('usersChart');
-    if (!chartDiv) return;
-    
-    const distribution = {};
-    users.forEach(u => {
-        const role = getRoleNameArabic(u.role);
-        distribution[role] = (distribution[role] || 0) + 1;
-    });
-    
-    const labels = Object.keys(distribution);
-    const series = Object.values(distribution);
-    
-    if (labels.length === 0 || series.length === 0) {
-        chartDiv.innerHTML = `
-            <div class="empty-state" style="padding: 40px; text-align: center; color: #999;">
-                <div style="font-size: 3rem; margin-bottom: 10px;">👥</div>
-                <p>لا توجد بيانات لعرضها</p>
-            </div>
-        `;
-        return;
-    }
-    
-    const options = {
-        series: [{
-            name: 'عدد المستخدمين',
-            data: series
-        }],
-        chart: {
-            type: 'bar',
-            height: 300
-        },
-        plotOptions: {
-            bar: {
-                horizontal: true,
-                distributed: true,
-                borderRadius: 4
-            }
-        },
         colors: ['#667eea', '#764ba2', '#f093fb'],
-        xaxis: {
-            categories: labels
-        },
-        legend: {
-            show: false
-        },
-        dataLabels: {
-            enabled: true
-        }
+        legend: { position: 'bottom' }
     };
     
     try {
         const chart = new ApexCharts(chartDiv, options);
         chart.render();
     } catch (error) {
-        console.error('خطأ في رسم المخطط:', error);
-        chartDiv.innerHTML = `
-            <div class="empty-state" style="padding: 40px; text-align: center; color: #f44336;">
-                <p>⚠️ حدث خطأ في رسم المخطط</p>
-            </div>
-        `;
+        console.error('Error:', error);
     }
 }
-
-/**
- * ===== إدارة المنشآت =====
- */
 
 function loadFacilitiesTable() {
     const tbody = document.querySelector('#facilitiesTable tbody');
     if (!tbody) return;
     
     if (facilities.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="8" class="text-center">
-                    <div class="empty-state">
-                        <div class="empty-state-icon">🏥</div>
-                        <h3>لا توجد منشآت</h3>
-                        <p>قم بإضافة منشأة جديدة</p>
-                    </div>
-                </td>
-            </tr>
-        `;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center"><div class="empty-state"><h3>لا توجد منشآت</h3></div></td></tr>`;
         return;
     }
     
@@ -387,25 +255,17 @@ function loadFacilitiesTable() {
             <td>${facility.city || '-'}</td>
             <td>${facility.phone || '-'}</td>
             <td>${facility.capacity || '-'}</td>
+            <td><span class="badge ${facility.status === 'active' ? 'badge-success' : 'badge-danger'}">${facility.status === 'active' ? 'نشط' : 'غير نشط'}</span></td>
             <td>
-                <span class="badge ${facility.status === 'active' ? 'badge-success' : 'badge-danger'}">
-                    ${facility.status === 'active' ? 'نشط' : 'غير نشط'}
-                </span>
-            </td>
-            <td>
-                <button class="btn-icon" onclick="editFacility('${facility.id}')" title="تعديل">✏️</button>
-                <button class="btn-icon" onclick="deleteFacility('${facility.id}')" title="حذف">🗑️</button>
+                <button class="btn-icon" onclick="editFacility('${facility.id}')">✏️</button>
+                <button class="btn-icon" onclick="deleteFacility('${facility.id}')">🗑️</button>
             </td>
         </tr>
     `).join('');
 }
 
 function getFacilityTypeArabic(type) {
-    const types = {
-        hospital: 'مستشفى',
-        healthCenter: 'مركز صحي',
-        healthUnit: 'وحدة صحية'
-    };
+    const types = { hospital: 'مستشفى', healthCenter: 'مركز صحي', healthUnit: 'وحدة صحية' };
     return types[type] || type;
 }
 
@@ -419,7 +279,6 @@ function addFacility() {
     document.getElementById('facilityEmail').value = '';
     document.getElementById('facilityCapacity').value = '';
     document.getElementById('facilityStatus').value = 'active';
-    
     document.getElementById('modalTitle').textContent = 'إضافة منشأة جديدة';
     openModal('facilityModal');
 }
@@ -437,7 +296,6 @@ function editFacility(facilityId) {
     document.getElementById('facilityEmail').value = facility.email || '';
     document.getElementById('facilityCapacity').value = facility.capacity || '';
     document.getElementById('facilityStatus').value = facility.status;
-    
     document.getElementById('modalTitle').textContent = 'تعديل منشأة';
     openModal('facilityModal');
 }
@@ -486,26 +344,12 @@ function deleteFacility(facilityId) {
     showSuccess('تم حذف المنشأة بنجاح');
 }
 
-/**
- * ===== إدارة المستخدمين =====
- */
-
 function loadUsersTable() {
     const tbody = document.querySelector('#usersTable tbody');
     if (!tbody) return;
     
     if (users.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center">
-                    <div class="empty-state">
-                        <div class="empty-state-icon">👥</div>
-                        <h3>لا يوجد مستخدمين</h3>
-                        <p>قم بإضافة مستخدم جديد</p>
-                    </div>
-                </td>
-            </tr>
-        `;
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center"><div class="empty-state"><h3>لا يوجد مستخدمين</h3></div></td></tr>`;
         return;
     }
     
@@ -517,15 +361,11 @@ function loadUsersTable() {
                 <td>${user.email}</td>
                 <td>${facility ? facility.name : '-'}</td>
                 <td>${getRoleNameArabic(user.role)}</td>
-                <td>
-                    <span class="badge ${user.status === 'active' ? 'badge-success' : 'badge-danger'}">
-                        ${user.status === 'active' ? 'نشط' : 'غير نشط'}
-                    </span>
-                </td>
+                <td><span class="badge ${user.status === 'active' ? 'badge-success' : 'badge-danger'}">${user.status === 'active' ? 'نشط' : 'غير نشط'}</span></td>
                 <td>${user.phone || '-'}</td>
                 <td>
-                    <button class="btn-icon" onclick="editUser('${user.id}')" title="تعديل">✏️</button>
-                    <button class="btn-icon" onclick="deleteUser('${user.id}')" title="حذف">🗑️</button>
+                    <button class="btn-icon" onclick="editUser('${user.id}')">✏️</button>
+                    <button class="btn-icon" onclick="deleteUser('${user.id}')">🗑️</button>
                 </td>
             </tr>
         `;
@@ -594,14 +434,12 @@ function saveUser(event) {
         const index = users.findIndex(u => u.id === userId);
         if (index !== -1) {
             users[index] = { ...users[index], ...userData };
-            if (password) {
-                users[index].password = password;
-            }
+            if (password) users[index].password = password;
             showSuccess('تم تحديث المستخدم بنجاح');
         }
     } else {
         if (!password) {
-            showError('كلمة المرور مطلوبة للمستخدم الجديد');
+            showError('كلمة المرور مطلوبة');
             return;
         }
         userData.id = generateId();
@@ -631,33 +469,42 @@ function deleteUser(userId) {
  * ===== إدارة المؤشرات =====
  */
 
-let selectedKPIDataType = 'performance';
+let selectedKPIDataType = null;
+let selectedKPICategory = null;
 let currentEditingKPI = null;
 
 function showKPIManagement() {
     const container = document.getElementById('kpisManagementContainer');
     if (!container) return;
     
+    selectedKPIDataType = null;
+    selectedKPICategory = null;
+    
     container.innerHTML = `
-        <div class="card" style="margin-bottom: 20px;">
+        <div class="card">
             <div class="card-header">
-                <h3>اختر نوع البيانات</h3>
+                <h3>🎯 الخطوة 1: اختر نوع البيانات</h3>
             </div>
             <div class="card-body">
-                <div class="data-type-selector" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
-                    ${Object.keys(DATA_TYPES).map(typeKey => {
-                        const type = DATA_TYPES[typeKey];
-                        const kpis = getAllKPIsByType(type.id);
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
+                    ${Object.values(DATA_TYPES).map(type => {
+                        const totalKPIs = getAllKPIsByType(type.id).length;
                         return `
-                            <div class="data-type-option ${typeKey === 'PERFORMANCE' ? 'active' : ''}" 
-                                 onclick="selectKPIDataType('${type.id}')" 
-                                 id="dataTypeBtn_${type.id}"
-                                 style="border: 2px solid ${type.color}; border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.3s; background: white;">
-                                <div style="font-size: 2.5rem; margin-bottom: 10px;">${type.icon}</div>
-                                <h4 style="color: ${type.color}; margin-bottom: 8px;">${type.name}</h4>
-                                <p style="color: #666; font-size: 0.9rem; margin-bottom: 10px;">${type.description}</p>
-                                <div class="badge" style="background: ${type.color}; color: white; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem;">
-                                    ${kpis.length} مؤشر
+                            <div class="data-type-card" onclick="selectDataType('${type.id}')" 
+                                 style="border: 3px solid ${type.color}; border-radius: 15px; padding: 25px; cursor: pointer; transition: all 0.3s; background: white; text-align: center;">
+                                <div style="font-size: 3.5rem; margin-bottom: 15px;">${type.icon}</div>
+                                <h3 style="color: ${type.color}; margin-bottom: 10px; font-size: 1.3rem;">${type.name}</h3>
+                                <p style="color: #666; font-size: 0.95rem; margin-bottom: 15px; min-height: 40px;">${type.description}</p>
+                                <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
+                                    <span style="background: ${type.color}20; color: ${type.color}; padding: 6px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
+                                        ${totalKPIs} مؤشر
+                                    </span>
+                                    <span style="background: #f0f0f0; color: #666; padding: 6px 15px; border-radius: 20px; font-size: 0.85rem;">
+                                        ${type.frequency === 'monthly' ? 'شهري' : type.frequency === 'yearly' ? 'سنوي' : type.frequency}
+                                    </span>
+                                </div>
+                                <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #f0f0f0;">
+                                    <span style="color: #999; font-size: 0.85rem;">النوع: ${getInputTypeLabel(type.inputType)}</span>
                                 </div>
                             </div>
                         `;
@@ -666,210 +513,244 @@ function showKPIManagement() {
             </div>
         </div>
         
-        <div class="card">
+        <div id="categorySelectionContainer"></div>
+        <div id="kpisListContainer"></div>
+    `;
+}
+
+function selectDataType(dataTypeId) {
+    selectedKPIDataType = dataTypeId;
+    selectedKPICategory = null;
+    
+    console.log('📊 Selected data type:', dataTypeId);
+    
+    const typeInfo = getDataTypeInfo(dataTypeId);
+    const categoryContainer = document.getElementById('categorySelectionContainer');
+    if (!categoryContainer) return;
+    
+    categoryContainer.innerHTML = `
+        <div class="card" style="margin-top: 20px;">
             <div class="card-header">
-                <h3 id="kpiListTitle">مؤشرات الأداء</h3>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-success btn-small" onclick="openImportModal()">
-                        📤 استيراد من Excel
-                    </button>
-                    <button class="btn btn-primary btn-small" onclick="addKPIManual()">
-                        ➕ إضافة مؤشر يدوياً
-                    </button>
-                </div>
+                <h3>🗂️ الخطوة 2: اختر القسم</h3>
+                <button class="btn btn-secondary btn-small" onclick="showKPIManagement()">
+                    ← العودة لاختيار النوع
+                </button>
             </div>
-            <div class="card-body" id="kpiListContainer">
-                <div style="text-align: center; padding: 40px; color: #999;">
-                    <div style="font-size: 3rem; margin-bottom: 15px;">📊</div>
-                    <p>جاري تحميل المؤشرات...</p>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+                    ${Object.values(typeInfo.categories).map(cat => {
+                        const catKPIs = getKPIsByCategory(dataTypeId, cat.id);
+                        return `
+                            <div class="category-card" onclick="selectCategory('${cat.id}')" 
+                                 style="border: 2px solid ${cat.color || typeInfo.color}; border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.3s; background: white; text-align: center;">
+                                <div style="font-size: 2.5rem; margin-bottom: 10px;">${cat.icon || typeInfo.icon}</div>
+                                <h4 style="color: ${cat.color || typeInfo.color}; margin-bottom: 8px; font-size: 1.1rem;">${cat.name}</h4>
+                                ${cat.weight ? `<p style="color: #999; font-size: 0.85rem; margin-bottom: 8px;">الوزن: ${cat.weight}</p>` : ''}
+                                <span style="background: ${cat.color || typeInfo.color}20; color: ${cat.color || typeInfo.color}; padding: 4px 12px; border-radius: 15px; font-size: 0.85rem; font-weight: 600;">
+                                    ${catKPIs.length} مؤشر
+                                </span>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             </div>
         </div>
     `;
     
-    setTimeout(() => selectKPIDataType('performance'), 100);
+    document.getElementById('kpisListContainer').innerHTML = '';
 }
 
-function selectKPIDataType(dataType) {
-    selectedKPIDataType = dataType;
+function selectCategory(categoryId) {
+    selectedKPICategory = categoryId;
     
-    console.log('📊 Selected data type:', dataType);
+    console.log('📂 Selected category:', categoryId);
     
-    document.querySelectorAll('.data-type-option').forEach(opt => {
-        opt.classList.remove('active');
-        opt.style.transform = 'scale(1)';
-        opt.style.boxShadow = 'none';
-    });
+    const typeInfo = getDataTypeInfo(selectedKPIDataType);
+    const catInfo = typeInfo.categories[categoryId];
+    const kpisContainer = document.getElementById('kpisListContainer');
+    if (!kpisContainer) return;
     
-    const selectedBtn = document.getElementById(`dataTypeBtn_${dataType}`);
-    if (selectedBtn) {
-        selectedBtn.classList.add('active');
-        selectedBtn.style.transform = 'scale(1.05)';
-        selectedBtn.style.boxShadow = '0 4px 15px rgba(0,0,0,0.15)';
-    }
+    const kpis = getKPIsByCategory(selectedKPIDataType, categoryId);
     
-    const typeInfo = getDataTypeInfo(dataType);
-    const title = document.getElementById('kpiListTitle');
-    if (title && typeInfo) {
-        title.textContent = typeInfo.name;
-        title.style.color = typeInfo.color;
-    }
-    
-    loadKPIsList(dataType);
-}
-
-function loadKPIsList(dataType) {
-    const container = document.getElementById('kpiListContainer');
-    if (!container) return;
-    
-    console.log('📋 Loading KPIs for:', dataType);
-    
-    const kpis = getAllKPIsByType(dataType);
-    const typeInfo = getDataTypeInfo(dataType);
-    
-    console.log('Found KPIs:', kpis.length);
-    
-    if (kpis.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state" style="text-align: center; padding: 60px 20px; color: #999;">
-                <div style="font-size: 4rem; margin-bottom: 20px; opacity: 0.5;">${typeInfo.icon}</div>
-                <h3 style="color: #333; margin-bottom: 10px;">لا توجد مؤشرات</h3>
-                <p style="margin-bottom: 25px;">قم بإضافة مؤشرات يدوياً أو استيرادها من Excel</p>
-                <div style="display: flex; gap: 15px; justify-content: center;">
-                    <button class="btn btn-primary" onclick="addKPIManual()">➕ إضافة مؤشر يدوياً</button>
-                    <button class="btn btn-success" onclick="openImportModal()">📤 استيراد من Excel</button>
+    kpisContainer.innerHTML = `
+        <div class="card" style="margin-top: 20px;">
+            <div class="card-header" style="background: linear-gradient(135deg, ${catInfo.color || typeInfo.color} 0%, ${catInfo.color || typeInfo.color}dd 100%); color: white; padding: 20px; border-radius: 12px 12px 0 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div>
+                        <div style="font-size: 2rem; margin-bottom: 5px;">${catInfo.icon || typeInfo.icon}</div>
+                        <h3 style="margin: 0 0 5px 0;">${catInfo.name}</h3>
+                        <p style="margin: 0; opacity: 0.9; font-size: 0.95rem;">${typeInfo.name}</p>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-success" onclick="openImportModalForCategory()" style="background: white; color: ${catInfo.color || typeInfo.color};">
+                            📤 استيراد من Excel
+                        </button>
+                        <button class="btn btn-primary" onclick="addKPIManualForCategory()" style="background: white; color: ${catInfo.color || typeInfo.color};">
+                            ➕ إضافة يدوياً
+                        </button>
+                        <button class="btn btn-secondary" onclick="selectDataType('${selectedKPIDataType}')" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white;">
+                            ← العودة للأقسام
+                        </button>
+                    </div>
                 </div>
             </div>
-        `;
-        return;
-    }
-    
-    const categories = getCategoriesByDataType(dataType);
-    const groupedKPIs = {};
-    
-    kpis.forEach(kpi => {
-        const category = kpi.category || kpi.department || kpi.section || 'other';
-        if (!groupedKPIs[category]) {
-            groupedKPIs[category] = [];
-        }
-        groupedKPIs[category].push(kpi);
-    });
-    
-    container.innerHTML = Object.keys(groupedKPIs).map(category => {
-        const categoryName = categories[category] || category;
-        const categoryKPIs = groupedKPIs[category];
-        
-        return `
-            <div class="category-group" style="margin-bottom: 30px; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden;">
-                <div style="background: ${typeInfo.color}; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center;">
-                    <h3 style="margin: 0; font-size: 1.2rem;">${categoryName}</h3>
-                    <span style="background: rgba(255,255,255,0.3); padding: 5px 15px; border-radius: 20px; font-size: 0.9rem;">
-                        ${categoryKPIs.length} مؤشر
-                    </span>
-                </div>
-                <div style="padding: 15px;">
-                    ${categoryKPIs.map(kpi => `
-                        <div class="kpi-card" style="background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 10px; transition: all 0.3s;" onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'" onmouseout="this.style.boxShadow='none'">
-                            <div style="display: flex; justify-content: space-between; align-items: start;">
-                                <div style="flex: 1;">
-                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
-                                        <span style="background: ${typeInfo.color}; color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.85rem; font-weight: 600;">
-                                            ${kpi.code}
-                                        </span>
-                                        <h4 style="margin: 0; color: #333; font-size: 1rem;">${kpi.name}</h4>
+            <div class="card-body">
+                ${kpis.length === 0 ? `
+                    <div class="empty-state" style="text-align: center; padding: 60px 20px;">
+                        <div style="font-size: 4rem; margin-bottom: 20px; opacity: 0.3;">${catInfo.icon || typeInfo.icon}</div>
+                        <h3 style="color: #666; margin-bottom: 15px;">لا توجد مؤشرات في هذا القسم</h3>
+                        <p style="color: #999; margin-bottom: 25px;">ابدأ بإضافة مؤشرات يدوياً أو استيرادها من Excel</p>
+                        <div style="display: flex; gap: 15px; justify-content: center;">
+                            <button class="btn btn-primary" onclick="addKPIManualForCategory()">
+                                ➕ إضافة مؤشر يدوياً
+                            </button>
+                            <button class="btn btn-success" onclick="openImportModalForCategory()">
+                                📤 استيراد من Excel
+                            </button>
+                        </div>
+                    </div>
+                ` : `
+                    <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong style="color: #333; font-size: 1.1rem;">إجمالي المؤشرات: ${kpis.length}</strong>
+                        </div>
+                        <button class="btn btn-secondary btn-small" onclick="exportCategoryKPIs()">
+                            📥 تصدير Excel
+                        </button>
+                    </div>
+                    
+                    <div style="display: grid; gap: 12px;">
+                        ${kpis.map((kpi, index) => `
+                            <div class="kpi-item" style="background: white; border: 1px solid #e0e0e0; border-right: 4px solid ${catInfo.color || typeInfo.color}; border-radius: 8px; padding: 18px; transition: all 0.3s;"
+                                 onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'; this.style.transform='translateX(-5px)';" 
+                                 onmouseout="this.style.boxShadow='none'; this.style.transform='translateX(0)';">
+                                <div style="display: flex; justify-content: space-between; align-items: start; gap: 15px;">
+                                    <div style="flex: 1;">
+                                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                                            <span style="background: ${catInfo.color || typeInfo.color}; color: white; padding: 6px 14px; border-radius: 6px; font-size: 0.9rem; font-weight: 700;">
+                                                ${kpi.code}
+                                            </span>
+                                            <h4 style="margin: 0; color: #333; font-size: 1.05rem; flex: 1;">${kpi.name}</h4>
+                                        </div>
+                                        ${renderKPIDetails(kpi, typeInfo)}
                                     </div>
-                                    ${kpi.formula ? `
-                                        <p style="margin: 5px 0; color: #666; font-size: 0.9rem;">
-                                            <strong>الصيغة:</strong> ${kpi.formula}
-                                        </p>
-                                    ` : ''}
-                                    ${kpi.numeratorLabel && kpi.denominatorLabel ? `
-                                        <p style="margin: 5px 0; color: #666; font-size: 0.85rem;">
-                                            <strong>البسط:</strong> ${kpi.numeratorLabel} | 
-                                            <strong>المقام:</strong> ${kpi.denominatorLabel}
-                                        </p>
-                                    ` : ''}
-                                    ${kpi.target ? `
-                                        <p style="margin: 5px 0; color: #666; font-size: 0.85rem;">
-                                            <strong>المستهدف:</strong> ${kpi.target}${kpi.unit || ''}
-                                        </p>
-                                    ` : ''}
-                                    <div style="margin-top: 8px; font-size: 0.8rem; color: #999;">
-                                        ${getApplicableFacilitiesText(kpi.applicableTo || {})}
+                                    <div style="display: flex; gap: 8px;">
+                                        <button class="btn-icon" onclick="viewKPIDetails('${kpi.id}')" title="عرض" 
+                                                style="padding: 10px; background: #e3f2fd; border: none; border-radius: 6px; cursor: pointer; font-size: 1.2rem;">
+                                            👁️
+                                        </button>
+                                        <button class="btn-icon" onclick="editKPIManual('${kpi.id}')" title="تعديل" 
+                                                style="padding: 10px; background: #fff3e0; border: none; border-radius: 6px; cursor: pointer; font-size: 1.2rem;">
+                                            ✏️
+                                        </button>
+                                        <button class="btn-icon" onclick="deleteKPIConfirm('${kpi.id}')" title="حذف" 
+                                                style="padding: 10px; background: #ffebee; border: none; border-radius: 6px; cursor: pointer; font-size: 1.2rem;">
+                                            🗑️
+                                        </button>
                                     </div>
-                                </div>
-                                <div style="display: flex; gap: 8px;">
-                                    <button class="btn-icon" onclick="viewKPIDetails('${kpi.id}')" title="عرض التفاصيل" style="font-size: 1.2rem; padding: 8px; background: #e3f2fd; border: none; border-radius: 6px; cursor: pointer;">👁️</button>
-                                    <button class="btn-icon" onclick="editKPIManual('${kpi.id}')" title="تعديل" style="font-size: 1.2rem; padding: 8px; background: #fff3e0; border: none; border-radius: 6px; cursor: pointer;">✏️</button>
-                                    <button class="btn-icon" onclick="deleteKPIConfirm('${kpi.id}', '${dataType}')" title="حذف" style="font-size: 1.2rem; padding: 8px; background: #ffebee; border: none; border-radius: 6px; cursor: pointer;">🗑️</button>
                                 </div>
                             </div>
-                        </div>
-                    `).join('')}
-                </div>
+                        `).join('')}
+                    </div>
+                `}
             </div>
-        `;
-    }).join('');
+        </div>
+    `;
 }
 
-function addKPIManual() {
-    currentEditingKPI = null;
-    const typeInfo = getDataTypeInfo(selectedKPIDataType);
+function renderKPIDetails(kpi, typeInfo) {
+    let html = '';
     
-    if (!typeInfo) {
-        showError('الرجاء اختيار نوع البيانات أولاً');
+    if (typeInfo.inputType === 'formula') {
+        html += `
+            <div style="display: grid; gap: 8px; margin-top: 8px; font-size: 0.9rem; color: #666;">
+                ${kpi.formula ? `<div><strong>الصيغة:</strong> ${kpi.formula}</div>` : ''}
+                ${kpi.numeratorLabel ? `<div><strong>البسط:</strong> ${kpi.numeratorLabel}</div>` : ''}
+                ${kpi.denominatorLabel ? `<div><strong>المقام:</strong> ${kpi.denominatorLabel}</div>` : ''}
+                ${kpi.target ? `<div><strong>المستهدف:</strong> <span style="color: ${typeInfo.color}; font-weight: 600;">${kpi.target}${kpi.unit || ''}</span></div>` : ''}
+            </div>
+        `;
+    } else if (typeInfo.inputType === 'weighted') {
+        html += `
+            <div style="display: grid; gap: 8px; margin-top: 8px; font-size: 0.9rem; color: #666;">
+                ${kpi.weight ? `<div><strong>الوزن:</strong> ${kpi.weight}</div>` : ''}
+                ${kpi.maxScore ? `<div><strong>الدرجة القصوى:</strong> ${kpi.maxScore}</div>` : ''}
+            </div>
+        `;
+    } else if (typeInfo.inputType === 'checklist') {
+        html += `
+            <div style="display: grid; gap: 8px; margin-top: 8px; font-size: 0.9rem; color: #666;">
+                ${kpi.evaluationType ? `<div><strong>نوع التقييم:</strong> ${kpi.evaluationType}</div>` : ''}
+                ${kpi.description ? `<div><strong>الوصف:</strong> ${kpi.description}</div>` : ''}
+            </div>
+        `;
+    } else if (typeInfo.inputType === 'count') {
+        html += `
+            <div style="display: grid; gap: 8px; margin-top: 8px; font-size: 0.9rem; color: #666;">
+                ${kpi.jobTitle ? `<div><strong>المسمى الوظيفي:</strong> ${kpi.jobTitle}</div>` : ''}
+                ${kpi.contractType ? `<div><strong>نوع العقد:</strong> ${kpi.contractType}</div>` : ''}
+            </div>
+        `;
+    }
+    
+    if (kpi.applicableTo) {
+        html += `
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0; font-size: 0.85rem; color: #999;">
+                ${getApplicableFacilitiesText(kpi.applicableTo)}
+            </div>
+        `;
+    }
+    
+    return html;
+}
+
+function addKPIManualForCategory() {
+    if (!selectedKPIDataType || !selectedKPICategory) {
+        showError('الرجاء اختيار نوع البيانات والقسم أولاً');
         return;
     }
     
-    const modalContent = createKPIForm(typeInfo, null);
-    showKPIModal('إضافة مؤشر جديد - ' + typeInfo.name, modalContent);
+    currentEditingKPI = null;
+    const typeInfo = getDataTypeInfo(selectedKPIDataType);
+    const catInfo = typeInfo.categories[selectedKPICategory];
+    
+    const modalContent = createKPIFormByType(typeInfo, catInfo, null);
+    showKPIModal(`إضافة مؤشر جديد - ${catInfo.name}`, modalContent);
 }
 
-function createKPIForm(typeInfo, kpiData = null) {
-    const categories = getCategoriesByDataType(typeInfo.id);
+function createKPIFormByType(typeInfo, catInfo, kpiData = null) {
     const isEdit = kpiData !== null;
+    let html = `<form id="kpiManualForm" onsubmit="saveKPIManual(event); return false;" style="max-height: 70vh; overflow-y: auto; padding: 5px;">`;
     
-    return `
-        <form id="kpiManualForm" onsubmit="saveKPIManual(event); return false;" style="max-height: 70vh; overflow-y: auto; padding: 5px;">
+    html += `
+        <div class="form-group">
+            <label for="kpiCode">كود المؤشر *</label>
+            <input type="text" id="kpiCode" required placeholder="مثال: ${catInfo.id}-01" value="${kpiData?.code || ''}" ${isEdit ? 'readonly' : ''}>
+            <small>الكود يجب أن يكون فريداً ولا يمكن تعديله لاحقاً</small>
+        </div>
+
+        <div class="form-group">
+            <label for="kpiName">اسم المؤشر *</label>
+            <input type="text" id="kpiName" required placeholder="أدخل اسم المؤشر" value="${kpiData?.name || ''}">
+        </div>
+    `;
+    
+    if (typeInfo.inputType === 'formula') {
+        html += `
             <div class="form-group">
-                <label for="kpiCode">كود المؤشر *</label>
-                <input type="text" id="kpiCode" required placeholder="مثال: WFM-01" value="${kpiData?.code || ''}" ${isEdit ? 'readonly' : ''}>
-                <small>الكود يجب أن يكون فريداً ولا يمكن تعديله لاحقاً</small>
+                <label for="kpiFormula">الصيغة الحسابية *</label>
+                <input type="text" id="kpiFormula" required placeholder="مثال: (البسط / المقام) × 100" value="${kpiData?.formula || ''}">
             </div>
 
             <div class="form-group">
-                <label for="kpiName">اسم المؤشر *</label>
-                <input type="text" id="kpiName" required placeholder="أدخل اسم المؤشر" value="${kpiData?.name || ''}">
+                <label for="kpiNumeratorLabel">تسمية البسط *</label>
+                <input type="text" id="kpiNumeratorLabel" required placeholder="مثال: عدد الحالات المعالجة" value="${kpiData?.numeratorLabel || ''}">
             </div>
 
             <div class="form-group">
-                <label for="kpiCategory">الفئة *</label>
-                <select id="kpiCategory" required>
-                    <option value="">-- اختر الفئة --</option>
-                    ${Object.keys(categories).map(key => 
-                        `<option value="${key}" ${kpiData?.category === key ? 'selected' : ''}>${categories[key]}</option>`
-                    ).join('')}
-                </select>
+                <label for="kpiDenominatorLabel">تسمية المقام *</label>
+                <input type="text" id="kpiDenominatorLabel" required placeholder="مثال: إجمالي الحالات" value="${kpiData?.denominatorLabel || ''}">
             </div>
-
-            ${typeInfo.hasFormula ? `
-                <div class="form-group">
-                    <label for="kpiFormula">الصيغة الحسابية *</label>
-                    <input type="text" id="kpiFormula" required placeholder="مثال: (البسط / المقام) × 100" value="${kpiData?.formula || ''}">
-                </div>
-            ` : ''}
-
-            ${typeInfo.hasNumeratorDenominator ? `
-                <div class="form-group">
-                    <label for="kpiNumeratorLabel">تسمية البسط *</label>
-                    <input type="text" id="kpiNumeratorLabel" required placeholder="مثال: عدد الحالات المعالجة" value="${kpiData?.numeratorLabel || ''}">
-                </div>
-
-                <div class="form-group">
-                    <label for="kpiDenominatorLabel">تسمية المقام *</label>
-                    <input type="text" id="kpiDenominatorLabel" required placeholder="مثال: إجمالي الحالات" value="${kpiData?.denominatorLabel || ''}">
-                </div>
-            ` : ''}
 
             <div class="form-group">
                 <label for="kpiTarget">المستهدف *</label>
@@ -886,36 +767,84 @@ function createKPIForm(typeInfo, kpiData = null) {
                     <option value="دقيقة" ${kpiData?.unit === 'دقيقة' ? 'selected' : ''}>دقيقة</option>
                 </select>
             </div>
-
+        `;
+    } else if (typeInfo.inputType === 'weighted') {
+        html += `
             <div class="form-group">
-                <label style="display: block; margin-bottom: 10px; font-weight: 600;">أنواع المنشآت المتاحة *</label>
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="facilityHospital" ${kpiData?.applicableTo?.hospital ? 'checked' : ''}>
-                        <span>🏥 مستشفى</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="facilityHealthCenter" ${kpiData?.applicableTo?.healthCenter ? 'checked' : ''}>
-                        <span>🏥 مركز صحي</span>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="facilityHealthUnit" ${kpiData?.applicableTo?.healthUnit ? 'checked' : ''}>
-                        <span>🏥 وحدة صحية</span>
-                    </label>
-                </div>
+                <label for="kpiWeight">الوزن *</label>
+                <input type="number" id="kpiWeight" step="1" required placeholder="مثال: 120" value="${kpiData?.weight || catInfo.weight || ''}">
             </div>
 
             <div class="form-group">
-                <label for="kpiDescription">الوصف (اختياري)</label>
-                <textarea id="kpiDescription" rows="3" placeholder="وصف المؤشر وطريقة حسابه...">${kpiData?.description || ''}</textarea>
+                <label for="kpiMaxScore">الدرجة القصوى *</label>
+                <input type="number" id="kpiMaxScore" step="0.1" required placeholder="مثال: 100" value="${kpiData?.maxScore || ''}">
             </div>
 
-            <div class="modal-footer" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0; display: flex; gap: 10px; justify-content: flex-end;">
-                <button type="button" class="btn btn-secondary" onclick="closeKPIModal()">إلغاء</button>
-                <button type="submit" class="btn btn-primary">💾 ${isEdit ? 'تحديث' : 'حفظ'}</button>
+            <div class="form-group">
+                <label for="kpiSubCriteria">المعايير الفرعية</label>
+                <textarea id="kpiSubCriteria" rows="4" placeholder="أدخل المعايير الفرعية (كل معيار في سطر)">${kpiData?.subCriteria || ''}</textarea>
             </div>
-        </form>
+        `;
+    } else if (typeInfo.inputType === 'checklist') {
+        html += `
+            <div class="form-group">
+                <label for="kpiEvaluationType">نوع التقييم *</label>
+                <select id="kpiEvaluationType" required>
+                    <option value="نعم/لا" ${kpiData?.evaluationType === 'نعم/لا' ? 'selected' : ''}>نعم/لا</option>
+                    <option value="تقييم رقمي (2-1-0-N/A)" ${kpiData?.evaluationType === 'تقييم رقمي (2-1-0-N/A)' ? 'selected' : ''}>تقييم رقمي (2-1-0-N/A)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="kpiDescription">الوصف</label>
+                <textarea id="kpiDescription" rows="3" placeholder="وصف تفصيلي للمعيار...">${kpiData?.description || ''}</textarea>
+            </div>
+        `;
+    } else if (typeInfo.inputType === 'count') {
+        html += `
+            <div class="form-group">
+                <label for="kpiJobTitle">المسمى الوظيفي *</label>
+                <input type="text" id="kpiJobTitle" required placeholder="مثال: طبيب استشاري" value="${kpiData?.jobTitle || ''}">
+            </div>
+
+            <div class="form-group">
+                <label for="kpiContractType">نوع العقد *</label>
+                <select id="kpiContractType" required>
+                    <option value="دائم" ${kpiData?.contractType === 'دائم' ? 'selected' : ''}>دائم</option>
+                    <option value="مؤقت" ${kpiData?.contractType === 'مؤقت' ? 'selected' : ''}>مؤقت</option>
+                    <option value="متعاقد" ${kpiData?.contractType === 'متعاقد' ? 'selected' : ''}>متعاقد</option>
+                </select>
+            </div>
+        `;
+    }
+    
+    html += `
+        <div class="form-group">
+            <label style="display: block; margin-bottom: 10px; font-weight: 600;">أنواع المنشآت المتاحة *</label>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="facilityHospital" ${kpiData?.applicableTo?.hospital ? 'checked' : ''}>
+                    <span>🏥 مستشفى</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="facilityHealthCenter" ${kpiData?.applicableTo?.healthCenter ? 'checked' : ''}>
+                    <span>🏥 مركز صحي</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="facilityHealthUnit" ${kpiData?.applicableTo?.healthUnit ? 'checked' : ''}>
+                    <span>🏥 وحدة صحية</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="modal-footer" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0; display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="closeKPIModal()">إلغاء</button>
+            <button type="submit" class="btn btn-primary">💾 ${isEdit ? 'تحديث' : 'حفظ'}</button>
+        </div>
+    </form>
     `;
+    
+    return html;
 }
 
 function saveKPIManual(event) {
@@ -927,12 +856,9 @@ function saveKPIManual(event) {
     
     const kpiData = {
         dataType: selectedKPIDataType,
+        category: selectedKPICategory,
         code: document.getElementById('kpiCode').value.trim(),
         name: document.getElementById('kpiName').value.trim(),
-        category: document.getElementById('kpiCategory').value,
-        target: parseFloat(document.getElementById('kpiTarget').value),
-        unit: document.getElementById('kpiUnit').value,
-        description: document.getElementById('kpiDescription')?.value || '',
         applicableTo: {
             hospital: document.getElementById('facilityHospital').checked,
             healthCenter: document.getElementById('facilityHealthCenter').checked,
@@ -940,13 +866,22 @@ function saveKPIManual(event) {
         }
     };
     
-    if (typeInfo.hasFormula) {
+    if (typeInfo.inputType === 'formula') {
         kpiData.formula = document.getElementById('kpiFormula').value.trim();
-    }
-    
-    if (typeInfo.hasNumeratorDenominator) {
         kpiData.numeratorLabel = document.getElementById('kpiNumeratorLabel').value.trim();
         kpiData.denominatorLabel = document.getElementById('kpiDenominatorLabel').value.trim();
+        kpiData.target = parseFloat(document.getElementById('kpiTarget').value);
+        kpiData.unit = document.getElementById('kpiUnit').value;
+    } else if (typeInfo.inputType === 'weighted') {
+        kpiData.weight = parseFloat(document.getElementById('kpiWeight').value);
+        kpiData.maxScore = parseFloat(document.getElementById('kpiMaxScore').value);
+        kpiData.subCriteria = document.getElementById('kpiSubCriteria').value.trim();
+    } else if (typeInfo.inputType === 'checklist') {
+        kpiData.evaluationType = document.getElementById('kpiEvaluationType').value;
+        kpiData.description = document.getElementById('kpiDescription').value.trim();
+    } else if (typeInfo.inputType === 'count') {
+        kpiData.jobTitle = document.getElementById('kpiJobTitle').value.trim();
+        kpiData.contractType = document.getElementById('kpiContractType').value;
     }
     
     if (!kpiData.applicableTo.hospital && !kpiData.applicableTo.healthCenter && !kpiData.applicableTo.healthUnit) {
@@ -969,9 +904,8 @@ function saveKPIManual(event) {
     if (result.success) {
         showSuccess(result.message);
         closeKPIModal();
-        loadKPIsList(selectedKPIDataType);
+        selectCategory(selectedKPICategory);
         updateDashboardStats();
-        selectKPIDataType(selectedKPIDataType);
     } else {
         showError(result.message);
     }
@@ -985,10 +919,14 @@ function editKPIManual(kpiId) {
     }
     
     currentEditingKPI = kpiId;
-    const typeInfo = getDataTypeInfo(kpi.dataType);
+    selectedKPIDataType = kpi.dataType;
+    selectedKPICategory = kpi.category;
     
-    const modalContent = createKPIForm(typeInfo, kpi);
-    showKPIModal('تعديل مؤشر - ' + typeInfo.name, modalContent);
+    const typeInfo = getDataTypeInfo(kpi.dataType);
+    const catInfo = typeInfo.categories[kpi.category];
+    
+    const modalContent = createKPIFormByType(typeInfo, catInfo, kpi);
+    showKPIModal('تعديل مؤشر - ' + catInfo.name, modalContent);
 }
 
 function viewKPIDetails(kpiId) {
@@ -999,12 +937,12 @@ function viewKPIDetails(kpiId) {
     }
     
     const typeInfo = getDataTypeInfo(kpi.dataType);
-    const categoryName = getCategoryName(kpi.dataType, kpi.category);
+    const catInfo = typeInfo.categories[kpi.category];
     
-    const details = `
+    let details = `
         <div style="padding: 20px;">
-            <div style="background: ${typeInfo.color}; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-                <div style="font-size: 2rem; margin-bottom: 10px;">${typeInfo.icon}</div>
+            <div style="background: ${catInfo.color || typeInfo.color}; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                <div style="font-size: 2rem; margin-bottom: 10px;">${catInfo.icon || typeInfo.icon}</div>
                 <h2 style="margin: 0 0 5px 0;">${kpi.name}</h2>
                 <p style="margin: 0; opacity: 0.9;">${kpi.code}</p>
             </div>
@@ -1016,45 +954,41 @@ function viewKPIDetails(kpiId) {
                 </div>
                 
                 <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                    <strong style="color: #666;">الفئة:</strong><br>
-                    <span style="font-size: 1.1rem; color: #333;">${categoryName}</span>
+                    <strong style="color: #666;">القسم:</strong><br>
+                    <span style="font-size: 1.1rem; color: #333;">${catInfo.name}</span>
                 </div>
-                
-                ${kpi.formula ? `
-                    <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <strong style="color: #666;">الصيغة الحسابية:</strong><br>
-                        <span style="font-size: 1.1rem; color: #333;">${kpi.formula}</span>
-                    </div>
-                ` : ''}
-                
-                ${kpi.numeratorLabel && kpi.denominatorLabel ? `
-                    <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <strong style="color: #666;">البسط:</strong><br>
-                        <span style="font-size: 1rem; color: #333;">${kpi.numeratorLabel}</span>
-                    </div>
-                    
-                    <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <strong style="color: #666;">المقام:</strong><br>
-                        <span style="font-size: 1rem; color: #333;">${kpi.denominatorLabel}</span>
-                    </div>
-                ` : ''}
-                
-                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                    <strong style="color: #666;">المستهدف:</strong><br>
-                    <span style="font-size: 1.3rem; color: ${typeInfo.color}; font-weight: 600;">${kpi.target} ${kpi.unit}</span>
-                </div>
-                
+    `;
+    
+    if (typeInfo.inputType === 'formula') {
+        details += `
+            ${kpi.formula ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>الصيغة:</strong><br>${kpi.formula}</div>` : ''}
+            ${kpi.numeratorLabel ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>البسط:</strong><br>${kpi.numeratorLabel}</div>` : ''}
+            ${kpi.denominatorLabel ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>المقام:</strong><br>${kpi.denominatorLabel}</div>` : ''}
+            ${kpi.target ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>المستهدف:</strong><br><span style="font-size: 1.3rem; color: ${typeInfo.color}; font-weight: 600;">${kpi.target} ${kpi.unit}</span></div>` : ''}
+        `;
+    } else if (typeInfo.inputType === 'weighted') {
+        details += `
+            ${kpi.weight ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>الوزن:</strong><br>${kpi.weight}</div>` : ''}
+            ${kpi.maxScore ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>الدرجة القصوى:</strong><br>${kpi.maxScore}</div>` : ''}
+            ${kpi.subCriteria ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>المعايير الفرعية:</strong><br>${kpi.subCriteria.replace(/\n/g, '<br>')}</div>` : ''}
+        `;
+    } else if (typeInfo.inputType === 'checklist') {
+        details += `
+            ${kpi.evaluationType ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>نوع التقييم:</strong><br>${kpi.evaluationType}</div>` : ''}
+            ${kpi.description ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>الوصف:</strong><br>${kpi.description}</div>` : ''}
+        `;
+    } else if (typeInfo.inputType === 'count') {
+        details += `
+            ${kpi.jobTitle ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>المسمى الوظيفي:</strong><br>${kpi.jobTitle}</div>` : ''}
+            ${kpi.contractType ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>نوع العقد:</strong><br>${kpi.contractType}</div>` : ''}
+        `;
+    }
+    
+    details += `
                 <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
                     <strong style="color: #666;">المنشآت المتاحة:</strong><br>
                     <span style="font-size: 1rem; color: #333;">${getApplicableFacilitiesText(kpi.applicableTo || {})}</span>
                 </div>
-                
-                ${kpi.description ? `
-                    <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <strong style="color: #666;">الوصف:</strong><br>
-                        <span style="font-size: 0.95rem; color: #333;">${kpi.description}</span>
-                    </div>
-                ` : ''}
             </div>
             
             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center;">
@@ -1066,7 +1000,7 @@ function viewKPIDetails(kpiId) {
     showKPIModal('تفاصيل المؤشر', details);
 }
 
-function deleteKPIConfirm(kpiId, dataType) {
+function deleteKPIConfirm(kpiId) {
     const kpi = getKPIById(kpiId);
     if (!kpi) {
         showError('المؤشر غير موجود');
@@ -1077,13 +1011,12 @@ function deleteKPIConfirm(kpiId, dataType) {
         return;
     }
     
-    const result = deleteKPI(kpiId, dataType);
+    const result = deleteKPI(kpiId, kpi.dataType);
     
     if (result.success) {
         showSuccess(result.message);
-        loadKPIsList(dataType);
+        selectCategory(selectedKPICategory);
         updateDashboardStats();
-        selectKPIDataType(dataType);
     } else {
         showError(result.message);
     }
@@ -1128,21 +1061,22 @@ function closeKPIModal() {
     currentEditingKPI = null;
 }
 
-function openImportModal() {
-    const typeInfo = getDataTypeInfo(selectedKPIDataType);
-    
-    if (!typeInfo) {
-        showError('الرجاء اختيار نوع البيانات أولاً');
+function openImportModalForCategory() {
+    if (!selectedKPIDataType || !selectedKPICategory) {
+        showError('الرجاء اختيار نوع البيانات والقسم أولاً');
         return;
     }
     
-    document.getElementById('importModalTitle').textContent = `استيراد مؤشرات - ${typeInfo.name}`;
+    const typeInfo = getDataTypeInfo(selectedKPIDataType);
+    const catInfo = typeInfo.categories[selectedKPICategory];
+    
+    document.getElementById('importModalTitle').textContent = `استيراد مؤشرات - ${catInfo.name}`;
     openModal('importModal');
 }
 
-/**
- * ===== إدارة البيانات المدخلة =====
- */
+function exportCategoryKPIs() {
+    showInfo('جاري تطوير ميزة التصدير');
+}
 
 function loadDataTable() {
     const tbody = document.querySelector('#dataTable tbody');
@@ -1221,10 +1155,6 @@ function deleteDataEntry(entryId) {
     showSuccess('تم حذف الإدخال بنجاح');
 }
 
-/**
- * ===== التقارير =====
- */
-
 function loadReports() {
     updateReportsStats();
 }
@@ -1287,9 +1217,8 @@ function switchView(viewName) {
         targetSection.classList.add('active');
     }
     
-    const clickedBtn = event.currentTarget;
-    if (clickedBtn) {
-        clickedBtn.classList.add('active');
+    if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
     }
     
     if (viewName === 'dashboard') {
@@ -1320,3 +1249,4 @@ function closeModal(modalId) {
         modal.style.display = 'none';
     }
 }
+             
