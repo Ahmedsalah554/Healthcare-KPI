@@ -526,29 +526,55 @@ function selectDataType(dataTypeId) {
     
     const typeInfo = getDataTypeInfo(dataTypeId);
     const categoryContainer = document.getElementById('categorySelectionContainer');
+    const kpisContainer = document.getElementById('kpisListContainer');
+    
     if (!categoryContainer) return;
     
+    // مسح المحتوى القديم
+    if (kpisContainer) {
+        kpisContainer.innerHTML = '';
+    }
+    
+    // إخفاء اختيار النوع
+    const typeSelection = categoryContainer.previousElementSibling;
+    if (typeSelection) {
+        typeSelection.style.display = 'none';
+    }
+    
+    // عرض صفحة الأقسام الكاملة
     categoryContainer.innerHTML = `
-        <div class="card" style="margin-top: 20px;">
-            <div class="card-header">
-                <h3>🗂️ الخطوة 2: اختر القسم</h3>
-                <button class="btn btn-secondary btn-small" onclick="showKPIManagement()">
-                    ← العودة لاختيار النوع
-                </button>
+        <div class="card">
+            <div class="card-header" style="background: linear-gradient(135deg, ${typeInfo.color} 0%, ${typeInfo.color}dd 100%); color: white; padding: 25px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                    <div>
+                        <div style="font-size: 2.5rem; margin-bottom: 10px;">${typeInfo.icon}</div>
+                        <h2 style="margin: 0 0 8px 0;">${typeInfo.name}</h2>
+                        <p style="margin: 0; opacity: 0.9; font-size: 0.95rem;">${typeInfo.description} - ${getInputTypeLabel(typeInfo.inputType)}</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="showKPIManagement()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white; padding: 12px 24px;">
+                        ← العودة لاختيار النوع
+                    </button>
+                </div>
             </div>
-            <div class="card-body">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+            <div class="card-body" style="padding: 40px;">
+                <h3 style="margin: 0 0 25px 0; color: #333; font-size: 1.4rem;">اختر القسم:</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
                     ${Object.values(typeInfo.categories).map(cat => {
                         const catKPIs = getKPIsByCategory(dataTypeId, cat.id);
                         return `
                             <div class="category-card" onclick="selectCategory('${cat.id}')" 
-                                 style="border: 2px solid ${cat.color || typeInfo.color}; border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.3s; background: white; text-align: center;">
-                                <div style="font-size: 2.5rem; margin-bottom: 10px;">${cat.icon || typeInfo.icon}</div>
-                                <h4 style="color: ${cat.color || typeInfo.color}; margin-bottom: 8px; font-size: 1.1rem;">${cat.name}</h4>
-                                ${cat.weight ? `<p style="color: #999; font-size: 0.85rem; margin-bottom: 8px;">الوزن: ${cat.weight}</p>` : ''}
-                                <span style="background: ${cat.color || typeInfo.color}20; color: ${cat.color || typeInfo.color}; padding: 4px 12px; border-radius: 15px; font-size: 0.85rem; font-weight: 600;">
-                                    ${catKPIs.length} مؤشر
-                                </span>
+                                 style="border: 3px solid ${cat.color || typeInfo.color}; border-radius: 15px; padding: 30px; cursor: pointer; transition: all 0.3s; background: white; text-align: center; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+                                 onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.15)';" 
+                                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)';">
+                                <div style="font-size: 3.5rem; margin-bottom: 15px;">${cat.icon || typeInfo.icon}</div>
+                                <h3 style="color: ${cat.color || typeInfo.color}; margin-bottom: 12px; font-size: 1.2rem; font-weight: 700;">${cat.name}</h3>
+                                ${cat.nameEn ? `<p style="color: #999; font-size: 0.85rem; margin-bottom: 12px;">${cat.nameEn}</p>` : ''}
+                                ${cat.weight ? `<p style="color: #666; font-size: 0.9rem; margin-bottom: 15px; background: #f0f0f0; padding: 8px; border-radius: 6px;">الوزن: ${cat.weight}</p>` : ''}
+                                <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid ${cat.color || typeInfo.color}20;">
+                                    <span style="background: ${cat.color || typeInfo.color}; color: white; padding: 8px 20px; border-radius: 25px; font-size: 1rem; font-weight: 600; display: inline-block;">
+                                        ${catKPIs.length} مؤشر
+                                    </span>
+                                </div>
                             </div>
                         `;
                     }).join('')}
@@ -556,8 +582,6 @@ function selectDataType(dataTypeId) {
             </div>
         </div>
     `;
-    
-    document.getElementById('kpisListContainer').innerHTML = '';
 }
 
 function selectCategory(categoryId) {
@@ -567,28 +591,37 @@ function selectCategory(categoryId) {
     
     const typeInfo = getDataTypeInfo(selectedKPIDataType);
     const catInfo = typeInfo.categories[categoryId];
+    
+    // إخفاء صفحة الأقسام
+    const categoryContainer = document.getElementById('categorySelectionContainer');
+    if (categoryContainer) {
+        categoryContainer.style.display = 'none';
+    }
+    
     const kpisContainer = document.getElementById('kpisListContainer');
     if (!kpisContainer) return;
     
     const kpis = getKPIsByCategory(selectedKPIDataType, categoryId);
     
+    // عرض الصفحة الكاملة للمؤشرات
+    kpisContainer.style.display = 'block';
     kpisContainer.innerHTML = `
-        <div class="card" style="margin-top: 20px;">
-            <div class="card-header" style="background: linear-gradient(135deg, ${catInfo.color || typeInfo.color} 0%, ${catInfo.color || typeInfo.color}dd 100%); color: white; padding: 20px; border-radius: 12px 12px 0 0;">
+        <div class="card">
+            <div class="card-header" style="background: linear-gradient(135deg, ${catInfo.color || typeInfo.color} 0%, ${catInfo.color || typeInfo.color}dd 100%); color: white; padding: 25px; border-radius: 12px 12px 0 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                     <div>
-                        <div style="font-size: 2rem; margin-bottom: 5px;">${catInfo.icon || typeInfo.icon}</div>
-                        <h3 style="margin: 0 0 5px 0;">${catInfo.name}</h3>
-                        <p style="margin: 0; opacity: 0.9; font-size: 0.95rem;">${typeInfo.name}</p>
+                        <div style="font-size: 2.5rem; margin-bottom: 10px;">${catInfo.icon || typeInfo.icon}</div>
+                        <h2 style="margin: 0 0 8px 0; font-size: 1.8rem;">${catInfo.name}</h2>
+                        <p style="margin: 0; opacity: 0.95; font-size: 1rem;">${typeInfo.name} - ${getInputTypeLabel(typeInfo.inputType)}</p>
                     </div>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn btn-success" onclick="openImportModalForCategory()" style="background: white; color: ${catInfo.color || typeInfo.color};">
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <button class="btn btn-success" onclick="openImportModalForCategory()" style="background: white; color: ${catInfo.color || typeInfo.color}; padding: 12px 20px; font-weight: 600;">
                             📤 استيراد من Excel
                         </button>
-                        <button class="btn btn-primary" onclick="addKPIManualForCategory()" style="background: white; color: ${catInfo.color || typeInfo.color};">
+                        <button class="btn btn-primary" onclick="addKPIManualForCategory()" style="background: white; color: ${catInfo.color || typeInfo.color}; padding: 12px 20px; font-weight: 600;">
                             ➕ إضافة يدوياً
                         </button>
-                        <button class="btn btn-secondary" onclick="selectDataType('${selectedKPIDataType}')" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white;">
+                        <button class="btn btn-secondary" onclick="backToCategories()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white; padding: 12px 20px;">
                             ← العودة للأقسام
                         </button>
                     </div>
@@ -596,55 +629,59 @@ function selectCategory(categoryId) {
             </div>
             <div class="card-body">
                 ${kpis.length === 0 ? `
-                    <div class="empty-state" style="text-align: center; padding: 60px 20px;">
-                        <div style="font-size: 4rem; margin-bottom: 20px; opacity: 0.3;">${catInfo.icon || typeInfo.icon}</div>
-                        <h3 style="color: #666; margin-bottom: 15px;">لا توجد مؤشرات في هذا القسم</h3>
-                        <p style="color: #999; margin-bottom: 25px;">ابدأ بإضافة مؤشرات يدوياً أو استيرادها من Excel</p>
-                        <div style="display: flex; gap: 15px; justify-content: center;">
-                            <button class="btn btn-primary" onclick="addKPIManualForCategory()">
+                    <div class="empty-state" style="text-align: center; padding: 80px 20px;">
+                        <div style="font-size: 5rem; margin-bottom: 25px; opacity: 0.3;">${catInfo.icon || typeInfo.icon}</div>
+                        <h3 style="color: #666; margin-bottom: 15px; font-size: 1.5rem;">لا توجد مؤشرات في هذا القسم</h3>
+                        <p style="color: #999; margin-bottom: 35px; font-size: 1.1rem;">ابدأ بإضافة مؤشرات يدوياً أو استيرادها من Excel</p>
+                        <div style="display: flex; gap: 20px; justify-content: center;">
+                            <button class="btn btn-primary btn-large" onclick="addKPIManualForCategory()" style="padding: 15px 35px; font-size: 1.1rem;">
                                 ➕ إضافة مؤشر يدوياً
                             </button>
-                            <button class="btn btn-success" onclick="openImportModalForCategory()">
+                            <button class="btn btn-success btn-large" onclick="openImportModalForCategory()" style="padding: 15px 35px; font-size: 1.1rem;">
                                 📤 استيراد من Excel
                             </button>
                         </div>
                     </div>
                 ` : `
-                    <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="margin-bottom: 25px; padding: 20px; background: linear-gradient(135deg, ${catInfo.color || typeInfo.color}10 0%, ${catInfo.color || typeInfo.color}05 100%); border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border-right: 4px solid ${catInfo.color || typeInfo.color};">
                         <div>
-                            <strong style="color: #333; font-size: 1.1rem;">إجمالي المؤشرات: ${kpis.length}</strong>
+                            <strong style="color: #333; font-size: 1.3rem;">إجمالي المؤشرات: ${kpis.length}</strong>
+                            <p style="margin: 5px 0 0 0; color: #666;">جميع المؤشرات في قسم ${catInfo.name}</p>
                         </div>
                         <button class="btn btn-secondary btn-small" onclick="exportCategoryKPIs()">
                             📥 تصدير Excel
                         </button>
                     </div>
                     
-                    <div style="display: grid; gap: 12px;">
+                    <div style="display: grid; gap: 15px;">
                         ${kpis.map((kpi, index) => `
-                            <div class="kpi-item" style="background: white; border: 1px solid #e0e0e0; border-right: 4px solid ${catInfo.color || typeInfo.color}; border-radius: 8px; padding: 18px; transition: all 0.3s;"
-                                 onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'; this.style.transform='translateX(-5px)';" 
+                            <div class="kpi-item" style="background: white; border: 1px solid #e0e0e0; border-right: 5px solid ${catInfo.color || typeInfo.color}; border-radius: 10px; padding: 22px; transition: all 0.3s;"
+                                 onmouseover="this.style.boxShadow='0 6px 16px rgba(0,0,0,0.12)'; this.style.transform='translateX(-8px)';" 
                                  onmouseout="this.style.boxShadow='none'; this.style.transform='translateX(0)';">
-                                <div style="display: flex; justify-content: space-between; align-items: start; gap: 15px;">
+                                <div style="display: flex; justify-content: space-between; align-items: start; gap: 20px;">
                                     <div style="flex: 1;">
-                                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
-                                            <span style="background: ${catInfo.color || typeInfo.color}; color: white; padding: 6px 14px; border-radius: 6px; font-size: 0.9rem; font-weight: 700;">
+                                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 12px;">
+                                            <span style="background: ${catInfo.color || typeInfo.color}; color: white; padding: 8px 16px; border-radius: 8px; font-size: 0.95rem; font-weight: 700;">
                                                 ${kpi.code}
                                             </span>
-                                            <h4 style="margin: 0; color: #333; font-size: 1.05rem; flex: 1;">${kpi.name}</h4>
+                                            <h4 style="margin: 0; color: #333; font-size: 1.15rem; flex: 1;">${kpi.name}</h4>
                                         </div>
                                         ${renderKPIDetails(kpi, typeInfo)}
                                     </div>
-                                    <div style="display: flex; gap: 8px;">
+                                    <div style="display: flex; gap: 10px;">
                                         <button class="btn-icon" onclick="viewKPIDetails('${kpi.id}')" title="عرض" 
-                                                style="padding: 10px; background: #e3f2fd; border: none; border-radius: 6px; cursor: pointer; font-size: 1.2rem;">
+                                                style="padding: 12px; background: #e3f2fd; border: none; border-radius: 8px; cursor: pointer; font-size: 1.3rem; transition: all 0.2s;"
+                                                onmouseover="this.style.transform='scale(1.1)';" onmouseout="this.style.transform='scale(1)';">
                                             👁️
                                         </button>
                                         <button class="btn-icon" onclick="editKPIManual('${kpi.id}')" title="تعديل" 
-                                                style="padding: 10px; background: #fff3e0; border: none; border-radius: 6px; cursor: pointer; font-size: 1.2rem;">
+                                                style="padding: 12px; background: #fff3e0; border: none; border-radius: 8px; cursor: pointer; font-size: 1.3rem; transition: all 0.2s;"
+                                                onmouseover="this.style.transform='scale(1.1)';" onmouseout="this.style.transform='scale(1)';">
                                             ✏️
                                         </button>
                                         <button class="btn-icon" onclick="deleteKPIConfirm('${kpi.id}')" title="حذف" 
-                                                style="padding: 10px; background: #ffebee; border: none; border-radius: 6px; cursor: pointer; font-size: 1.2rem;">
+                                                style="padding: 12px; background: #ffebee; border: none; border-radius: 8px; cursor: pointer; font-size: 1.3rem; transition: all 0.2s;"
+                                                onmouseover="this.style.transform='scale(1.1)';" onmouseout="this.style.transform='scale(1)';">
                                             🗑️
                                         </button>
                                     </div>
@@ -657,7 +694,23 @@ function selectCategory(categoryId) {
         </div>
     `;
 }
-
+function backToCategories() {
+    console.log('⬅️ Going back to categories');
+    
+    const categoryContainer = document.getElementById('categorySelectionContainer');
+    const kpisContainer = document.getElementById('kpisListContainer');
+    
+    if (categoryContainer) {
+        categoryContainer.style.display = 'block';
+    }
+    
+    if (kpisContainer) {
+        kpisContainer.innerHTML = '';
+        kpisContainer.style.display = 'none';
+    }
+    
+    selectedKPICategory = null;
+}
 function renderKPIDetails(kpi, typeInfo) {
     let html = '';
     
