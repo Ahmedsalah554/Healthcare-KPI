@@ -13,11 +13,11 @@ function parseCSV(content) {
         
         const columns = parseCSVLine(line);
         
-        if (columns.length < 3) continue;
+        if (columns.length < 2) continue;
         
         const kpiName = columns[0]?.trim();
         const kpiCode = columns[1]?.trim();
-        const formula = columns[2]?.trim();
+        const formula = columns[2]?.trim() || 'غير محدد';
         
         if (!kpiName || !kpiCode) continue;
         
@@ -28,7 +28,7 @@ function parseCSV(content) {
             code: kpiCode,
             name: kpiName,
             category: categoryCode,
-            formula: formula || 'غير محدد',
+            formula: formula,
             numeratorLabel: 'البسط',
             denominatorLabel: 'المقام',
             target: 90,
@@ -37,6 +37,7 @@ function parseCSV(content) {
         });
     }
     
+    console.log('✅ تم قراءة CSV:', result.length, 'مؤشر');
     return result;
 }
 
@@ -84,10 +85,10 @@ function extractCategoryFromCode(code) {
     };
     
     const prefix = code.split('-')[0];
-    return categoryMap[prefix] || 'OTHER';
+    return categoryMap[prefix] || 'WFM';
 }
 
-// معالجة ملف Excel باستخدام SheetJS (اختياري)
+// معالجة ملف Excel باستخدام SheetJS
 async function parseExcel(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -126,8 +127,10 @@ async function parseExcel(file) {
                     });
                 }
                 
+                console.log('✅ تم قراءة Excel:', kpis.length, 'مؤشر');
                 resolve(kpis);
             } catch (error) {
+                console.error('❌ خطأ في قراءة Excel:', error);
                 reject(error);
             }
         };
@@ -139,41 +142,45 @@ async function parseExcel(file) {
 
 // معالجة رفع الملف
 async function handleFileUpload(file) {
+    console.log('📂 جاري قراءة الملف:', file.name);
+    
     const fileName = file.name.toLowerCase();
     
-    showLoading('جاري قراءة الملف...');
+    showLoadingOverlay('جاري قراءة الملف...');
     
     try {
         let kpis = [];
         
         if (fileName.endsWith('.csv')) {
-            // قراءة CSV
+            console.log('📄 ملف CSV');
             const text = await file.text();
             kpis = parseCSV(text);
         } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-            // قراءة Excel (يتطلب مكتبة SheetJS)
+            console.log('📊 ملف Excel');
             if (typeof XLSX === 'undefined') {
                 throw new Error('مكتبة SheetJS غير متوفرة. استخدم ملف CSV بدلاً من ذلك.');
             }
             kpis = await parseExcel(file);
         } else {
-            throw new Error('صيغة الملف غير مدعومة. استخدم CSV أو Excel.');
+            throw new Error('صيغة الملف غير مدعومة. استخدم CSV أو Excel (.xlsx, .xls)');
         }
         
-        hideLoading();
+        hideLoadingOverlay();
         
         if (kpis.length === 0) {
             showError('لم يتم العثور على مؤشرات في الملف');
             return;
         }
         
+        console.log('✅ تم قراءة', kpis.length, 'مؤشر');
+        
         // عرض معاينة المؤشرات
         showKPIsPreview(kpis);
         
     } catch (error) {
-        hideLoading();
+        hideLoadingOverlay();
         showError('خطأ في قراءة الملف: ' + error.message);
-        console.error(error);
+        console.error('❌ خطأ:', error);
     }
 }
 
@@ -181,7 +188,10 @@ async function handleFileUpload(file) {
 function showKPIsPreview(kpis) {
     const previewContainer = document.getElementById('importPreview');
     
-    if (!previewContainer) return;
+    if (!previewContainer) {
+        console.error('❌ عنصر importPreview غير موجود');
+        return;
+    }
     
     // تجميع حسب الفئة
     const categorized = {};
@@ -193,7 +203,7 @@ function showKPIsPreview(kpis) {
     });
     
     previewContainer.innerHTML = `
-        <div class="card">
+        <div class="card" style="margin-top: 20px;">
             <div class="card-header">
                 <div class="card-title">📋 معاينة المؤشرات المستوردة</div>
                 <div>
@@ -203,7 +213,7 @@ function showKPIsPreview(kpis) {
                 </div>
             </div>
             
-            <div class="card-body">
+            <div class="card-body" style="max-height: 500px; overflow-y: auto;">
                 ${Object.keys(categorized).map(category => `
                     <div style="margin-bottom: 25px;">
                         <h3 style="color: #1a73e8; margin-bottom: 15px;">
@@ -212,31 +222,31 @@ function showKPIsPreview(kpis) {
                         </h3>
                         
                         <div style="display: grid; gap: 10px;">
-                            ${categorized[category].map(kpi => `
+                            ${categorized[category].slice(0, 10).map(kpi => `
                                 <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; border-right: 3px solid #1a73e8;">
                                     <div style="display: flex; justify-content: space-between; align-items: start;">
                                         <div style="flex: 1;">
                                             <strong style="color: #1a73e8;">${kpi.code}</strong>
                                             <span style="margin: 0 10px; color: #999;">|</span>
-                                            <span>${kpi.name}</span>
+                                            <span>${kpi.name.substring(0, 80)}${kpi.name.length > 80 ? '...' : ''}</span>
                                         </div>
                                         <span class="badge badge-success">✓</span>
                                     </div>
-                                    ${kpi.formula !== 'غير محدد' ? 
-                                        `<div style="font-size: 0.85rem; color: #666; margin-top: 5px;">
-                                            📐 ${kpi.formula.substring(0, 100)}${kpi.formula.length > 100 ? '...' : ''}
-                                        </div>` : ''
-                                    }
                                 </div>
                             `).join('')}
+                            ${categorized[category].length > 10 ? 
+                                `<div style="text-align: center; padding: 10px; color: #666;">
+                                    ... و ${categorized[category].length - 10} مؤشر آخر
+                                </div>` : ''
+                            }
                         </div>
                     </div>
                 `).join('')}
             </div>
             
-            <div class="card-footer" style="display: flex; gap: 15px; justify-content: center; padding: 20px;">
+            <div style="display: flex; gap: 15px; justify-content: center; padding: 20px; background: #f8f9fa; border-top: 2px solid #e0e0e0;">
                 <button class="btn btn-success btn-large" onclick="confirmImport()">
-                    ✅ تأكيد الاستيراد
+                    ✅ تأكيد الاستيراد (${kpis.length} مؤشر)
                 </button>
                 <button class="btn btn-secondary btn-large" onclick="cancelImport()">
                     ❌ إلغاء
@@ -247,6 +257,7 @@ function showKPIsPreview(kpis) {
     
     // حفظ المؤشرات مؤقتاً
     window.tempKPIs = kpis;
+    console.log('✅ تم عرض المعاينة');
 }
 
 // تأكيد الاستيراد
@@ -256,7 +267,8 @@ function confirmImport() {
         return;
     }
     
-    showLoading('جاري استيراد المؤشرات...');
+    console.log('⏳ جاري الاستيراد...');
+    showLoadingOverlay('جاري استيراد المؤشرات...');
     
     setTimeout(() => {
         try {
@@ -285,7 +297,9 @@ function confirmImport() {
             // حفظ في LocalStorage
             saveToStorage('customKPIs', customKPIs);
             
-            hideLoading();
+            hideLoadingOverlay();
+            
+            console.log('✅ تم الاستيراد:', addedCount, 'جديد،', skippedCount, 'مكرر');
             
             // عرض تقرير الاستيراد
             showImportReport(addedCount, skippedCount);
@@ -295,13 +309,16 @@ function confirmImport() {
             
             // إعادة تحميل صفحة المؤشرات
             if (typeof loadKPIsManagement === 'function') {
-                loadKPIsManagement();
+                setTimeout(() => {
+                    closeModal('importModal');
+                    loadKPIsManagement();
+                }, 3000);
             }
             
         } catch (error) {
-            hideLoading();
+            hideLoadingOverlay();
             showError('خطأ في الاستيراد: ' + error.message);
-            console.error(error);
+            console.error('❌ خطأ في الاستيراد:', error);
         }
     }, 500);
 }
@@ -315,6 +332,7 @@ function cancelImport() {
         previewContainer.innerHTML = '';
     }
     
+    closeModal('importModal');
     showInfo('تم إلغاء الاستيراد');
 }
 
@@ -325,7 +343,7 @@ function showImportReport(addedCount, skippedCount) {
     if (!previewContainer) return;
     
     previewContainer.innerHTML = `
-        <div class="card">
+        <div class="card" style="margin-top: 20px;">
             <div class="card-header">
                 <div class="card-title">✅ تقرير الاستيراد</div>
             </div>
@@ -334,7 +352,7 @@ function showImportReport(addedCount, skippedCount) {
                 <div style="font-size: 5rem; margin-bottom: 20px;">🎉</div>
                 <h2 style="color: #4caf50; margin-bottom: 20px;">تم الاستيراد بنجاح!</h2>
                 
-                <div style="display: flex; gap: 30px; justify-content: center; margin-top: 30px;">
+                <div style="display: flex; gap: 30px; justify-content: center; margin-top: 30px; flex-wrap: wrap;">
                     <div style="background: #e8f5e9; padding: 25px; border-radius: 12px; min-width: 200px;">
                         <div style="font-size: 3rem; color: #4caf50; font-weight: 700;">${addedCount}</div>
                         <div style="color: #2e7d32; font-weight: 600; margin-top: 10px;">مؤشر جديد</div>
@@ -348,24 +366,25 @@ function showImportReport(addedCount, skippedCount) {
                     ` : ''}
                 </div>
                 
-                <button class="btn btn-primary btn-large" onclick="closeImportReport()" style="margin-top: 40px;">
-                    ✓ إغلاق
-                </button>
+                <p style="margin-top: 30px; color: #666;">سيتم إغلاق هذه النافذة تلقائياً...</p>
             </div>
         </div>
     `;
 }
 
-// إغلاق تقرير الاستيراد
-function closeImportReport() {
-    const previewContainer = document.getElementById('importPreview');
-    if (previewContainer) {
-        previewContainer.innerHTML = '';
+// معالجة اختيار الملف
+function handleKPIFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+        console.log('📁 تم اختيار الملف:', file.name);
+        handleFileUpload(file);
     }
 }
 
 // دوال مساعدة للتحميل
-function showLoading(message) {
+function showLoadingOverlay(message) {
+    hideLoadingOverlay();
+    
     const loadingDiv = document.createElement('div');
     loadingDiv.id = 'loadingOverlay';
     loadingDiv.innerHTML = `
@@ -379,11 +398,11 @@ function showLoading(message) {
     document.body.appendChild(loadingDiv);
 }
 
-function hideLoading() {
+function hideLoadingOverlay() {
     const loadingDiv = document.getElementById('loadingOverlay');
     if (loadingDiv) {
         loadingDiv.remove();
     }
 }
 
-console.log('✅ Excel Import loaded successfully');
+console.log('✅ Excel Import JS loaded successfully');
