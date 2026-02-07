@@ -44,20 +44,15 @@ function showLoginPage() {
 
 function showUserPanel() {
     const loginPage = document.getElementById('loginPage');
-    const userPanel = document.getElementById('userPanel');
+    const appPage = document.getElementById('appPage');
     
     console.log('📊 Showing user panel...');
     
     if (loginPage) {
         loginPage.style.display = 'none';
+        console.log('✅ Login page hidden');
     }
     
-    if (userPanel) {
-        userPanel.style.display = 'flex';
-    }
-    
-    // التأكد من إظهار appPage
-    const appPage = document.getElementById('appPage');
     if (appPage) {
         appPage.style.display = 'flex';
         console.log('✅ App page displayed');
@@ -67,15 +62,8 @@ function showUserPanel() {
     
     setTimeout(() => {
         loadDataEntry();
-        
-        // التأكد م�� عرض المحتوى
-        const categoriesView = document.getElementById('categoriesView');
-        if (categoriesView) {
-            categoriesView.style.display = 'block';
-        }
-    }, 100);
+    }, 200);
 }
-
 function handleLogin(event) {
     event.preventDefault();
     event.stopPropagation();
