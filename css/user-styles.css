@@ -183,13 +183,38 @@
     transform: translateY(-50%);
 }
 
-.grid {
+/* ===== تحسينات Grid - العرض الأفقي ===== */
+.grid,
+.categories-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 20px;
+    margin-top: 20px;
 }
 
-.kpi-card {
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.data-type-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 25px;
+    margin-top: 20px;
+}
+
+.subcategory-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.kpi-card,
+.category-card {
     background: white;
     border: 2px solid var(--border);
     border-radius: 10px;
@@ -200,7 +225,8 @@
     overflow: hidden;
 }
 
-.kpi-card::before {
+.kpi-card::before,
+.category-card::before {
     content: '';
     position: absolute;
     top: 0;
@@ -212,24 +238,28 @@
     transition: transform 0.3s;
 }
 
-.kpi-card:hover {
+.kpi-card:hover,
+.category-card:hover {
     border-color: var(--primary);
     box-shadow: 0 4px 12px rgba(26, 115, 232, 0.2);
     transform: translateY(-4px);
 }
 
-.kpi-card:hover::before {
+.kpi-card:hover::before,
+.category-card:hover::before {
     transform: scaleY(1);
 }
 
-.kpi-code {
+.kpi-code,
+.category-code {
     font-weight: 700;
     color: var(--primary);
     margin-bottom: 8px;
     font-size: 1.1rem;
 }
 
-.kpi-name {
+.kpi-name,
+.category-name {
     font-size: 0.95rem;
     color: var(--text);
     margin-bottom: 10px;
@@ -245,6 +275,18 @@
     border-radius: 12px;
     font-size: 0.8rem;
     font-weight: 600;
+}
+
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.category-progress {
+    font-size: 0.85rem;
+    color: #666;
 }
 
 /* ===== نموذج إدخال المؤشر ===== */
@@ -276,24 +318,26 @@
     font-weight: 700;
 }
 
-.btn-close-form {
-    background: none;
+.btn-close-form,
+.back-button {
+    background: rgba(26, 115, 232, 0.1);
     border: none;
-    font-size: 1.5rem;
-    color: #999;
+    padding: 10px 20px;
+    border-radius: 8px;
+    color: var(--primary);
     cursor: pointer;
-    transition: color 0.3s;
-    width: 30px;
-    height: 30px;
-    display: flex;
+    transition: all 0.3s;
+    font-weight: 600;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    border-radius: 50%;
+    gap: 8px;
 }
 
-.btn-close-form:hover {
-    color: var(--danger);
-    background: rgba(244, 67, 54, 0.1);
+.btn-close-form:hover,
+.back-button:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateX(5px);
 }
 
 .formula-box {
@@ -416,13 +460,34 @@
     transform: translateY(-2px);
 }
 
+/* ===== صفحة الهيدر ===== */
+.page-header {
+    background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 15px;
+    margin-bottom: 30px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(26, 115, 232, 0.3);
+}
+
+.page-header h1 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.page-header .breadcrumb {
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
 /* ===== التبويبات ===== */
 .tabs-container {
     background: white;
     border-radius: 10px;
     overflow: hidden;
     box-shadow: var(--shadow-sm);
-    margin-bottom: 20px;
+    margin-top: 20px;
 }
 
 .tabs {
@@ -463,6 +528,17 @@
 .tab-content.active {
     display: block;
     animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ===== جدول البيانات ===== */
@@ -515,10 +591,34 @@
     opacity: 0.3;
 }
 
+/* ===== كارد البيانات ===== */
+.card {
+    background: white;
+    border-radius: 10px;
+    padding: 25px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--light-bg);
+}
+
+.card-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
 /* ===== إحصائيات التصدير ===== */
 .export-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
     margin-bottom: 30px;
 }
@@ -560,7 +660,60 @@
     min-width: 150px;
 }
 
-/* ===== Responsive ===== */
+/* ===== Alerts ===== */
+.alert {
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.alert-info {
+    background: #e3f2fd;
+    color: #1565c0;
+    border-right: 4px solid #1976d2;
+}
+
+/* ===== Responsive - شاشات كبيرة ===== */
+@media (max-width: 1600px) {
+    .categories-grid,
+    .data-type-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 1400px) {
+    .category-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    .subcategory-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+    .export-stats {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 1200px) {
+    .categories-grid,
+    .data-type-grid,
+    .grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 1024px) {
+    .category-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .subcategory-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    .export-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ===== Responsive - موبايل ===== */
 @media (max-width: 768px) {
     .login-container {
         width: 90%;
@@ -596,8 +749,15 @@
         flex-direction: column;
     }
 
+    .categories-grid,
+    .category-grid,
+    .data-type-grid,
     .grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .subcategory-grid {
+        grid-template-columns: repeat(3, 1fr);
     }
 
     .tabs {
@@ -627,5 +787,19 @@
 
     .app-content {
         padding: 15px;
+    }
+
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .categories-grid,
+    .category-grid,
+    .data-type-grid,
+    .subcategory-grid,
+    .grid {
+        grid-template-columns: 1fr;
     }
 }
