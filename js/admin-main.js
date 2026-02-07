@@ -477,13 +477,14 @@ function showKPIManagement() {
     const container = document.getElementById('kpisManagementContainer');
     if (!container) return;
     
+    // إعادة تعيين
     selectedKPIDataType = null;
     selectedKPICategory = null;
     
     container.innerHTML = `
         <div class="card">
             <div class="card-header">
-                <h3>🎯 الخطوة 1: اختر نوع البيانات</h3>
+                <h3>🎯 اختر نوع البيانات</h3>
             </div>
             <div class="card-body">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
@@ -517,7 +518,6 @@ function showKPIManagement() {
         <div id="kpisListContainer"></div>
     `;
 }
-
 function selectDataType(dataTypeId) {
     selectedKPIDataType = dataTypeId;
     selectedKPICategory = null;
