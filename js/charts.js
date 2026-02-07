@@ -142,7 +142,6 @@ function createBarChart(elementId, data, options = {}) {
         return chart;
     }
 }
-
 // رسم بياني دائري
 function createPieChart(elementId, data, options = {}) {
     const chartOptions = {
