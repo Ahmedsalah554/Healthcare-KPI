@@ -89,7 +89,7 @@ function processImportedData(data) {
             return '';
         }
         return String(h).trim();
-    }).filter(h => h !== ''); // إزالة الخلايا الفارغة تماماً
+    }).filter(h => h !== '');
     
     console.log('📋 Cleaned Headers:', headers);
     
@@ -147,81 +147,92 @@ function detectRequiredColumns(headers, typeInfo) {
         columns: {}
     };
     
-    console.log('🔍 Detecting columns for:', typeInfo.id);
+    console.log('🔍 Detecting columns for:', typeInfo.id, '- Input type:', typeInfo.inputType);
     console.log('Headers to search:', headers);
     
     // دالة مساعدة للبحث الآمن
     function findColumnIndex(aliases) {
         return headers.findIndex(h => {
             if (!h || h === '') return false;
-            const headerLower = String(h).toLowerCase();
+            const headerLower = String(h).toLowerCase().trim();
             return aliases.some(alias => headerLower.includes(alias.toLowerCase()));
         });
     }
     
-    // الأعمدة الأساسية
-    const basicColumns = {
-        code: ['كود', 'الكود', 'code', 'رمز', 'ID', 'id'],
-        name: ['اسم', 'الاسم', 'name', 'المؤشر', 'indicator', 'الوظيفة', 'المعيار', 'المسمى']
-    };
+    // الأعمدة الأساسية (موجودة في جميع الأنواع)
+    const codeIndex = findColumnIndex(['كود', 'الكود', 'code', 'رمز', 'رقم']);
+    const nameIndex = findColumnIndex(['اسم', 'الاسم', 'name', 'المؤشر', 'indicator', 'الوظيفة', 'المعيار', 'المسمى']);
     
-    // البحث عن الأعمدة الأساسية
-    for (const [key, aliases] of Object.entries(basicColumns)) {
-        const index = findColumnIndex(aliases);
-        
-        if (index !== -1) {
-            result.columns[key] = index;
-            console.log(`✅ Found ${key} at index ${index}`);
-        } else {
-            result.missing.push(aliases[0]);
-            result.valid = false;
-            console.log(`❌ Missing ${key}`);
-        }
+    if (codeIndex !== -1) {
+        result.columns.code = codeIndex;
+        console.log(`✅ Found code at index ${codeIndex}`);
+    } else {
+        result.missing.push('كود المؤشر');
+        result.valid = false;
+        console.log('❌ Missing code column');
     }
     
-    // أعمدة إضافية حسب النوع
+    if (nameIndex !== -1) {
+        result.columns.name = nameIndex;
+        console.log(`✅ Found name at index ${nameIndex}`);
+    } else {
+        result.missing.push('اسم المؤشر');
+        result.valid = false;
+        console.log('❌ Missing name column');
+    }
+    
+    // أعمدة خاصة حسب نوع الإدخال
     if (typeInfo.inputType === 'formula') {
-        const formulaIndex = findColumnIndex(['صيغة', 'الصيغة', 'formula', 'معادلة']);
-        if (formulaIndex !== -1) result.columns.formula = formulaIndex;
+        console.log('🔍 Looking for formula type columns...');
         
+        const deptIndex = findColumnIndex(['إدارة', 'الإدارة', 'department', 'مسؤول', 'المسؤولة']);
         const numeratorIndex = findColumnIndex(['بسط', 'البسط', 'numerator']);
-        if (numeratorIndex !== -1) result.columns.numerator = numeratorIndex;
-        
         const denominatorIndex = findColumnIndex(['مقام', 'المقام', 'denominator']);
+        const formulaIndex = findColumnIndex(['صيغة', 'الصيغة', 'formula', 'معادلة', 'المعادلة']);
+        const percentageIndex = findColumnIndex(['نسبة', 'النسبة', 'percentage', '%']);
+        const frequencyIndex = findColumnIndex(['دورية', 'الدورية', 'frequency', 'إبلاغ']);
+        
+        if (deptIndex !== -1) result.columns.department = deptIndex;
+        if (numeratorIndex !== -1) result.columns.numerator = numeratorIndex;
         if (denominatorIndex !== -1) result.columns.denominator = denominatorIndex;
+        if (formulaIndex !== -1) result.columns.formula = formulaIndex;
+        if (percentageIndex !== -1) result.columns.percentage = percentageIndex;
+        if (frequencyIndex !== -1) result.columns.frequency = frequencyIndex;
         
-        const targetIndex = findColumnIndex(['مستهدف', 'المستهدف', 'target', 'هدف']);
-        if (targetIndex !== -1) result.columns.target = targetIndex;
+    } else if (typeInfo.inputType === 'assessment') {
+        console.log('🔍 Looking for assessment type columns...');
         
-        const unitIndex = findColumnIndex(['وحدة', 'الوحدة', 'unit']);
-        if (unitIndex !== -1) result.columns.unit = unitIndex;
+        const assessmentIndex = findColumnIndex(['تقييم', 'التقييم', 'assessment', 'evaluation']);
+        const notesIndex = findColumnIndex(['ملاحظات', 'notes', 'تعليق', 'وصف']);
         
-    } else if (typeInfo.inputType === 'weighted') {
-        const weightIndex = findColumnIndex(['وزن', 'الوزن', 'weight']);
-        if (weightIndex !== -1) result.columns.weight = weightIndex;
-        
-        const maxScoreIndex = findColumnIndex(['درجة', 'الدرجة', 'maxscore', 'score', 'قصوى']);
-        if (maxScoreIndex !== -1) result.columns.maxScore = maxScoreIndex;
-        
-    } else if (typeInfo.inputType === 'checklist') {
-        const evalIndex = findColumnIndex(['تقييم', 'evaluation', 'نوع التقييم', 'نوع']);
-        if (evalIndex !== -1) result.columns.evaluationType = evalIndex;
-        
-        const descIndex = findColumnIndex(['وصف', 'الوصف', 'description']);
-        if (descIndex !== -1) result.columns.description = descIndex;
+        if (assessmentIndex !== -1) result.columns.assessment = assessmentIndex;
+        if (notesIndex !== -1) result.columns.notes = notesIndex;
         
     } else if (typeInfo.inputType === 'count') {
-        const jobIndex = findColumnIndex(['وظيفة', 'المسمى', 'job', 'title', 'مسمى']);
-        if (jobIndex !== -1) result.columns.jobTitle = jobIndex;
+        console.log('🔍 Looking for count type columns...');
         
-        const contractIndex = findColumnIndex(['عقد', 'نوع العقد', 'contract', 'نوع']);
-        if (contractIndex !== -1) result.columns.contractType = contractIndex;
+        const jobIndex = findColumnIndex(['وظيفة', 'المسمى', 'job', 'title', 'مسمى وظيفي']);
+        const countIndex = findColumnIndex(['عدد', 'العدد', 'count', 'number']);
+        
+        if (jobIndex !== -1) result.columns.jobTitle = jobIndex;
+        if (countIndex !== -1) result.columns.count = countIndex;
+        
+    } else if (typeInfo.inputType === 'monthly_data') {
+        console.log('🔍 Looking for monthly_data type columns...');
+        
+        const yearIndex = findColumnIndex(['سنة', 'السنة', 'year']);
+        const kpiCodeIndex = findColumnIndex(['مؤشر', 'المؤشر', 'kpi', 'indicator']);
+        const valueIndex = findColumnIndex(['قيمة', 'القيمة', 'value', 'نتيجة']);
+        
+        if (yearIndex !== -1) result.columns.year = yearIndex;
+        if (kpiCodeIndex !== -1) result.columns.kpiCode = kpiCodeIndex;
+        if (valueIndex !== -1) result.columns.monthValue = valueIndex;
     }
     
-    // أعمدة المنشآت
+    // أعمدة المنشآت (اختيارية)
     const hospitalIndex = findColumnIndex(['مستشفى', 'hospital']);
-    const centerIndex = findColumnIndex(['مركز', 'center']);
-    const unitIndex = findColumnIndex(['وحدة', 'unit', 'health unit']);
+    const centerIndex = findColumnIndex(['مركز', 'center', 'صحي']);
+    const unitIndex = findColumnIndex(['وحدة', 'unit']);
     
     if (hospitalIndex !== -1) result.columns.hospital = hospitalIndex;
     if (centerIndex !== -1) result.columns.healthCenter = centerIndex;
@@ -249,9 +260,10 @@ function extractKPIFromRow(row, headers, columns, typeInfo) {
         throw new Error('الكود أو الاسم فارغ');
     }
     
+    // استخراج البيانات حسب نوع الإدخال
     if (typeInfo.inputType === 'formula') {
-        if (columns.columns.formula !== undefined) {
-            kpiData.formula = String(row[columns.columns.formula] || '').trim();
+        if (columns.columns.department !== undefined) {
+            kpiData.department = String(row[columns.columns.department] || '').trim();
         }
         if (columns.columns.numerator !== undefined) {
             kpiData.numeratorLabel = String(row[columns.columns.numerator] || '').trim();
@@ -259,46 +271,59 @@ function extractKPIFromRow(row, headers, columns, typeInfo) {
         if (columns.columns.denominator !== undefined) {
             kpiData.denominatorLabel = String(row[columns.columns.denominator] || '').trim();
         }
-        if (columns.columns.target !== undefined) {
-            kpiData.target = parseFloat(row[columns.columns.target]) || 0;
+        if (columns.columns.formula !== undefined) {
+            kpiData.formula = String(row[columns.columns.formula] || '').trim();
         }
-        if (columns.columns.unit !== undefined) {
-            kpiData.unit = String(row[columns.columns.unit] || '%').trim();
+        if (columns.columns.percentage !== undefined) {
+            kpiData.percentage = String(row[columns.columns.percentage] || '').trim();
         }
-    } else if (typeInfo.inputType === 'weighted') {
-        if (columns.columns.weight !== undefined) {
-            kpiData.weight = parseFloat(row[columns.columns.weight]) || 0;
+        if (columns.columns.frequency !== undefined) {
+            kpiData.frequency = String(row[columns.columns.frequency] || '').trim();
         }
-        if (columns.columns.maxScore !== undefined) {
-            kpiData.maxScore = parseFloat(row[columns.columns.maxScore]) || 0;
+        
+    } else if (typeInfo.inputType === 'assessment') {
+        if (columns.columns.assessment !== undefined) {
+            kpiData.assessment = String(row[columns.columns.assessment] || '').trim();
         }
-    } else if (typeInfo.inputType === 'checklist') {
-        if (columns.columns.evaluationType !== undefined) {
-            kpiData.evaluationType = String(row[columns.columns.evaluationType] || '').trim();
+        if (columns.columns.notes !== undefined) {
+            kpiData.notes = String(row[columns.columns.notes] || '').trim();
         }
-        if (columns.columns.description !== undefined) {
-            kpiData.description = String(row[columns.columns.description] || '').trim();
-        }
+        
     } else if (typeInfo.inputType === 'count') {
         if (columns.columns.jobTitle !== undefined) {
             kpiData.jobTitle = String(row[columns.columns.jobTitle] || '').trim();
         }
-        if (columns.columns.contractType !== undefined) {
-            kpiData.contractType = String(row[columns.columns.contractType] || '').trim();
+        if (columns.columns.count !== undefined) {
+            const countValue = row[columns.columns.count];
+            kpiData.count = parseInt(countValue) || 0;
+        }
+        
+    } else if (typeInfo.inputType === 'monthly_data') {
+        if (columns.columns.year !== undefined) {
+            const yearValue = row[columns.columns.year];
+            kpiData.year = parseInt(yearValue) || new Date().getFullYear();
+        }
+        if (columns.columns.kpiCode !== undefined) {
+            kpiData.kpiCode = String(row[columns.columns.kpiCode] || '').trim();
+        }
+        if (columns.columns.monthValue !== undefined) {
+            const monthValue = row[columns.columns.monthValue];
+            kpiData.monthValue = parseFloat(monthValue) || 0;
         }
     }
     
+    // استخراج أنواع المنشآت
     if (columns.columns.hospital !== undefined) {
         const val = String(row[columns.columns.hospital] || '').trim().toLowerCase();
-        kpiData.applicableTo.hospital = ['نعم', 'yes', '1', 'true', 'x', '✓'].includes(val);
+        kpiData.applicableTo.hospital = ['نعم', 'yes', '1', 'true', 'x', '✓', '√'].includes(val);
     }
     if (columns.columns.healthCenter !== undefined) {
         const val = String(row[columns.columns.healthCenter] || '').trim().toLowerCase();
-        kpiData.applicableTo.healthCenter = ['نعم', 'yes', '1', 'true', 'x', '✓'].includes(val);
+        kpiData.applicableTo.healthCenter = ['نعم', 'yes', '1', 'true', 'x', '✓', '√'].includes(val);
     }
     if (columns.columns.healthUnit !== undefined) {
         const val = String(row[columns.columns.healthUnit] || '').trim().toLowerCase();
-        kpiData.applicableTo.healthUnit = ['نعم', 'yes', '1', 'true', 'x', '✓'].includes(val);
+        kpiData.applicableTo.healthUnit = ['نعم', 'yes', '1', 'true', 'x', '✓', '√'].includes(val);
     }
     
     return kpiData;
@@ -345,18 +370,28 @@ function showImportPreview(kpis, skipped, errors, typeInfo) {
                     <span>المؤشرات الجاهزة للإضافة (${kpis.length})</span>
                 </h4>
                 <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px; background: white;">
-                    ${kpis.map((kpi, index) => `
-                        <div style="padding: 10px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
-                            <div style="flex: 1;">
-                                <strong style="color: ${catInfo.color || typeInfo.color};">${kpi.code}</strong> - ${kpi.name}
-                                <small style="color: #999; display: block; margin-top: 3px;">
-                                    ${typeInfo.inputType === 'formula' && kpi.target ? `المستهدف: ${kpi.target}${kpi.unit || ''}` : ''}
-                                    ${typeInfo.inputType === 'weighted' && kpi.weight ? `الوزن: ${kpi.weight}` : ''}
-                                </small>
+                    ${kpis.map((kpi, index) => {
+                        let details = '';
+                        if (typeInfo.inputType === 'formula') {
+                            details = kpi.percentage ? `النسبة: ${kpi.percentage}` : '';
+                        } else if (typeInfo.inputType === 'assessment') {
+                            details = kpi.assessment ? `التقييم: ${kpi.assessment}` : '';
+                        } else if (typeInfo.inputType === 'count') {
+                            details = kpi.count ? `العدد: ${kpi.count}` : '';
+                        } else if (typeInfo.inputType === 'monthly_data') {
+                            details = kpi.monthValue ? `القيمة: ${kpi.monthValue}` : '';
+                        }
+                        
+                        return `
+                            <div style="padding: 10px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
+                                <div style="flex: 1;">
+                                    <strong style="color: ${catInfo.color || typeInfo.color};">${kpi.code}</strong> - ${kpi.name}
+                                    ${details ? `<small style="color: #999; display: block; margin-top: 3px;">${details}</small>` : ''}
+                                </div>
+                                <span style="color: #4caf50; font-size: 1.2rem;">✓</span>
                             </div>
-                            <span style="color: #4caf50; font-size: 1.2rem;">✓</span>
-                        </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
             </div>
         `;
@@ -542,25 +577,25 @@ function downloadExcelTemplate() {
     const typeInfo = getDataTypeInfo(selectedKPIDataType);
     const catInfo = typeInfo.categories[selectedKPICategory];
     
-    let headers = ['الكود', 'الاسم'];
-    let example = [`${catInfo.id}-01`, 'مثال على مؤشر'];
+    let headers = [];
+    let example = [];
     
     if (typeInfo.inputType === 'formula') {
-        headers.push('الصيغة', 'البسط', 'المقام', 'المستهدف', 'الوحدة');
-        example.push('(البسط / المقام) × 100', 'عدد الحالات', 'إجمالي الحالات', '85', '%');
-    } else if (typeInfo.inputType === 'weighted') {
-        headers.push('الوزن', 'الدرجة القصوى');
-        example.push(catInfo.weight || '100', '100');
-    } else if (typeInfo.inputType === 'checklist') {
-        headers.push('نوع التقييم', 'الوصف');
-        example.push('نعم/لا', 'وصف المعيار');
+        headers = ['الكود', 'المؤشر', 'الإدارة المسؤولة', 'البسط', 'المقام', 'المعادلة الحسابية', 'النسبة المئوية', 'دورية الإبلاغ', 'مستشفى', 'مركز صحي', 'وحدة صحية'];
+        example = [`${catInfo.id}-01`, 'مثال على مؤشر', 'إدارة التمريض', 'عدد الحالات', 'إجمالي الحالات', '(البسط / المقام) × 100', '100X', 'شهري', 'نعم', 'نعم', 'لا'];
+        
+    } else if (typeInfo.inputType === 'assessment') {
+        headers = ['رقم المعيار', 'المعيار', 'التقييم', 'ملاحظات', 'مستشفى', 'مركز صحي', 'وحدة صحية'];
+        example = [`${catInfo.id}-01`, 'مثال على معيار', '2', 'ملاحظات اختيارية', 'نعم', 'نعم', 'نعم'];
+        
     } else if (typeInfo.inputType === 'count') {
-        headers.push('المسمى الوظيفي', 'نوع العقد');
-        example.push('طبيب استشاري', 'دائم');
+        headers = ['الكود', 'المسمى الوظيفي', 'العدد', 'مستشفى', 'مركز صحي', 'وحدة صحية'];
+        example = [`${catInfo.id}-01`, 'طبيب استشاري', '5', 'نعم', 'نعم', 'لا'];
+        
+    } else if (typeInfo.inputType === 'monthly_data') {
+        headers = ['السنة', 'المؤشر', 'القيمة', 'مستشفى', 'مركز صحي', 'وحدة صحية'];
+        example = ['2025', 'A1', '85.5', 'نعم', 'نعم', 'نعم'];
     }
-    
-    headers.push('مستشفى', 'مركز صحي', 'وحدة صحية');
-    example.push('نعم', 'نعم', 'لا');
     
     const data = [headers, example];
     
@@ -573,3 +608,5 @@ function downloadExcelTemplate() {
     
     showSuccess('تم تنزيل النموذج بنجاح');
 }
+
+console.log('✅ Excel import functions loaded');
