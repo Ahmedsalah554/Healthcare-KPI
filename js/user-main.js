@@ -175,20 +175,42 @@ function loadUserData() {
 function loadDataEntry() {
     console.log('📝 Loading data entry...');
     
-    const container = document.getElementById('dataEntryContent');
-    if (!container) return;
+    // التأكد من وجود الـ container
+    let container = document.getElementById('dataEntryContent');
+    
+    // إذا مش موجود، جرب categoriesView
+    if (!container) {
+        container = document.getElementById('categoriesView');
+    }
+    
+    // إذا لسه مش موجود، جرب categoriesContainer
+    if (!container) {
+        container = document.getElementById('categoriesContainer');
+    }
+    
+    if (!container) {
+        console.error('❌ Container not found!');
+        console.log('Available elements:', {
+            dataEntryContent: document.getElementById('dataEntryContent'),
+            categoriesView: document.getElementById('categoriesView'),
+            categoriesContainer: document.getElementById('categoriesContainer')
+        });
+        return;
+    }
+    
+    console.log('✅ Container found:', container.id);
     
     const dataTypes = getAllDataTypes();
     
     let html = `
         <div class="data-entry-container">
-            <div class="section-header">
-                <h2>إدخال البيانات</h2>
-                <p>اختر نوع البيانات لبدء الإدخال</p>
+            <div class="page-header">
+                <h1>📋 إدخال بيانات المؤشرات</h1>
+                <div class="breadcrumb">المنشأة: ${currentFacility ? currentFacility.name : 'غير محدد'}</div>
             </div>
             
             <div class="data-type-selector">
-                <h3>اختر نوع البيانات:</h3>
+                <h3 style="color: #2c3e50; margin-bottom: 20px;">اختر نوع البيانات:</h3>
                 <div class="data-type-grid">
     `;
     
@@ -213,6 +235,7 @@ function loadDataEntry() {
     `;
     
     container.innerHTML = html;
+    console.log('✅ Data entry content loaded!');
 }
 
 function selectDataType(dataTypeId) {
