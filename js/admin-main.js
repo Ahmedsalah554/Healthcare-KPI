@@ -210,7 +210,7 @@ function renderFacilitiesChart() {
     
     const distribution = {};
     facilities.forEach(f => {
-        const type = getFacilityTypeArabic(f.type);
+        const type = getFacilityTypeName(f.type);
         distribution[type] = (distribution[type] || 0) + 1;
     });
     
@@ -251,7 +251,7 @@ function loadFacilitiesTable() {
         <tr>
             <td>${facility.code}</td>
             <td>${facility.name}</td>
-            <td>${getFacilityTypeArabic(facility.type)}</td>
+            <td>${getFacilityTypeName(facility.type)}</td>
             <td>${facility.city || '-'}</td>
             <td>${facility.phone || '-'}</td>
             <td>${facility.capacity || '-'}</td>
@@ -262,11 +262,6 @@ function loadFacilitiesTable() {
             </td>
         </tr>
     `).join('');
-}
-
-function getFacilityTypeArabic(type) {
-    const types = { hospital: 'مستشفى', healthCenter: 'مركز صحي', healthUnit: 'وحدة صحية' };
-    return types[type] || type;
 }
 
 function addFacility() {
@@ -477,7 +472,6 @@ function showKPIManagement() {
     const container = document.getElementById('kpisManagementContainer');
     if (!container) return;
     
-    // إعادة تعيين
     selectedKPIDataType = null;
     selectedKPICategory = null;
     
@@ -518,6 +512,7 @@ function showKPIManagement() {
         <div id="kpisListContainer"></div>
     `;
 }
+
 function selectDataType(dataTypeId) {
     selectedKPIDataType = dataTypeId;
     selectedKPICategory = null;
@@ -530,18 +525,17 @@ function selectDataType(dataTypeId) {
     
     if (!categoryContainer) return;
     
-    // مسح المحتوى القديم
     if (kpisContainer) {
         kpisContainer.innerHTML = '';
+        kpisContainer.style.display = 'none';
     }
     
-    // إخفاء اختيار النوع
     const typeSelection = categoryContainer.previousElementSibling;
     if (typeSelection) {
         typeSelection.style.display = 'none';
     }
     
-    // عرض صفحة الأقسام الكاملة
+    categoryContainer.style.display = 'block';
     categoryContainer.innerHTML = `
         <div class="card">
             <div class="card-header" style="background: linear-gradient(135deg, ${typeInfo.color} 0%, ${typeInfo.color}dd 100%); color: white; padding: 25px;">
@@ -569,7 +563,6 @@ function selectDataType(dataTypeId) {
                                 <div style="font-size: 3.5rem; margin-bottom: 15px;">${cat.icon || typeInfo.icon}</div>
                                 <h3 style="color: ${cat.color || typeInfo.color}; margin-bottom: 12px; font-size: 1.2rem; font-weight: 700;">${cat.name}</h3>
                                 ${cat.nameEn ? `<p style="color: #999; font-size: 0.85rem; margin-bottom: 12px;">${cat.nameEn}</p>` : ''}
-                                ${cat.weight ? `<p style="color: #666; font-size: 0.9rem; margin-bottom: 15px; background: #f0f0f0; padding: 8px; border-radius: 6px;">الوزن: ${cat.weight}</p>` : ''}
                                 <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid ${cat.color || typeInfo.color}20;">
                                     <span style="background: ${cat.color || typeInfo.color}; color: white; padding: 8px 20px; border-radius: 25px; font-size: 1rem; font-weight: 600; display: inline-block;">
                                         ${catKPIs.length} مؤشر
@@ -583,6 +576,9 @@ function selectDataType(dataTypeId) {
         </div>
     `;
 }
+/**
+ * ===== اختيار القسم وعرض المؤشرات =====
+ */
 
 function selectCategory(categoryId) {
     selectedKPICategory = categoryId;
@@ -592,7 +588,6 @@ function selectCategory(categoryId) {
     const typeInfo = getDataTypeInfo(selectedKPIDataType);
     const catInfo = typeInfo.categories[categoryId];
     
-    // إخفاء صفحة الأقسام
     const categoryContainer = document.getElementById('categorySelectionContainer');
     if (categoryContainer) {
         categoryContainer.style.display = 'none';
@@ -603,7 +598,6 @@ function selectCategory(categoryId) {
     
     const kpis = getKPIsByCategory(selectedKPIDataType, categoryId);
     
-    // عرض الصفحة الكاملة للمؤشرات
     kpisContainer.style.display = 'block';
     kpisContainer.innerHTML = `
         <div class="card">
@@ -694,6 +688,7 @@ function selectCategory(categoryId) {
         </div>
     `;
 }
+
 function backToCategories() {
     console.log('⬅️ Going back to categories');
     
@@ -711,37 +706,40 @@ function backToCategories() {
     
     selectedKPICategory = null;
 }
+
 function renderKPIDetails(kpi, typeInfo) {
     let html = '';
     
     if (typeInfo.inputType === 'formula') {
         html += `
             <div style="display: grid; gap: 8px; margin-top: 8px; font-size: 0.9rem; color: #666;">
-                ${kpi.formula ? `<div><strong>الصيغة:</strong> ${kpi.formula}</div>` : ''}
+                ${kpi.department ? `<div><strong>الإدارة:</strong> ${kpi.department}</div>` : ''}
                 ${kpi.numeratorLabel ? `<div><strong>البسط:</strong> ${kpi.numeratorLabel}</div>` : ''}
                 ${kpi.denominatorLabel ? `<div><strong>المقام:</strong> ${kpi.denominatorLabel}</div>` : ''}
-                ${kpi.target ? `<div><strong>المستهدف:</strong> <span style="color: ${typeInfo.color}; font-weight: 600;">${kpi.target}${kpi.unit || ''}</span></div>` : ''}
+                ${kpi.formula ? `<div><strong>المعادلة:</strong> ${kpi.formula}</div>` : ''}
+                ${kpi.percentage ? `<div><strong>النسبة:</strong> <span style="color: ${typeInfo.color}; font-weight: 600;">${kpi.percentage}</span></div>` : ''}
+                ${kpi.frequency ? `<div><strong>الدورية:</strong> ${kpi.frequency}</div>` : ''}
             </div>
         `;
-    } else if (typeInfo.inputType === 'weighted') {
+    } else if (typeInfo.inputType === 'assessment') {
         html += `
             <div style="display: grid; gap: 8px; margin-top: 8px; font-size: 0.9rem; color: #666;">
-                ${kpi.weight ? `<div><strong>الوزن:</strong> ${kpi.weight}</div>` : ''}
-                ${kpi.maxScore ? `<div><strong>الدرجة القصوى:</strong> ${kpi.maxScore}</div>` : ''}
-            </div>
-        `;
-    } else if (typeInfo.inputType === 'checklist') {
-        html += `
-            <div style="display: grid; gap: 8px; margin-top: 8px; font-size: 0.9rem; color: #666;">
-                ${kpi.evaluationType ? `<div><strong>نوع التقييم:</strong> ${kpi.evaluationType}</div>` : ''}
-                ${kpi.description ? `<div><strong>الوصف:</strong> ${kpi.description}</div>` : ''}
+                ${kpi.assessment ? `<div><strong>التقييم:</strong> ${kpi.assessment}</div>` : ''}
+                ${kpi.notes ? `<div><strong>ملاحظات:</strong> ${kpi.notes}</div>` : ''}
             </div>
         `;
     } else if (typeInfo.inputType === 'count') {
         html += `
             <div style="display: grid; gap: 8px; margin-top: 8px; font-size: 0.9rem; color: #666;">
                 ${kpi.jobTitle ? `<div><strong>المسمى الوظيفي:</strong> ${kpi.jobTitle}</div>` : ''}
-                ${kpi.contractType ? `<div><strong>نوع العقد:</strong> ${kpi.contractType}</div>` : ''}
+                ${kpi.count ? `<div><strong>العدد:</strong> <span style="color: ${typeInfo.color}; font-weight: 600;">${kpi.count}</span></div>` : ''}
+            </div>
+        `;
+    } else if (typeInfo.inputType === 'monthly_data') {
+        html += `
+            <div style="display: grid; gap: 8px; margin-top: 8px; font-size: 0.9rem; color: #666;">
+                ${kpi.kpiCode ? `<div><strong>المؤشر:</strong> ${kpi.kpiCode}</div>` : ''}
+                ${kpi.monthValue ? `<div><strong>القيمة:</strong> ${kpi.monthValue}</div>` : ''}
             </div>
         `;
     }
@@ -756,6 +754,10 @@ function renderKPIDetails(kpi, typeInfo) {
     
     return html;
 }
+
+/**
+ * ===== إضافة وتعديل المؤشرات =====
+ */
 
 function addKPIManualForCategory() {
     if (!selectedKPIDataType || !selectedKPICategory) {
@@ -783,74 +785,64 @@ function createKPIFormByType(typeInfo, catInfo, kpiData = null) {
         </div>
 
         <div class="form-group">
-            <label for="kpiName">اسم المؤشر *</label>
-            <input type="text" id="kpiName" required placeholder="أدخل اسم المؤشر" value="${kpiData?.name || ''}">
+            <label for="kpiName">اسم المؤشر/المعيار *</label>
+            <input type="text" id="kpiName" required placeholder="أدخل الاسم" value="${kpiData?.name || ''}">
         </div>
     `;
     
     if (typeInfo.inputType === 'formula') {
         html += `
             <div class="form-group">
-                <label for="kpiFormula">الصيغة الحسابية *</label>
+                <label for="kpiDepartment">الإدارة المسؤولة *</label>
+                <input type="text" id="kpiDepartment" required placeholder="مثال: إدارة التمريض" value="${kpiData?.department || ''}">
+            </div>
+
+            <div class="form-group">
+                <label for="kpiNumeratorLabel">البسط *</label>
+                <input type="text" id="kpiNumeratorLabel" required placeholder="مثال: عدد الحالات" value="${kpiData?.numeratorLabel || ''}">
+            </div>
+
+            <div class="form-group">
+                <label for="kpiDenominatorLabel">المقام</label>
+                <input type="text" id="kpiDenominatorLabel" placeholder="مثال: إجمالي الحالات (اتركه فارغاً إذا لم يكن موجوداً)" value="${kpiData?.denominatorLabel || ''}">
+            </div>
+
+            <div class="form-group">
+                <label for="kpiFormula">المعادلة الحسابية *</label>
                 <input type="text" id="kpiFormula" required placeholder="مثال: (البسط / المقام) × 100" value="${kpiData?.formula || ''}">
             </div>
 
             <div class="form-group">
-                <label for="kpiNumeratorLabel">تسمية البسط *</label>
-                <input type="text" id="kpiNumeratorLabel" required placeholder="مثال: عدد الحالات المعالجة" value="${kpiData?.numeratorLabel || ''}">
+                <label for="kpiPercentage">النسبة المئوية *</label>
+                <input type="text" id="kpiPercentage" required placeholder="مثال: 100X أو 1000X" value="${kpiData?.percentage || ''}">
             </div>
 
             <div class="form-group">
-                <label for="kpiDenominatorLabel">تسمية المقام *</label>
-                <input type="text" id="kpiDenominatorLabel" required placeholder="مثال: إجمالي الحالات" value="${kpiData?.denominatorLabel || ''}">
-            </div>
-
-            <div class="form-group">
-                <label for="kpiTarget">المستهدف *</label>
-                <input type="number" id="kpiTarget" step="0.01" required placeholder="مثال: 85" value="${kpiData?.target || ''}">
-            </div>
-
-            <div class="form-group">
-                <label for="kpiUnit">الوحدة *</label>
-                <select id="kpiUnit" required>
-                    <option value="%" ${kpiData?.unit === '%' ? 'selected' : ''}>%</option>
-                    <option value="عدد" ${kpiData?.unit === 'عدد' ? 'selected' : ''}>عدد</option>
-                    <option value="ساعة" ${kpiData?.unit === 'ساعة' ? 'selected' : ''}>ساعة</option>
-                    <option value="يوم" ${kpiData?.unit === 'يوم' ? 'selected' : ''}>يوم</option>
-                    <option value="دقيقة" ${kpiData?.unit === 'دقيقة' ? 'selected' : ''}>دقيقة</option>
+                <label for="kpiFrequency">دورية الإبلاغ *</label>
+                <select id="kpiFrequency" required>
+                    <option value="">-- اختر --</option>
+                    <option value="شهري" ${kpiData?.frequency === 'شهري' ? 'selected' : ''}>شهري</option>
+                    <option value="ربع سنوي" ${kpiData?.frequency === 'ربع سنوي' ? 'selected' : ''}>ربع سنوي</option>
+                    <option value="سنوي" ${kpiData?.frequency === 'سنوي' ? 'selected' : ''}>سنوي</option>
                 </select>
             </div>
         `;
-    } else if (typeInfo.inputType === 'weighted') {
+    } else if (typeInfo.inputType === 'assessment') {
         html += `
             <div class="form-group">
-                <label for="kpiWeight">الوزن *</label>
-                <input type="number" id="kpiWeight" step="1" required placeholder="مثال: 120" value="${kpiData?.weight || catInfo.weight || ''}">
-            </div>
-
-            <div class="form-group">
-                <label for="kpiMaxScore">الدرجة القصوى *</label>
-                <input type="number" id="kpiMaxScore" step="0.1" required placeholder="مثال: 100" value="${kpiData?.maxScore || ''}">
-            </div>
-
-            <div class="form-group">
-                <label for="kpiSubCriteria">المعايير الفرعية</label>
-                <textarea id="kpiSubCriteria" rows="4" placeholder="أدخل المعايير الفرعية (كل معيار في سطر)">${kpiData?.subCriteria || ''}</textarea>
-            </div>
-        `;
-    } else if (typeInfo.inputType === 'checklist') {
-        html += `
-            <div class="form-group">
-                <label for="kpiEvaluationType">نوع التقييم *</label>
-                <select id="kpiEvaluationType" required>
-                    <option value="نعم/لا" ${kpiData?.evaluationType === 'نعم/لا' ? 'selected' : ''}>نعم/لا</option>
-                    <option value="تقييم رقمي (2-1-0-N/A)" ${kpiData?.evaluationType === 'تقييم رقمي (2-1-0-N/A)' ? 'selected' : ''}>تقييم رقمي (2-1-0-N/A)</option>
+                <label for="kpiAssessment">التقييم *</label>
+                <select id="kpiAssessment" required>
+                    <option value="">-- اختر --</option>
+                    <option value="2" ${kpiData?.assessment === '2' ? 'selected' : ''}>2</option>
+                    <option value="1" ${kpiData?.assessment === '1' ? 'selected' : ''}>1</option>
+                    <option value="0" ${kpiData?.assessment === '0' ? 'selected' : ''}>0</option>
+                    <option value="N/A" ${kpiData?.assessment === 'N/A' ? 'selected' : ''}>N/A</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label for="kpiDescription">الوصف</label>
-                <textarea id="kpiDescription" rows="3" placeholder="وصف تفصيلي للمعيار...">${kpiData?.description || ''}</textarea>
+                <label for="kpiNotes">ملاحظات</label>
+                <textarea id="kpiNotes" rows="3" placeholder="أدخل ملاحظات إضافية...">${kpiData?.notes || ''}</textarea>
             </div>
         `;
     } else if (typeInfo.inputType === 'count') {
@@ -861,12 +853,25 @@ function createKPIFormByType(typeInfo, catInfo, kpiData = null) {
             </div>
 
             <div class="form-group">
-                <label for="kpiContractType">نوع العقد *</label>
-                <select id="kpiContractType" required>
-                    <option value="دائم" ${kpiData?.contractType === 'دائم' ? 'selected' : ''}>دائم</option>
-                    <option value="مؤقت" ${kpiData?.contractType === 'مؤقت' ? 'selected' : ''}>مؤقت</option>
-                    <option value="متعاقد" ${kpiData?.contractType === 'متعاقد' ? 'selected' : ''}>متعاقد</option>
-                </select>
+                <label for="kpiCount">العدد *</label>
+                <input type="number" id="kpiCount" required placeholder="0" value="${kpiData?.count || ''}">
+            </div>
+        `;
+    } else if (typeInfo.inputType === 'monthly_data') {
+        html += `
+            <div class="form-group">
+                <label for="kpiYear">السنة *</label>
+                <input type="number" id="kpiYear" required placeholder="2025" value="${kpiData?.year || new Date().getFullYear()}">
+            </div>
+
+            <div class="form-group">
+                <label for="kpiCodeRef">المؤشر *</label>
+                <input type="text" id="kpiCodeRef" required placeholder="كود المؤشر" value="${kpiData?.kpiCode || ''}">
+            </div>
+
+            <div class="form-group">
+                <label for="kpiMonthValue">القيمة *</label>
+                <input type="number" id="kpiMonthValue" step="0.01" required placeholder="0.00" value="${kpiData?.monthValue || ''}">
             </div>
         `;
     }
@@ -876,15 +881,15 @@ function createKPIFormByType(typeInfo, catInfo, kpiData = null) {
             <label style="display: block; margin-bottom: 10px; font-weight: 600;">أنواع المنشآت المتاحة *</label>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="facilityHospital" ${kpiData?.applicableTo?.hospital ? 'checked' : ''}>
+                    <input type="checkbox" id="facilityHospital" ${kpiData?.applicableTo?.hospital ? 'checked' : 'checked'}>
                     <span>🏥 مستشفى</span>
                 </label>
                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="facilityHealthCenter" ${kpiData?.applicableTo?.healthCenter ? 'checked' : ''}>
+                    <input type="checkbox" id="facilityHealthCenter" ${kpiData?.applicableTo?.healthCenter ? 'checked' : 'checked'}>
                     <span>🏥 مركز صحي</span>
                 </label>
                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="facilityHealthUnit" ${kpiData?.applicableTo?.healthUnit ? 'checked' : ''}>
+                    <input type="checkbox" id="facilityHealthUnit" ${kpiData?.applicableTo?.healthUnit ? 'checked' : 'checked'}>
                     <span>🏥 وحدة صحية</span>
                 </label>
             </div>
@@ -920,21 +925,22 @@ function saveKPIManual(event) {
     };
     
     if (typeInfo.inputType === 'formula') {
-        kpiData.formula = document.getElementById('kpiFormula').value.trim();
+        kpiData.department = document.getElementById('kpiDepartment').value.trim();
         kpiData.numeratorLabel = document.getElementById('kpiNumeratorLabel').value.trim();
         kpiData.denominatorLabel = document.getElementById('kpiDenominatorLabel').value.trim();
-        kpiData.target = parseFloat(document.getElementById('kpiTarget').value);
-        kpiData.unit = document.getElementById('kpiUnit').value;
-    } else if (typeInfo.inputType === 'weighted') {
-        kpiData.weight = parseFloat(document.getElementById('kpiWeight').value);
-        kpiData.maxScore = parseFloat(document.getElementById('kpiMaxScore').value);
-        kpiData.subCriteria = document.getElementById('kpiSubCriteria').value.trim();
-    } else if (typeInfo.inputType === 'checklist') {
-        kpiData.evaluationType = document.getElementById('kpiEvaluationType').value;
-        kpiData.description = document.getElementById('kpiDescription').value.trim();
+        kpiData.formula = document.getElementById('kpiFormula').value.trim();
+        kpiData.percentage = document.getElementById('kpiPercentage').value.trim();
+        kpiData.frequency = document.getElementById('kpiFrequency').value;
+    } else if (typeInfo.inputType === 'assessment') {
+        kpiData.assessment = document.getElementById('kpiAssessment').value;
+        kpiData.notes = document.getElementById('kpiNotes').value.trim();
     } else if (typeInfo.inputType === 'count') {
         kpiData.jobTitle = document.getElementById('kpiJobTitle').value.trim();
-        kpiData.contractType = document.getElementById('kpiContractType').value;
+        kpiData.count = parseInt(document.getElementById('kpiCount').value);
+    } else if (typeInfo.inputType === 'monthly_data') {
+        kpiData.year = parseInt(document.getElementById('kpiYear').value);
+        kpiData.kpiCode = document.getElementById('kpiCodeRef').value.trim();
+        kpiData.monthValue = parseFloat(document.getElementById('kpiMonthValue').value);
     }
     
     if (!kpiData.applicableTo.hospital && !kpiData.applicableTo.healthCenter && !kpiData.applicableTo.healthUnit) {
@@ -957,12 +963,19 @@ function saveKPIManual(event) {
     if (result.success) {
         showSuccess(result.message);
         closeKPIModal();
-        selectCategory(selectedKPICategory);
-        updateDashboardStats();
+        
+        setTimeout(() => {
+            selectCategory(selectedKPICategory);
+            updateDashboardStats();
+        }, 100);
+        
     } else {
         showError(result.message);
     }
 }
+/**
+ * ===== عرض وتعديل وحذف المؤشرات =====
+ */
 
 function editKPIManual(kpiId) {
     const kpi = getKPIById(kpiId);
@@ -1014,26 +1027,28 @@ function viewKPIDetails(kpiId) {
     
     if (typeInfo.inputType === 'formula') {
         details += `
-            ${kpi.formula ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>الصيغة:</strong><br>${kpi.formula}</div>` : ''}
+            ${kpi.department ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>الإدارة المسؤولة:</strong><br>${kpi.department}</div>` : ''}
             ${kpi.numeratorLabel ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>البسط:</strong><br>${kpi.numeratorLabel}</div>` : ''}
             ${kpi.denominatorLabel ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>المقام:</strong><br>${kpi.denominatorLabel}</div>` : ''}
-            ${kpi.target ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>المستهدف:</strong><br><span style="font-size: 1.3rem; color: ${typeInfo.color}; font-weight: 600;">${kpi.target} ${kpi.unit}</span></div>` : ''}
+            ${kpi.formula ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>المعادلة الحسابية:</strong><br>${kpi.formula}</div>` : ''}
+            ${kpi.percentage ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>النسبة المئوية:</strong><br><span style="font-size: 1.3rem; color: ${typeInfo.color}; font-weight: 600;">${kpi.percentage}</span></div>` : ''}
+            ${kpi.frequency ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>دورية الإبلاغ:</strong><br>${kpi.frequency}</div>` : ''}
         `;
-    } else if (typeInfo.inputType === 'weighted') {
+    } else if (typeInfo.inputType === 'assessment') {
         details += `
-            ${kpi.weight ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>الوزن:</strong><br>${kpi.weight}</div>` : ''}
-            ${kpi.maxScore ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>الدرجة القصوى:</strong><br>${kpi.maxScore}</div>` : ''}
-            ${kpi.subCriteria ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>المعايير الفرعية:</strong><br>${kpi.subCriteria.replace(/\n/g, '<br>')}</div>` : ''}
-        `;
-    } else if (typeInfo.inputType === 'checklist') {
-        details += `
-            ${kpi.evaluationType ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>نوع التقييم:</strong><br>${kpi.evaluationType}</div>` : ''}
-            ${kpi.description ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>الوصف:</strong><br>${kpi.description}</div>` : ''}
+            ${kpi.assessment ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>التقييم:</strong><br><span style="font-size: 1.5rem; color: ${typeInfo.color}; font-weight: 600;">${kpi.assessment}</span></div>` : ''}
+            ${kpi.notes ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>ملاحظات:</strong><br>${kpi.notes}</div>` : ''}
         `;
     } else if (typeInfo.inputType === 'count') {
         details += `
             ${kpi.jobTitle ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>المسمى الوظيفي:</strong><br>${kpi.jobTitle}</div>` : ''}
-            ${kpi.contractType ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>نوع العقد:</strong><br>${kpi.contractType}</div>` : ''}
+            ${kpi.count !== undefined ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>العدد:</strong><br><span style="font-size: 1.5rem; color: ${typeInfo.color}; font-weight: 600;">${kpi.count}</span></div>` : ''}
+        `;
+    } else if (typeInfo.inputType === 'monthly_data') {
+        details += `
+            ${kpi.year ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>السنة:</strong><br>${kpi.year}</div>` : ''}
+            ${kpi.kpiCode ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>المؤشر:</strong><br>${kpi.kpiCode}</div>` : ''}
+            ${kpi.monthValue !== undefined ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>القيمة:</strong><br><span style="font-size: 1.5rem; color: ${typeInfo.color}; font-weight: 600;">${kpi.monthValue}</span></div>` : ''}
         `;
     }
     
@@ -1075,6 +1090,10 @@ function deleteKPIConfirm(kpiId) {
     }
 }
 
+/**
+ * ===== Modal للمؤشرات =====
+ */
+
 function showKPIModal(title, content) {
     let modal = document.getElementById('customKPIModal');
     if (!modal) {
@@ -1086,12 +1105,12 @@ function showKPIModal(title, content) {
     }
     
     modal.innerHTML = `
-        <div class="modal-content" style="background: white; border-radius: 15px; max-width: 600px; width: 90%; max-height: 90vh; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+        <div class="modal-content" style="background: white; border-radius: 15px; max-width: 700px; width: 90%; max-height: 90vh; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
             <div class="modal-header" style="padding: 20px 25px; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;">
                 <h2 style="margin: 0; font-size: 1.3rem; color: #333;">${title}</h2>
                 <span onclick="closeKPIModal()" style="cursor: pointer; font-size: 1.5rem; color: #999; line-height: 1;">&times;</span>
             </div>
-            <div class="modal-body" style="padding: 25px;">
+            <div class="modal-body" style="padding: 25px; overflow-y: auto; max-height: calc(90vh - 80px);">
                 ${content}
             </div>
         </div>
@@ -1130,6 +1149,10 @@ function openImportModalForCategory() {
 function exportCategoryKPIs() {
     showInfo('جاري تطوير ميزة التصدير');
 }
+
+/**
+ * ===== إدارة البيانات المدخلة =====
+ */
 
 function loadDataTable() {
     const tbody = document.querySelector('#dataTable tbody');
@@ -1207,6 +1230,10 @@ function deleteDataEntry(entryId) {
     updateDashboardStats();
     showSuccess('تم حذف الإدخال بنجاح');
 }
+
+/**
+ * ===== التقارير =====
+ */
 
 function loadReports() {
     updateReportsStats();
@@ -1302,4 +1329,19 @@ function closeModal(modalId) {
         modal.style.display = 'none';
     }
 }
-             
+
+function formatDateArabic(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ar-EG', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+}
+
+function generateId() {
+    return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}
+
+console.log('✅ Admin main script loaded');
