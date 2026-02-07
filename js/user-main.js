@@ -49,17 +49,31 @@ function showUserPanel() {
     console.log('📊 Showing user panel...');
     
     if (loginPage) {
-        loginPage.classList.add('hide');
         loginPage.style.display = 'none';
     }
     
     if (userPanel) {
-        userPanel.classList.add('show');
         userPanel.style.display = 'flex';
     }
     
+    // التأكد من إظهار appPage
+    const appPage = document.getElementById('appPage');
+    if (appPage) {
+        appPage.style.display = 'flex';
+        console.log('✅ App page displayed');
+    }
+    
     displayUserInfo();
-    loadDataEntry();
+    
+    setTimeout(() => {
+        loadDataEntry();
+        
+        // التأكد م�� عرض المحتوى
+        const categoriesView = document.getElementById('categoriesView');
+        if (categoriesView) {
+            categoriesView.style.display = 'block';
+        }
+    }, 100);
 }
 
 function handleLogin(event) {
