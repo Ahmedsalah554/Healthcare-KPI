@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="./css/components.css">
     <link rel="stylesheet" href="./css/admin-styles.css">
     <link rel="stylesheet" href="./css/charts.css">
+    <!-- إضافة CSS الجديد -->
+    <link rel="stylesheet" href="./css/data-entry-styles.css">
     
     <!-- إضافة الاستايل لتصحيح صفحة اللوجن -->
     <style>
@@ -546,10 +548,9 @@
                     <label for="facilityType">النوع *</label>
                     <select id="facilityType" required>
                         <option value="">-- اختر النوع --</option>
-                        <option value="مستشفى">مستشفى</option>
-                        <option value="مركز صحي">مركز صحي</option>
-                        <option value="عيادة">عيادة</option>
-                        <option value="مختبر">مختبر</option>
+                        <option value="hospital">مستشفى</option>
+                        <option value="healthCenter">مركز صحي</option>
+                        <option value="healthUnit">وحدة صحية</option>
                     </select>
                 </div>
 
@@ -760,6 +761,11 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- الملفات الجديدة أولاً -->
+    <script src="./js/data-types.js"></script>
+    
+    <!-- باقي الملفات -->
     <script src="./js/utils.js"></script>
     <script src="./js/kpi-data.js"></script>
     <script src="./js/charts.js"></script>
