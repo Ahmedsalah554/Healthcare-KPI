@@ -1,11 +1,14 @@
 /**
- * ===== السكريبت الرئيسي للوحة التحكم الإدارية =====
+ * ===== السكريبت الرئيسي للوحة التحكم الإدارية (محدث v2.0) =====
  */
 
 let currentUser = null;
 let facilities = [];
 let users = [];
 let kpiData = [];
+let selectedKPIDataType = null;
+let selectedKPICategory = null;
+let selectedKPISubcategory = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Admin panel initializing...');
@@ -123,17 +126,8 @@ function displayUserInfo() {
         const userRoleDisplay = document.getElementById('userRoleDisplay');
         
         if (userNameDisplay) userNameDisplay.textContent = currentUser.name;
-        if (userRoleDisplay) userRoleDisplay.textContent = getRoleNameArabic(currentUser.role);
+        if (userRoleDisplay) userRoleDisplay.textContent = currentUser.role === 'admin' ? 'مدير النظام' : 'مستخدم';
     }
-}
-
-function getRoleNameArabic(role) {
-    const roles = {
-        admin: 'مدير النظام',
-        supervisor: 'مشرف',
-        user: 'مستخدم'
-    };
-    return roles[role] || role;
 }
 
 function loadData() {
@@ -141,313 +135,1238 @@ function loadData() {
     users = getFromStorage('users', []);
     kpiData = getFromStorage('kpiData', []);
     
-    console.log('📊 Data loaded:', { 
-        facilities: facilities.length, 
-        users: users.length, 
-        kpiData: kpiData.length 
+    console.log('📊 Data loaded:', {
+        facilities: facilities.length,
+        users: users.length,
+        kpiData: kpiData.length
     });
 }
 
 function loadDashboard() {
-    console.log('📈 Loading dashboard...');
+    console.log('📊 Loading dashboard...');
     updateDashboardStats();
-    loadDashboardCharts();
+    loadRecentActivity();
 }
 
 function updateDashboardStats() {
-    const totalFacilities = document.getElementById('totalFacilities');
-    if (totalFacilities) {
-        totalFacilities.textContent = facilities.length;
-    }
+    const facilities = getFromStorage('facilities', []);
+    const users = getFromStorage('users', []);
     
-    const totalUsers = document.getElementById('totalUsers');
-    if (totalUsers) {
-        totalUsers.textContent = users.length;
-    }
+    const activeFacilities = facilities.filter(f => f.status === 'active').length;
+    const activeUsers = users.filter(u => u.status === 'active').length;
     
-    const totalKPIs = document.getElementById('totalKPIs');
-    if (totalKPIs) {
-        const allKPIsCount = getAllKPIs().length;
-        totalKPIs.textContent = allKPIsCount;
-    }
+    const totalKPIs = getAllKPIsCount();
+    const pendingData = getPendingDataCount();
     
-    const totalData = document.getElementById('totalData');
-    if (totalData) {
-        totalData.textContent = kpiData.length;
-    }
+    const facilityCountEl = document.getElementById('facilityCount');
+    const userCountEl = document.getElementById('userCount');
+    const kpiCountEl = document.getElementById('kpiCount');
+    const pendingCountEl = document.getElementById('pendingCount');
+    
+    if (facilityCountEl) facilityCountEl.textContent = activeFacilities;
+    if (userCountEl) userCountEl.textContent = activeUsers;
+    if (kpiCountEl) kpiCountEl.textContent = totalKPIs;
+    if (pendingCountEl) pendingCountEl.textContent = pendingData;
 }
 
-function loadDashboardCharts() {
-    const container = document.getElementById('dashboardCharts');
-    if (!container) return;
+function getAllKPIsCount() {
+    let count = 0;
+    const dataTypes = getAllDataTypes();
     
-    if (typeof ApexCharts === 'undefined') {
-        console.error('❌ ApexCharts library not loaded');
+    dataTypes.forEach(dataType => {
+        const stats = getKPIStatistics(dataType.id);
+        count += stats.totalKPIs;
+    });
+    
+    return count;
+}
+
+function getPendingDataCount() {
+    const allData = getFromStorage('kpiData', []);
+    return allData.filter(d => d.status === 'pending').length;
+}
+
+function loadRecentActivity() {
+    const activityList = document.getElementById('recentActivityList');
+    if (!activityList) return;
+    
+    const recentData = getFromStorage('kpiData', [])
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .slice(0, 10);
+    
+    if (recentData.length === 0) {
+        activityList.innerHTML = '<p style="text-align: center; color: #666;">لا توجد أنشطة حديثة</p>';
         return;
     }
     
-    container.innerHTML = `
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-top: 30px;">
-            <div class="card">
-                <div class="card-header">
-                    <h3>📊 توزيع المنشآت</h3>
+    let html = '<ul class="activity-list">';
+    
+    recentData.forEach(item => {
+        const dataType = getDataTypeInfo(item.dataType);
+        const icon = dataType ? dataType.icon : '📊';
+        const typeName = dataType ? dataType.name : item.dataType;
+        
+        html += `
+            <li class="activity-item">
+                <span class="activity-icon">${icon}</span>
+                <div class="activity-content">
+                    <strong>${typeName}</strong>
+                    <small>${formatDateArabic(item.createdAt)}</small>
                 </div>
-                <div class="card-body">
-                    <div id="facilitiesChart" style="min-height: 300px;"></div>
+            </li>
+        `;
+    });
+    
+    html += '</ul>';
+    activityList.innerHTML = html;
+}
+
+// ========================================
+// إدارة المؤشرات (محدث v2.0)
+// ========================================
+
+function loadKPIManagement() {
+    console.log('📊 Loading KPI Management...');
+    
+    const container = document.getElementById('kpiManagementContent');
+    if (!container) return;
+    
+    const dataTypes = getAllDataTypes();
+    
+    let html = `
+        <div class="kpi-management-container">
+            <div class="section-header">
+                <h2>إدارة المؤشرات</h2>
+                <p>إضافة وتعديل المؤشرات حسب الأقسام</p>
+            </div>
+            
+            <div class="data-type-selector">
+                <h3>اختر نوع البيانات:</h3>
+                <div class="data-type-grid">
+    `;
+    
+    dataTypes.forEach(dataType => {
+        html += `
+            <div class="data-type-card" onclick="selectDataTypeForKPI('${dataType.id}')" style="border-left: 4px solid ${dataType.color}">
+                <div class="data-type-icon" style="font-size: 3rem">${dataType.icon}</div>
+                <h4>${dataType.name}</h4>
+                <p class="data-type-desc">${dataType.description}</p>
+                <span class="input-type-badge" style="background: ${dataType.color}20; color: ${dataType.color}">${getInputTypeLabel(dataType.inputType)}</span>
+            </div>
+        `;
+    });
+    
+    html += `
                 </div>
+            </div>
+            
+            <div id="kpiFormSection" style="display: none; margin-top: 30px;"></div>
+            <div id="kpiListSection" style="display: none; margin-top: 30px;"></div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+function selectDataTypeForKPI(dataTypeId) {
+    selectedKPIDataType = dataTypeId;
+    selectedKPICategory = null;
+    selectedKPISubcategory = null;
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    console.log('Selected data type:', dataType);
+    
+    showCategorySelector(dataType);
+}
+
+function showCategorySelector(dataType) {
+    const formSection = document.getElementById('kpiFormSection');
+    if (!formSection) return;
+    
+    const categories = dataType.categories;
+    
+    let html = `
+        <div class="breadcrumb">
+            <span class="active">${dataType.icon} ${dataType.name}</span>
+        </div>
+        
+        <div class="category-selector">
+            <h3>اختر القسم:</h3>
+            <div class="category-grid">
+    `;
+    
+    Object.values(categories).forEach(category => {
+        html += `
+            <div class="category-card" onclick="selectCategoryForKPI('${dataType.id}', '${category.id}')" style="border-top: 3px solid ${category.color}">
+                <div class="category-icon" style="color: ${category.color}; font-size: 2.5rem">${category.icon}</div>
+                <h4>${category.name}</h4>
+            </div>
+        `;
+    });
+    
+    html += `
             </div>
         </div>
     `;
     
-    setTimeout(() => {
-        renderFacilitiesChart();
-    }, 100);
+    formSection.innerHTML = html;
+    formSection.style.display = 'block';
 }
 
-function renderFacilitiesChart() {
-    const chartDiv = document.getElementById('facilitiesChart');
-    if (!chartDiv) return;
+function selectCategoryForKPI(dataTypeId, categoryId) {
+    selectedKPIDataType = dataTypeId;
+    selectedKPICategory = categoryId;
     
-    const distribution = {};
-    facilities.forEach(f => {
-        const type = getFacilityTypeName(f.type);
-        distribution[type] = (distribution[type] || 0) + 1;
+    const dataType = getDataTypeInfo(dataTypeId);
+    
+    // ✅ التحقق من وجود أقسام فرعية
+    if (hasSubcategories(dataTypeId)) {
+        const subcategories = getSubcategories(dataTypeId, categoryId);
+        
+        if (Object.keys(subcategories).length > 0) {
+            showSubcategorySelector(dataType, categoryId, subcategories);
+            return;
+        }
+    }
+    
+    showKPIForm(dataType, categoryId);
+}
+
+function showSubcategorySelector(dataType, categoryId, subcategories) {
+    const formSection = document.getElementById('kpiFormSection');
+    if (!formSection) return;
+    
+    const category = dataType.categories[categoryId];
+    
+    let html = `
+        <div class="breadcrumb">
+            <span onclick="selectDataTypeForKPI('${dataType.id}')" style="cursor: pointer">← ${dataType.icon} ${dataType.name}</span>
+            <span class="active">/ ${category.icon} ${category.name}</span>
+        </div>
+        
+        <div class="subcategory-selector">
+            <h3>اختر القسم الفرعي:</h3>
+            <div class="subcategory-grid">
+    `;
+    
+    Object.values(subcategories).forEach(subcategory => {
+        html += `
+            <div class="subcategory-card" onclick="selectSubcategoryForKPI('${dataType.id}', '${categoryId}', '${subcategory.id}')">
+                <div class="subcategory-icon">${subcategory.icon || '📋'}</div>
+                <h4>${subcategory.name}</h4>
+            </div>
+        `;
     });
     
-    const labels = Object.keys(distribution);
-    const series = Object.values(distribution);
+    html += `
+            </div>
+        </div>
+    `;
     
-    if (labels.length === 0) {
-        chartDiv.innerHTML = `<div class="empty-state"><p>لا توجد بيانات</p></div>`;
+    formSection.innerHTML = html;
+}
+
+function selectSubcategoryForKPI(dataTypeId, categoryId, subcategoryId) {
+    selectedKPIDataType = dataTypeId;
+    selectedKPICategory = categoryId;
+    selectedKPISubcategory = subcategoryId;
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    showKPIForm(dataType, categoryId, subcategoryId);
+}
+
+function showKPIForm(dataType, categoryId, subcategoryId = null) {
+    const formSection = document.getElementById('kpiFormSection');
+    if (!formSection) return;
+    
+    const category = dataType.categories[categoryId];
+    const subcategory = subcategoryId ? getSubcategories(dataType.id, categoryId)[subcategoryId] : null;
+    
+    let breadcrumb = `
+        <div class="breadcrumb">
+            <span onclick="selectDataTypeForKPI('${dataType.id}')" style="cursor: pointer">← ${dataType.icon} ${dataType.name}</span>
+            <span onclick="selectCategoryForKPI('${dataType.id}', '${categoryId}')" style="cursor: pointer">/ ${category.icon} ${category.name}</span>
+    `;
+    
+    if (subcategory) {
+        breadcrumb += `<span class="active">/ ${subcategory.icon || '📋'} ${subcategory.name}</span>`;
+    }
+    
+    breadcrumb += `</div>`;
+    
+    let html = breadcrumb;
+    
+    // ✅ نموذج حسب نوع الإدخال
+    if (dataType.inputType === 'count') {
+        // القوى البشرية - عدد فقط
+        html += `
+            <div class="kpi-form-card">
+                <h3>إضافة بيانات: ${category.name}</h3>
+                <form onsubmit="saveWorkforceData(event)">
+                    <div class="form-group">
+                        <label>العدد *</label>
+                        <input type="number" id="countValue" min="0" required class="form-control" placeholder="أدخل العدد">
+                    </div>
+                    <button type="submit" class="btn btn-primary">💾 حفظ</button>
+                </form>
+            </div>
+        `;
+    } else if (dataType.inputType === 'assessment') {
+        // معايير التقييم
+        html += `
+            <div class="kpi-form-card">
+                <h3>إضافة معيار: ${subcategory ? subcategory.name : category.name}</h3>
+                <form onsubmit="saveAssessmentData(event)">
+                    <div class="form-group">
+                        <label>المعيار *</label>
+                        <input type="text" id="criteriaName" required class="form-control" placeholder="أدخل اسم المعيار">
+                    </div>
+                    <div class="form-group">
+                        <label>التقييم *</label>
+                        <select id="assessmentValue" required class="form-control">
+                            <option value="">اختر التقييم</option>
+                            <option value="2">⭐⭐ ممتاز (2)</option>
+                            <option value="1">⭐ جيد (1)</option>
+                            <option value="0">❌ ضعيف (0)</option>
+                            <option value="N/A">⚪ لا ينطبق (N/A)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>ملاحظات</label>
+                        <textarea id="assessmentNotes" rows="3" class="form-control" placeholder="أضف ملاحظاتك هنا"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">💾 حفظ المعيار</button>
+                </form>
+            </div>
+        `;
+    } else if (dataType.inputType === 'formula') {
+        // مؤشرات الأداء - نوعين
+        html += `
+            <div class="kpi-form-card">
+                <h3>إضافة مؤشر: ${category.name}</h3>
+                <form onsubmit="savePerformanceIndicator(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>كود المؤشر *</label>
+                            <input type="text" id="indicatorCode" required class="form-control" placeholder="مثال: WFM-01">
+                        </div>
+                        <div class="form-group">
+                            <label>اسم المؤشر *</label>
+                            <input type="text" id="indicatorName" required class="form-control" placeholder="أدخل اسم المؤشر">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>نوع المؤشر *</label>
+                        <select id="indicatorType" onchange="toggleIndicatorFields()" required class="form-control">
+                            <option value="">اختر النوع</option>
+                            <option value="formula">📊 صيغة حسابية (بسط ÷ مقام × 100)</option>
+                            <option value="direct">🔢 قيمة مباشرة (رقم واحد)</option>
+                        </select>
+                    </div>
+                    
+                    <div id="formulaFields" style="display: none;">
+                        <div class="form-group">
+                            <label>وصف المعادلة</label>
+                            <textarea id="formulaDescription" rows="2" class="form-control" placeholder="مثال: (عدد الحالات المعالجة ÷ إجمالي الحالات) × 100"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>البسط (توضيح)</label>
+                                <input type="text" id="numeratorLabel" class="form-control" placeholder="مثال: عدد الحالات المعالجة">
+                            </div>
+                            <div class="form-group">
+                                <label>المقام (توضيح)</label>
+                                <input type="text" id="denominatorLabel" class="form-control" placeholder="مثال: إجمالي الحالات">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="directFields" style="display: none;">
+                        <div class="form-group">
+                            <label>الوصف/التعليمات</label>
+                            <textarea id="directDescription" rows="3" class="form-control" placeholder="وصف المؤشر وطريقة حسابه"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>دورية الإبلاغ *</label>
+                        <select id="indicatorFrequency" required class="form-control">
+                            <option value="شهري">📅 شهري</option>
+                            <option value="ربع سنوي">📆 ربع سنوي</option>
+                            <option value="سنوي">🗓️ سنوي</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">💾 حفظ المؤشر</button>
+                </form>
+            </div>
+        `;
+    } else if (dataType.inputType === 'monthly_data') {
+        // مؤشرات التميز
+        html += `
+            <div class="kpi-form-card">
+                <h3>إضافة مؤشر تميز: ${category.name}</h3>
+                <form onsubmit="saveExcellenceIndicator(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>كود المؤشر *</label>
+                            <input type="text" id="excellenceCode" required class="form-control" placeholder="مثال: A1">
+                        </div>
+                        <div class="form-group">
+                            <label>اسم المؤشر *</label>
+                            <input type="text" id="excellenceName" required class="form-control" placeholder="أدخل اسم المؤشر">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>الإدارة المسؤولة *</label>
+                        <input type="text" id="responsibleDept" required class="form-control" placeholder="أدخل اسم الإدارة">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>معادلة الاحتساب *</label>
+                        <textarea id="calculationFormula" rows="3" required class="form-control" placeholder="مثال: (البسط ÷ الهدف) × 100"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>دورية التقييم *</label>
+                        <select id="excellencePeriodicity" required class="form-control">
+                            <option value="شهري">📅 شهري</option>
+                            <option value="ربع سنوي">📆 ربع سنوي</option>
+                            <option value="سنوي">🗓️ سنوي</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">💾 حفظ المؤشر</button>
+                </form>
+            </div>
+        `;
+    }
+    
+    formSection.innerHTML = html;
+    
+    // تحميل المؤشرات الحالية
+    loadCurrentKPIs(dataType.id, categoryId, subcategoryId);
+}
+
+function toggleIndicatorFields() {
+    const type = document.getElementById('indicatorType').value;
+    const formulaFields = document.getElementById('formulaFields');
+    const directFields = document.getElementById('directFields');
+    
+    if (type === 'formula') {
+        formulaFields.style.display = 'block';
+        directFields.style.display = 'none';
+    } else if (type === 'direct') {
+        formulaFields.style.display = 'none';
+        directFields.style.display = 'block';
+    } else {
+        formulaFields.style.display = 'none';
+        directFields.style.display = 'none';
+    }
+}
+
+function loadCurrentKPIs(dataTypeId, categoryId, subcategoryId = null) {
+    const listSection = document.getElementById('kpiListSection');
+    if (!listSection) return;
+    
+    let kpis;
+    if (subcategoryId) {
+        kpis = getKPIsBySubcategory(dataTypeId, categoryId, subcategoryId);
+    } else {
+        kpis = getKPIsByCategory(dataTypeId, categoryId);
+    }
+    
+    if (kpis.length === 0) {
+        listSection.style.display = 'none';
         return;
     }
     
-    const options = {
-        series: series,
-        chart: { type: 'donut', height: 300 },
-        labels: labels,
-        colors: ['#667eea', '#764ba2', '#f093fb'],
-        legend: { position: 'bottom' }
+    let html = `
+        <div class="kpi-list-card">
+            <h3>المؤشرات الحالية (${kpis.length})</h3>
+            <div class="kpi-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>الكود/الاسم</th>
+                            <th>التفاصيل</th>
+                            <th>تاريخ الإضافة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+    
+    kpis.forEach(kpi => {
+        html += `
+            <tr>
+                <td><strong>${kpi.code || kpi.name}</strong></td>
+                <td>${kpi.description || kpi.formulaDescription || '-'}</td>
+                <td>${formatDateArabic(kpi.createdAt)}</td>
+                <td>
+                    <button onclick="editKPI('${dataTypeId}', '${categoryId}', '${kpi.id}', ${subcategoryId ? `'${subcategoryId}'` : 'null'})" class="btn-icon" title="تعديل">✏️</button>
+                    <button onclick="deleteKPIItem('${dataTypeId}', '${categoryId}', '${kpi.id}', ${subcategoryId ? `'${subcategoryId}'` : 'null'})" class="btn-icon" title="حذف">🗑️</button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    listSection.innerHTML = html;
+    listSection.style.display = 'block';
+}
+// ========================================
+// دوال حفظ البيانات
+// ========================================
+
+function saveWorkforceData(event) {
+    event.preventDefault();
+    
+    const countValue = document.getElementById('countValue').value;
+    
+    const kpiData = {
+        dataType: selectedKPIDataType,
+        category: selectedKPICategory,
+        count: parseInt(countValue),
+        createdAt: new Date().toISOString()
     };
     
-    try {
-        const chart = new ApexCharts(chartDiv, options);
-        chart.render();
-    } catch (error) {
-        console.error('Error:', error);
+    const result = saveKPI(kpiData);
+    
+    if (result.success) {
+        showSuccess(result.message);
+        document.getElementById('countValue').value = '';
+        loadCurrentKPIs(selectedKPIDataType, selectedKPICategory);
+    } else {
+        showError(result.message);
     }
 }
 
-function loadFacilitiesTable() {
-    const tbody = document.querySelector('#facilitiesTable tbody');
-    if (!tbody) return;
+function saveAssessmentData(event) {
+    event.preventDefault();
     
-    if (facilities.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="text-center"><div class="empty-state"><h3>لا توجد منشآت</h3></div></td></tr>`;
+    const criteriaName = document.getElementById('criteriaName').value;
+    const assessmentValue = document.getElementById('assessmentValue').value;
+    const assessmentNotes = document.getElementById('assessmentNotes').value;
+    
+    const kpiData = {
+        dataType: selectedKPIDataType,
+        category: selectedKPICategory,
+        subcategory: selectedKPISubcategory,
+        name: criteriaName,
+        assessment: assessmentValue,
+        notes: assessmentNotes,
+        createdAt: new Date().toISOString()
+    };
+    
+    const result = saveKPI(kpiData);
+    
+    if (result.success) {
+        showSuccess(result.message);
+        document.getElementById('criteriaName').value = '';
+        document.getElementById('assessmentValue').value = '';
+        document.getElementById('assessmentNotes').value = '';
+        loadCurrentKPIs(selectedKPIDataType, selectedKPICategory, selectedKPISubcategory);
+    } else {
+        showError(result.message);
+    }
+}
+
+function savePerformanceIndicator(event) {
+    event.preventDefault();
+    
+    const code = document.getElementById('indicatorCode').value;
+    const name = document.getElementById('indicatorName').value;
+    const indicatorType = document.getElementById('indicatorType').value;
+    const frequency = document.getElementById('indicatorFrequency').value;
+    
+    const kpiData = {
+        dataType: selectedKPIDataType,
+        category: selectedKPICategory,
+        code: code,
+        name: name,
+        indicatorType: indicatorType,
+        frequency: frequency,
+        createdAt: new Date().toISOString()
+    };
+    
+    if (indicatorType === 'formula') {
+        kpiData.formulaDescription = document.getElementById('formulaDescription').value;
+        kpiData.numeratorLabel = document.getElementById('numeratorLabel').value;
+        kpiData.denominatorLabel = document.getElementById('denominatorLabel').value;
+    } else if (indicatorType === 'direct') {
+        kpiData.description = document.getElementById('directDescription').value;
+    }
+    
+    const result = saveKPI(kpiData);
+    
+    if (result.success) {
+        showSuccess(result.message);
+        event.target.reset();
+        toggleIndicatorFields();
+        loadCurrentKPIs(selectedKPIDataType, selectedKPICategory);
+    } else {
+        showError(result.message);
+    }
+}
+
+function saveExcellenceIndicator(event) {
+    event.preventDefault();
+    
+    const code = document.getElementById('excellenceCode').value;
+    const name = document.getElementById('excellenceName').value;
+    const responsibleDept = document.getElementById('responsibleDept').value;
+    const calculationFormula = document.getElementById('calculationFormula').value;
+    const periodicity = document.getElementById('excellencePeriodicity').value;
+    
+    const kpiData = {
+        dataType: selectedKPIDataType,
+        category: selectedKPICategory,
+        code: code,
+        name: name,
+        responsibleDepartment: responsibleDept,
+        calculationFormula: calculationFormula,
+        periodicity: periodicity,
+        createdAt: new Date().toISOString()
+    };
+    
+    const result = saveKPI(kpiData);
+    
+    if (result.success) {
+        showSuccess(result.message);
+        event.target.reset();
+        loadCurrentKPIs(selectedKPIDataType, selectedKPICategory);
+    } else {
+        showError(result.message);
+    }
+}
+
+function deleteKPIItem(dataType, category, kpiId, subcategory = null) {
+    if (!confirm('هل أنت متأكد من حذف هذا المؤشر؟')) return;
+    
+    const result = deleteKPI(dataType, category, kpiId, subcategory);
+    
+    if (result.success) {
+        showSuccess(result.message);
+        loadCurrentKPIs(dataType, category, subcategory);
+    } else {
+        showError(result.message);
+    }
+}
+
+function editKPI(dataType, category, kpiId, subcategory = null) {
+    const kpi = getKPIById(dataType, category, kpiId, subcategory);
+    
+    if (!kpi) {
+        showError('المؤشر غير موجود');
         return;
     }
     
-    tbody.innerHTML = facilities.map(facility => `
-        <tr>
-            <td>${facility.code}</td>
-            <td>${facility.name}</td>
-            <td>${getFacilityTypeName(facility.type)}</td>
-            <td>${facility.city || '-'}</td>
-            <td>${facility.phone || '-'}</td>
-            <td>${facility.capacity || '-'}</td>
-            <td><span class="badge ${facility.status === 'active' ? 'badge-success' : 'badge-danger'}">${facility.status === 'active' ? 'نشط' : 'غير نشط'}</span></td>
-            <td>
-                <button class="btn-icon" onclick="editFacility('${facility.id}')">✏️</button>
-                <button class="btn-icon" onclick="deleteFacility('${facility.id}')">🗑️</button>
-            </td>
-        </tr>
-    `).join('');
+    // عرض نموذج التعديل
+    showEditForm(dataType, category, kpi, subcategory);
 }
 
-function addFacility() {
-    document.getElementById('facilityId').value = '';
-    document.getElementById('facilityCode').value = '';
-    document.getElementById('facilityName').value = '';
-    document.getElementById('facilityType').value = '';
-    document.getElementById('facilityCity').value = '';
-    document.getElementById('facilityPhone').value = '';
-    document.getElementById('facilityEmail').value = '';
-    document.getElementById('facilityCapacity').value = '';
-    document.getElementById('facilityStatus').value = 'active';
-    document.getElementById('modalTitle').textContent = 'إضافة منشأة جديدة';
-    openModal('facilityModal');
-}
-
-function editFacility(facilityId) {
-    const facility = facilities.find(f => f.id === facilityId);
-    if (!facility) return;
+function showEditForm(dataType, category, kpi, subcategory = null) {
+    const formSection = document.getElementById('kpiFormSection');
+    if (!formSection) return;
     
-    document.getElementById('facilityId').value = facility.id;
-    document.getElementById('facilityCode').value = facility.code;
-    document.getElementById('facilityName').value = facility.name;
-    document.getElementById('facilityType').value = facility.type;
-    document.getElementById('facilityCity').value = facility.city || '';
-    document.getElementById('facilityPhone').value = facility.phone || '';
-    document.getElementById('facilityEmail').value = facility.email || '';
-    document.getElementById('facilityCapacity').value = facility.capacity || '';
-    document.getElementById('facilityStatus').value = facility.status;
-    document.getElementById('modalTitle').textContent = 'تعديل منشأة';
-    openModal('facilityModal');
+    const dataTypeInfo = getDataTypeInfo(dataType);
+    const categoryInfo = dataTypeInfo.categories[category];
+    
+    let html = `
+        <div class="kpi-form-card">
+            <h3>تعديل المؤشر: ${kpi.code || kpi.name}</h3>
+            <form onsubmit="updateKPIForm(event, '${dataType}', '${category}', '${kpi.id}', ${subcategory ? `'${subcategory}'` : 'null'})">
+    `;
+    
+    if (dataTypeInfo.inputType === 'count') {
+        html += `
+            <div class="form-group">
+                <label>العدد *</label>
+                <input type="number" id="editCountValue" value="${kpi.count}" min="0" required class="form-control">
+            </div>
+        `;
+    } else if (dataTypeInfo.inputType === 'assessment') {
+        html += `
+            <div class="form-group">
+                <label>المعيار *</label>
+                <input type="text" id="editCriteriaName" value="${kpi.name}" required class="form-control">
+            </div>
+            <div class="form-group">
+                <label>التقييم *</label>
+                <select id="editAssessmentValue" required class="form-control">
+                    <option value="2" ${kpi.assessment === '2' ? 'selected' : ''}>⭐⭐ ممتاز (2)</option>
+                    <option value="1" ${kpi.assessment === '1' ? 'selected' : ''}>⭐ جيد (1)</option>
+                    <option value="0" ${kpi.assessment === '0' ? 'selected' : ''}>❌ ضعيف (0)</option>
+                    <option value="N/A" ${kpi.assessment === 'N/A' ? 'selected' : ''}>⚪ لا ينطبق (N/A)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>ملاحظات</label>
+                <textarea id="editAssessmentNotes" rows="3" class="form-control">${kpi.notes || ''}</textarea>
+            </div>
+        `;
+    } else if (dataTypeInfo.inputType === 'formula') {
+        html += `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>كود المؤشر *</label>
+                    <input type="text" id="editIndicatorCode" value="${kpi.code}" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>اسم المؤشر *</label>
+                    <input type="text" id="editIndicatorName" value="${kpi.name}" required class="form-control">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>نوع المؤشر *</label>
+                <select id="editIndicatorType" onchange="toggleEditIndicatorFields()" required class="form-control">
+                    <option value="formula" ${kpi.indicatorType === 'formula' ? 'selected' : ''}>📊 صيغة حسابية</option>
+                    <option value="direct" ${kpi.indicatorType === 'direct' ? 'selected' : ''}>🔢 قيمة مباشرة</option>
+                </select>
+            </div>
+            <div id="editFormulaFields" style="display: ${kpi.indicatorType === 'formula' ? 'block' : 'none'};">
+                <div class="form-group">
+                    <label>وصف المعادلة</label>
+                    <textarea id="editFormulaDescription" rows="2" class="form-control">${kpi.formulaDescription || ''}</textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>البسط (توضيح)</label>
+                        <input type="text" id="editNumeratorLabel" value="${kpi.numeratorLabel || ''}" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>المقام (توضيح)</label>
+                        <input type="text" id="editDenominatorLabel" value="${kpi.denominatorLabel || ''}" class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div id="editDirectFields" style="display: ${kpi.indicatorType === 'direct' ? 'block' : 'none'};">
+                <div class="form-group">
+                    <label>الوصف/التعليمات</label>
+                    <textarea id="editDirectDescription" rows="3" class="form-control">${kpi.description || ''}</textarea>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>دورية الإبلاغ *</label>
+                <select id="editIndicatorFrequency" required class="form-control">
+                    <option value="شهري" ${kpi.frequency === 'شهري' ? 'selected' : ''}>📅 شهري</option>
+                    <option value="ربع سنوي" ${kpi.frequency === 'ربع سنوي' ? 'selected' : ''}>📆 ربع سنوي</option>
+                    <option value="سنوي" ${kpi.frequency === 'سنوي' ? 'selected' : ''}>🗓️ سنوي</option>
+                </select>
+            </div>
+        `;
+    } else if (dataTypeInfo.inputType === 'monthly_data') {
+        html += `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>كود المؤشر *</label>
+                    <input type="text" id="editExcellenceCode" value="${kpi.code}" required class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>اسم المؤشر *</label>
+                    <input type="text" id="editExcellenceName" value="${kpi.name}" required class="form-control">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>الإدارة المسؤولة *</label>
+                <input type="text" id="editResponsibleDept" value="${kpi.responsibleDepartment || ''}" required class="form-control">
+            </div>
+            <div class="form-group">
+                <label>معادلة الاحتساب *</label>
+                <textarea id="editCalculationFormula" rows="3" required class="form-control">${kpi.calculationFormula || ''}</textarea>
+            </div>
+            <div class="form-group">
+                <label>دورية التقييم *</label>
+                <select id="editExcellencePeriodicity" required class="form-control">
+                    <option value="شهري" ${kpi.periodicity === 'شهري' ? 'selected' : ''}>📅 شهري</option>
+                    <option value="ربع سنوي" ${kpi.periodicity === 'ربع سنوي' ? 'selected' : ''}>📆 ربع سنوي</option>
+                    <option value="سنوي" ${kpi.periodicity === 'سنوي' ? 'selected' : ''}>🗓️ سنوي</option>
+                </select>
+            </div>
+        `;
+    }
+    
+    html += `
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">💾 حفظ التعديلات</button>
+                    <button type="button" onclick="cancelEdit('${dataType}', '${category}', ${subcategory ? `'${subcategory}'` : 'null'})" class="btn btn-secondary">❌ إلغاء</button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    formSection.innerHTML = html;
+    formSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+function toggleEditIndicatorFields() {
+    const type = document.getElementById('editIndicatorType').value;
+    const formulaFields = document.getElementById('editFormulaFields');
+    const directFields = document.getElementById('editDirectFields');
+    
+    if (type === 'formula') {
+        formulaFields.style.display = 'block';
+        directFields.style.display = 'none';
+    } else if (type === 'direct') {
+        formulaFields.style.display = 'none';
+        directFields.style.display = 'block';
+    }
+}
+
+function updateKPIForm(event, dataType, category, kpiId, subcategory = null) {
+    event.preventDefault();
+    
+    const dataTypeInfo = getDataTypeInfo(dataType);
+    let updatedData = {};
+    
+    if (dataTypeInfo.inputType === 'count') {
+        updatedData.count = parseInt(document.getElementById('editCountValue').value);
+    } else if (dataTypeInfo.inputType === 'assessment') {
+        updatedData.name = document.getElementById('editCriteriaName').value;
+        updatedData.assessment = document.getElementById('editAssessmentValue').value;
+        updatedData.notes = document.getElementById('editAssessmentNotes').value;
+    } else if (dataTypeInfo.inputType === 'formula') {
+        updatedData.code = document.getElementById('editIndicatorCode').value;
+        updatedData.name = document.getElementById('editIndicatorName').value;
+        updatedData.indicatorType = document.getElementById('editIndicatorType').value;
+        updatedData.frequency = document.getElementById('editIndicatorFrequency').value;
+        
+        if (updatedData.indicatorType === 'formula') {
+            updatedData.formulaDescription = document.getElementById('editFormulaDescription').value;
+            updatedData.numeratorLabel = document.getElementById('editNumeratorLabel').value;
+            updatedData.denominatorLabel = document.getElementById('editDenominatorLabel').value;
+        } else {
+            updatedData.description = document.getElementById('editDirectDescription').value;
+        }
+    } else if (dataTypeInfo.inputType === 'monthly_data') {
+        updatedData.code = document.getElementById('editExcellenceCode').value;
+        updatedData.name = document.getElementById('editExcellenceName').value;
+        updatedData.responsibleDepartment = document.getElementById('editResponsibleDept').value;
+        updatedData.calculationFormula = document.getElementById('editCalculationFormula').value;
+        updatedData.periodicity = document.getElementById('editExcellencePeriodicity').value;
+    }
+    
+    const result = updateKPI(dataType, category, kpiId, updatedData, subcategory);
+    
+    if (result.success) {
+        showSuccess(result.message);
+        showKPIForm(dataTypeInfo, category, subcategory);
+    } else {
+        showError(result.message);
+    }
+}
+
+function cancelEdit(dataType, category, subcategory = null) {
+    const dataTypeInfo = getDataTypeInfo(dataType);
+    showKPIForm(dataTypeInfo, category, subcategory);
+}
+// ========================================
+// إدارة المنشآت
+// ========================================
+
+function loadFacilitiesManagement() {
+    console.log('🏥 Loading facilities management...');
+    
+    const container = document.getElementById('facilitiesContent');
+    if (!container) return;
+    
+    facilities = getFromStorage('facilities', []);
+    
+    let html = `
+        <div class="facilities-management">
+            <div class="section-header">
+                <h2>إدارة المنشآت الصحية</h2>
+                <button onclick="showAddFacilityForm()" class="btn btn-primary">➕ إضافة منشأة جديدة</button>
+            </div>
+            
+            <div id="facilityFormSection" style="display: none;"></div>
+            
+            <div class="facilities-list">
+                <h3>قائمة المنشآت (${facilities.length})</h3>
+    `;
+    
+    if (facilities.length === 0) {
+        html += '<p style="text-align: center; padding: 40px; color: #666;">لا توجد منشآت مضافة</p>';
+    } else {
+        html += `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>اسم المنشأة</th>
+                        <th>النوع</th>
+                        <th>المنطقة</th>
+                        <th>الحالة</th>
+                        <th>عدد المستخدمين</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        facilities.forEach(facility => {
+            const facilityUsers = users.filter(u => u.facility === facility.id);
+            const statusClass = facility.status === 'active' ? 'status-active' : 'status-inactive';
+            const statusText = facility.status === 'active' ? '✅ نشط' : '❌ غير نشط';
+            
+            html += `
+                <tr>
+                    <td><strong>${facility.name}</strong></td>
+                    <td>${getFacilityTypeName(facility.type)}</td>
+                    <td>${facility.region || '-'}</td>
+                    <td><span class="${statusClass}">${statusText}</span></td>
+                    <td>${facilityUsers.length}</td>
+                    <td>
+                        <button onclick="editFacility('${facility.id}')" class="btn-icon" title="تعديل">✏️</button>
+                        <button onclick="toggleFacilityStatus('${facility.id}')" class="btn-icon" title="تغيير الحالة">🔄</button>
+                        <button onclick="deleteFacility('${facility.id}')" class="btn-icon" title="حذف">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                </tbody>
+            </table>
+        `;
+    }
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+function showAddFacilityForm() {
+    const formSection = document.getElementById('facilityFormSection');
+    if (!formSection) return;
+    
+    const facilityTypes = getAllFacilityTypes();
+    
+    let html = `
+        <div class="form-card">
+            <h3>إضافة منشأة جد��دة</h3>
+            <form onsubmit="saveFacility(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>اسم المنشأة *</label>
+                        <input type="text" id="facilityName" required class="form-control" placeholder="أدخل اسم المنشأة">
+                    </div>
+                    <div class="form-group">
+                        <label>نوع المنشأة *</label>
+                        <select id="facilityType" required class="form-control">
+                            <option value="">اختر النوع</option>
+    `;
+    
+    facilityTypes.forEach(type => {
+        html += `<option value="${type.id}">${type.icon} ${type.name}</option>`;
+    });
+    
+    html += `
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>المنطقة</label>
+                        <input type="text" id="facilityRegion" class="form-control" placeholder="أدخل المنطقة">
+                    </div>
+                    <div class="form-group">
+                        <label>المدينة</label>
+                        <input type="text" id="facilityCity" class="form-control" placeholder="أدخل المدينة">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>العنوان</label>
+                    <textarea id="facilityAddress" rows="2" class="form-control" placeholder="أدخل العنوان التفصيلي"></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">💾 حفظ المنشأة</button>
+                    <button type="button" onclick="cancelFacilityForm()" class="btn btn-secondary">❌ إلغاء</button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    formSection.innerHTML = html;
+    formSection.style.display = 'block';
 }
 
 function saveFacility(event) {
     event.preventDefault();
     
-    const facilityId = document.getElementById('facilityId').value;
     const facilityData = {
-        code: document.getElementById('facilityCode').value,
+        id: 'facility_' + Date.now(),
         name: document.getElementById('facilityName').value,
         type: document.getElementById('facilityType').value,
+        region: document.getElementById('facilityRegion').value,
         city: document.getElementById('facilityCity').value,
-        phone: document.getElementById('facilityPhone').value,
-        email: document.getElementById('facilityEmail').value,
-        capacity: document.getElementById('facilityCapacity').value,
-        status: document.getElementById('facilityStatus').value
+        address: document.getElementById('facilityAddress').value,
+        status: 'active',
+        createdAt: new Date().toISOString()
     };
     
-    if (facilityId) {
-        const index = facilities.findIndex(f => f.id === facilityId);
-        if (index !== -1) {
-            facilities[index] = { ...facilities[index], ...facilityData };
-            showSuccess('تم تحديث المنشأة بنجاح');
-        }
-    } else {
-        facilityData.id = generateId();
-        facilityData.createdAt = new Date().toISOString();
-        facilities.push(facilityData);
-        showSuccess('تم إضافة المنشأة بنجاح');
-    }
-    
+    facilities.push(facilityData);
     saveToStorage('facilities', facilities);
-    loadFacilitiesTable();
-    closeModal('facilityModal');
-    updateDashboardStats();
+    
+    showSuccess('تم إضافة المنشأة بنجاح');
+    loadFacilitiesManagement();
+}
+
+function cancelFacilityForm() {
+    const formSection = document.getElementById('facilityFormSection');
+    if (formSection) {
+        formSection.style.display = 'none';
+    }
+}
+
+function editFacility(facilityId) {
+    showError('وظيفة التعديل قيد التطوير');
+}
+
+function toggleFacilityStatus(facilityId) {
+    const facility = facilities.find(f => f.id === facilityId);
+    if (!facility) return;
+    
+    facility.status = facility.status === 'active' ? 'inactive' : 'active';
+    saveToStorage('facilities', facilities);
+    
+    showSuccess('تم تغيير حالة المنشأة');
+    loadFacilitiesManagement();
 }
 
 function deleteFacility(facilityId) {
     if (!confirm('هل أنت متأكد من حذف هذه المنشأة؟')) return;
     
-    facilities = facilities.filter(f => f.id !== facilityId);
-    saveToStorage('facilities', facilities);
-    loadFacilitiesTable();
-    updateDashboardStats();
-    showSuccess('تم حذف المنشأة بنجاح');
-}
-
-function loadUsersTable() {
-    const tbody = document.querySelector('#usersTable tbody');
-    if (!tbody) return;
+    const facilityUsers = users.filter(u => u.facility === facilityId);
     
-    if (users.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center"><div class="empty-state"><h3>لا يوجد مستخدمين</h3></div></td></tr>`;
+    if (facilityUsers.length > 0) {
+        showError('لا يمكن حذف المنشأة لوجود مستخدمين مرتبطين بها');
         return;
     }
     
-    tbody.innerHTML = users.map(user => {
-        const facility = facilities.find(f => f.id === user.facility);
-        return `
-            <tr>
-                <td>${user.name}</td>
-                <td>${user.email}</td>
-                <td>${facility ? facility.name : '-'}</td>
-                <td>${getRoleNameArabic(user.role)}</td>
-                <td><span class="badge ${user.status === 'active' ? 'badge-success' : 'badge-danger'}">${user.status === 'active' ? 'نشط' : 'غير نشط'}</span></td>
-                <td>${user.phone || '-'}</td>
-                <td>
-                    <button class="btn-icon" onclick="editUser('${user.id}')">✏️</button>
-                    <button class="btn-icon" onclick="deleteUser('${user.id}')">🗑️</button>
-                </td>
-            </tr>
+    facilities = facilities.filter(f => f.id !== facilityId);
+    saveToStorage('facilities', facilities);
+    
+    showSuccess('تم حذف المنشأة بنجاح');
+    loadFacilitiesManagement();
+}
+
+// ========================================
+// إدارة المستخدمين
+// ========================================
+
+function loadUsersManagement() {
+    console.log('👥 Loading users management...');
+    
+    const container = document.getElementById('usersContent');
+    if (!container) return;
+    
+    users = getFromStorage('users', []);
+    
+    let html = `
+        <div class="users-management">
+            <div class="section-header">
+                <h2>إدارة المستخدمين</h2>
+                <button onclick="showAddUserForm()" class="btn btn-primary">➕ إضافة مستخدم جديد</button>
+            </div>
+            
+            <div id="userFormSection" style="display: none;"></div>
+            
+            <div class="users-list">
+                <h3>قائمة المستخدمين (${users.length})</h3>
+    `;
+    
+    if (users.length === 0) {
+        html += '<p style="text-align: center; padding: 40px; color: #666;">لا يوجد مستخدمين مضافين</p>';
+    } else {
+        html += `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>الاسم</th>
+                        <th>البريد الإلكتروني</th>
+                        <th>المنشأة</th>
+                        <th>الدور</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
         `;
-    }).join('');
+        
+        users.forEach(user => {
+            const facility = facilities.find(f => f.id === user.facility);
+            const facilityName = facility ? facility.name : 'غير محدد';
+            const statusClass = user.status === 'active' ? 'status-active' : 'status-inactive';
+            const statusText = user.status === 'active' ? '✅ نشط' : '❌ غير نشط';
+            const roleText = user.role === 'admin' ? '👑 مدير' : '👤 مستخدم';
+            
+            html += `
+                <tr>
+                    <td><strong>${user.name}</strong></td>
+                    <td>${user.email}</td>
+                    <td>${facilityName}</td>
+                    <td>${roleText}</td>
+                    <td><span class="${statusClass}">${statusText}</span></td>
+                    <td>
+                        <button onclick="editUser('${user.id}')" class="btn-icon" title="تعديل">✏️</button>
+                        <button onclick="toggleUserStatus('${user.id}')" class="btn-icon" title="تغيير الحالة">🔄</button>
+                        <button onclick="resetUserPassword('${user.id}')" class="btn-icon" title="إعادة تعيين كلمة المرور">🔑</button>
+                        <button onclick="deleteUser('${user.id}')" class="btn-icon" title="حذف">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                </tbody>
+            </table>
+        `;
+    }
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
 }
 
-function addUser() {
-    document.getElementById('userId').value = '';
-    document.getElementById('userName').value = '';
-    document.getElementById('userEmail').value = '';
-    document.getElementById('userPassword').value = '';
-    document.getElementById('userPhone').value = '';
-    document.getElementById('userFacility').value = '';
-    document.getElementById('userRole').value = 'user';
-    document.getElementById('userStatus').value = 'active';
+function showAddUserForm() {
+    const formSection = document.getElementById('userFormSection');
+    if (!formSection) return;
     
-    const facilitySelect = document.getElementById('userFacility');
-    facilitySelect.innerHTML = '<option value="">-- اختر المنشأة --</option>' +
-        facilities.map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+    let html = `
+        <div class="form-card">
+            <h3>إضافة مستخدم جديد</h3>
+            <form onsubmit="saveUser(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>الاسم الكامل *</label>
+                        <input type="text" id="userName" required class="form-control" placeholder="أدخل الاسم الكامل">
+                    </div>
+                    <div class="form-group">
+                        <label>البريد الإلكتروني *</label>
+                        <input type="email" id="userEmail" required class="form-control" placeholder="example@domain.com">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>كلمة المرور *</label>
+                        <input type="password" id="userPassword" required class="form-control" placeholder="أدخل كلمة المرور">
+                    </div>
+                    <div class="form-group">
+                        <label>المنشأة *</label>
+                        <select id="userFacility" required class="form-control">
+                            <option value="">اختر المنشأة</option>
+    `;
     
-    document.getElementById('userModalTitle').textContent = 'إضافة مستخدم جديد';
-    openModal('userModal');
-}
-
-function editUser(userId) {
-    const user = users.find(u => u.id === userId);
-    if (!user) return;
+    facilities.forEach(facility => {
+        html += `<option value="${facility.id}">${facility.name}</option>`;
+    });
     
-    document.getElementById('userId').value = user.id;
-    document.getElementById('userName').value = user.name;
-    document.getElementById('userEmail').value = user.email;
-    document.getElementById('userPassword').value = '';
-    document.getElementById('userPhone').value = user.phone || '';
-    document.getElementById('userRole').value = user.role;
-    document.getElementById('userStatus').value = user.status;
+    html += `
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>الدور *</label>
+                    <select id="userRole" required class="form-control">
+                        <option value="user">👤 مستخدم عادي</option>
+                        <option value="admin">👑 مدير</option>
+                    </select>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">💾 حفظ المستخدم</button>
+                    <button type="button" onclick="cancelUserForm()" class="btn btn-secondary">❌ إلغاء</button>
+                </div>
+            </form>
+        </div>
+    `;
     
-    const facilitySelect = document.getElementById('userFacility');
-    facilitySelect.innerHTML = '<option value="">-- اختر المنشأة --</option>' +
-        facilities.map(f => `<option value="${f.id}" ${f.id === user.facility ? 'selected' : ''}>${f.name}</option>`).join('');
-    
-    document.getElementById('userModalTitle').textContent = 'تعديل مستخدم';
-    openModal('userModal');
+    formSection.innerHTML = html;
+    formSection.style.display = 'block';
 }
 
 function saveUser(event) {
     event.preventDefault();
     
-    const userId = document.getElementById('userId').value;
-    const password = document.getElementById('userPassword').value;
+    const email = document.getElementById('userEmail').value;
+    
+    // التحقق من عدم تكرار البريد الإلكتروني
+    if (users.some(u => u.email === email)) {
+        showError('البريد الإلكتروني مستخدم بالفعل');
+        return;
+    }
     
     const userData = {
+        id: 'user_' + Date.now(),
         name: document.getElementById('userName').value,
-        email: document.getElementById('userEmail').value,
-        phone: document.getElementById('userPhone').value,
+        email: email,
+        password: document.getElementById('userPassword').value,
         facility: document.getElementById('userFacility').value,
         role: document.getElementById('userRole').value,
-        status: document.getElementById('userStatus').value
+        status: 'active',
+        createdAt: new Date().toISOString()
     };
     
-    const facility = facilities.find(f => f.id === userData.facility);
-    if (facility) {
-        userData.facilityType = facility.type;
-    }
-    
-    if (userId) {
-        const index = users.findIndex(u => u.id === userId);
-        if (index !== -1) {
-            users[index] = { ...users[index], ...userData };
-            if (password) users[index].password = password;
-            showSuccess('تم تحديث المستخدم بنجاح');
-        }
-    } else {
-        if (!password) {
-            showError('كلمة المرور مطلوبة');
-            return;
-        }
-        userData.id = generateId();
-        userData.password = password;
-        userData.createdAt = new Date().toISOString();
-        users.push(userData);
-        showSuccess('تم إضافة المستخدم بنجاح');
-    }
-    
+    users.push(userData);
     saveToStorage('users', users);
-    loadUsersTable();
-    closeModal('userModal');
-    updateDashboardStats();
+    
+    showSuccess('تم إضافة المستخدم بنجاح');
+    loadUsersManagement();
+}
+
+function cancelUserForm() {
+    const formSection = document.getElementById('userFormSection');
+    if (formSection) {
+        formSection.style.display = 'none';
+    }
+}
+
+function editUser(userId) {
+    showError('وظيفة التعديل قيد التطوير');
+}
+
+function toggleUserStatus(userId) {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+    
+    user.status = user.status === 'active' ? 'inactive' : 'active';
+    saveToStorage('users', users);
+    
+    showSuccess('تم تغيير حالة المستخدم');
+    loadUsersManagement();
+}
+
+function resetUserPassword(userId) {
+    const newPassword = prompt('أدخل كلمة المرور الجديدة:');
+    
+    if (!newPassword) return;
+    
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+    
+    user.password = newPassword;
+    saveToStorage('users', users);
+    
+    showSuccess('تم إعادة تعيين كلمة المرور بنجاح');
 }
 
 function deleteUser(userId) {
@@ -455,893 +1374,191 @@ function deleteUser(userId) {
     
     users = users.filter(u => u.id !== userId);
     saveToStorage('users', users);
-    loadUsersTable();
-    updateDashboardStats();
+    
     showSuccess('تم حذف المستخدم بنجاح');
+    loadUsersManagement();
 }
 
-/**
- * ===== إدارة المؤشرات =====
- */
-
-let selectedKPIDataType = null;
-let selectedKPICategory = null;
-let currentEditingKPI = null;
-
-function showKPIManagement() {
-    const container = document.getElementById('kpisManagementContainer');
-    if (!container) return;
-    
-    selectedKPIDataType = null;
-    selectedKPICategory = null;
-    
-    container.innerHTML = `
-        <div class="card">
-            <div class="card-header">
-                <h3>🎯 اختر نوع البيانات</h3>
-            </div>
-            <div class="card-body">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
-                    ${Object.values(DATA_TYPES).map(type => {
-                        const totalKPIs = getAllKPIsByType(type.id).length;
-                        return `
-                            <div class="data-type-card" onclick="selectDataType('${type.id}')" 
-                                 style="border: 3px solid ${type.color}; border-radius: 15px; padding: 25px; cursor: pointer; transition: all 0.3s; background: white; text-align: center;">
-                                <div style="font-size: 3.5rem; margin-bottom: 15px;">${type.icon}</div>
-                                <h3 style="color: ${type.color}; margin-bottom: 10px; font-size: 1.3rem;">${type.name}</h3>
-                                <p style="color: #666; font-size: 0.95rem; margin-bottom: 15px; min-height: 40px;">${type.description}</p>
-                                <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
-                                    <span style="background: ${type.color}20; color: ${type.color}; padding: 6px 15px; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
-                                        ${totalKPIs} مؤشر
-                                    </span>
-                                    <span style="background: #f0f0f0; color: #666; padding: 6px 15px; border-radius: 20px; font-size: 0.85rem;">
-                                        ${type.frequency === 'monthly' ? 'شهري' : type.frequency === 'yearly' ? 'سنوي' : type.frequency}
-                                    </span>
-                                </div>
-                                <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #f0f0f0;">
-                                    <span style="color: #999; font-size: 0.85rem;">النوع: ${getInputTypeLabel(type.inputType)}</span>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-        </div>
-        
-        <div id="categorySelectionContainer"></div>
-        <div id="kpisListContainer"></div>
-    `;
-}
-
-function selectDataType(dataTypeId) {
-    selectedKPIDataType = dataTypeId;
-    selectedKPICategory = null;
-    
-    console.log('📊 Selected data type:', dataTypeId);
-    
-    const typeInfo = getDataTypeInfo(dataTypeId);
-    const categoryContainer = document.getElementById('categorySelectionContainer');
-    const kpisContainer = document.getElementById('kpisListContainer');
-    
-    if (!categoryContainer) return;
-    
-    if (kpisContainer) {
-        kpisContainer.innerHTML = '';
-        kpisContainer.style.display = 'none';
-    }
-    
-    const typeSelection = categoryContainer.previousElementSibling;
-    if (typeSelection) {
-        typeSelection.style.display = 'none';
-    }
-    
-    categoryContainer.style.display = 'block';
-    categoryContainer.innerHTML = `
-        <div class="card">
-            <div class="card-header" style="background: linear-gradient(135deg, ${typeInfo.color} 0%, ${typeInfo.color}dd 100%); color: white; padding: 25px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-                    <div>
-                        <div style="font-size: 2.5rem; margin-bottom: 10px;">${typeInfo.icon}</div>
-                        <h2 style="margin: 0 0 8px 0;">${typeInfo.name}</h2>
-                        <p style="margin: 0; opacity: 0.9; font-size: 0.95rem;">${typeInfo.description} - ${getInputTypeLabel(typeInfo.inputType)}</p>
-                    </div>
-                    <button class="btn btn-secondary" onclick="showKPIManagement()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white; padding: 12px 24px;">
-                        ← العودة لاختيار النوع
-                    </button>
-                </div>
-            </div>
-            <div class="card-body" style="padding: 40px;">
-                <h3 style="margin: 0 0 25px 0; color: #333; font-size: 1.4rem;">اختر القسم:</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
-                    ${Object.values(typeInfo.categories).map(cat => {
-                        const catKPIs = getKPIsByCategory(dataTypeId, cat.id);
-                        return `
-                            <div class="category-card" onclick="selectCategory('${cat.id}')" 
-                                 style="border: 3px solid ${cat.color || typeInfo.color}; border-radius: 15px; padding: 30px; cursor: pointer; transition: all 0.3s; background: white; text-align: center; position: relative; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
-                                 onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 8px 20px rgba(0,0,0,0.15)';" 
-                                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)';">
-                                <div style="font-size: 3.5rem; margin-bottom: 15px;">${cat.icon || typeInfo.icon}</div>
-                                <h3 style="color: ${cat.color || typeInfo.color}; margin-bottom: 12px; font-size: 1.2rem; font-weight: 700;">${cat.name}</h3>
-                                ${cat.nameEn ? `<p style="color: #999; font-size: 0.85rem; margin-bottom: 12px;">${cat.nameEn}</p>` : ''}
-                                <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid ${cat.color || typeInfo.color}20;">
-                                    <span style="background: ${cat.color || typeInfo.color}; color: white; padding: 8px 20px; border-radius: 25px; font-size: 1rem; font-weight: 600; display: inline-block;">
-                                        ${catKPIs.length} مؤشر
-                                    </span>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-        </div>
-    `;
-}
-/**
- * ===== اختيار القسم وعرض المؤشرات =====
- */
-
-function selectCategory(categoryId) {
-    selectedKPICategory = categoryId;
-    
-    console.log('📂 Selected category:', categoryId);
-    
-    const typeInfo = getDataTypeInfo(selectedKPIDataType);
-    const catInfo = typeInfo.categories[categoryId];
-    
-    const categoryContainer = document.getElementById('categorySelectionContainer');
-    if (categoryContainer) {
-        categoryContainer.style.display = 'none';
-    }
-    
-    const kpisContainer = document.getElementById('kpisListContainer');
-    if (!kpisContainer) return;
-    
-    const kpis = getKPIsByCategory(selectedKPIDataType, categoryId);
-    
-    kpisContainer.style.display = 'block';
-    kpisContainer.innerHTML = `
-        <div class="card">
-            <div class="card-header" style="background: linear-gradient(135deg, ${catInfo.color || typeInfo.color} 0%, ${catInfo.color || typeInfo.color}dd 100%); color: white; padding: 25px; border-radius: 12px 12px 0 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-                    <div>
-                        <div style="font-size: 2.5rem; margin-bottom: 10px;">${catInfo.icon || typeInfo.icon}</div>
-                        <h2 style="margin: 0 0 8px 0; font-size: 1.8rem;">${catInfo.name}</h2>
-                        <p style="margin: 0; opacity: 0.95; font-size: 1rem;">${typeInfo.name} - ${getInputTypeLabel(typeInfo.inputType)}</p>
-                    </div>
-                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                        <button class="btn btn-success" onclick="openImportModalForCategory()" style="background: white; color: ${catInfo.color || typeInfo.color}; padding: 12px 20px; font-weight: 600;">
-                            📤 استيراد من Excel
-                        </button>
-                        <button class="btn btn-primary" onclick="addKPIManualForCategory()" style="background: white; color: ${catInfo.color || typeInfo.color}; padding: 12px 20px; font-weight: 600;">
-                            ➕ إضافة يدوياً
-                        </button>
-                        <button class="btn btn-secondary" onclick="backToCategories()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white; padding: 12px 20px;">
-                            ← العودة للأقسام
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body">
-                ${kpis.length === 0 ? `
-                    <div class="empty-state" style="text-align: center; padding: 80px 20px;">
-                        <div style="font-size: 5rem; margin-bottom: 25px; opacity: 0.3;">${catInfo.icon || typeInfo.icon}</div>
-                        <h3 style="color: #666; margin-bottom: 15px; font-size: 1.5rem;">لا توجد مؤشرات في هذا القسم</h3>
-                        <p style="color: #999; margin-bottom: 35px; font-size: 1.1rem;">ابدأ بإضافة مؤشرات يدوياً أو استيرادها من Excel</p>
-                        <div style="display: flex; gap: 20px; justify-content: center;">
-                            <button class="btn btn-primary btn-large" onclick="addKPIManualForCategory()" style="padding: 15px 35px; font-size: 1.1rem;">
-                                ➕ إضافة مؤشر يدوياً
-                            </button>
-                            <button class="btn btn-success btn-large" onclick="openImportModalForCategory()" style="padding: 15px 35px; font-size: 1.1rem;">
-                                📤 استيراد من Excel
-                            </button>
-                        </div>
-                    </div>
-                ` : `
-                    <div style="margin-bottom: 25px; padding: 20px; background: linear-gradient(135deg, ${catInfo.color || typeInfo.color}10 0%, ${catInfo.color || typeInfo.color}05 100%); border-radius: 10px; display: flex; justify-content: space-between; align-items: center; border-right: 4px solid ${catInfo.color || typeInfo.color};">
-                        <div>
-                            <strong style="color: #333; font-size: 1.3rem;">إجمالي المؤشرات: ${kpis.length}</strong>
-                            <p style="margin: 5px 0 0 0; color: #666;">جميع المؤشرات في قسم ${catInfo.name}</p>
-                        </div>
-                        <button class="btn btn-secondary btn-small" onclick="exportCategoryKPIs()">
-                            📥 تصدير Excel
-                        </button>
-                    </div>
-                    
-                    <div style="display: grid; gap: 15px;">
-                        ${kpis.map((kpi, index) => `
-                            <div class="kpi-item" style="background: white; border: 1px solid #e0e0e0; border-right: 5px solid ${catInfo.color || typeInfo.color}; border-radius: 10px; padding: 22px; transition: all 0.3s;"
-                                 onmouseover="this.style.boxShadow='0 6px 16px rgba(0,0,0,0.12)'; this.style.transform='translateX(-8px)';" 
-                                 onmouseout="this.style.boxShadow='none'; this.style.transform='translateX(0)';">
-                                <div style="display: flex; justify-content: space-between; align-items: start; gap: 20px;">
-                                    <div style="flex: 1;">
-                                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 12px;">
-                                            <span style="background: ${catInfo.color || typeInfo.color}; color: white; padding: 8px 16px; border-radius: 8px; font-size: 0.95rem; font-weight: 700;">
-                                                ${kpi.code}
-                                            </span>
-                                            <h4 style="margin: 0; color: #333; font-size: 1.15rem; flex: 1;">${kpi.name}</h4>
-                                        </div>
-                                        ${renderKPIDetails(kpi, typeInfo)}
-                                    </div>
-                                    <div style="display: flex; gap: 10px;">
-                                        <button class="btn-icon" onclick="viewKPIDetails('${kpi.id}')" title="عرض" 
-                                                style="padding: 12px; background: #e3f2fd; border: none; border-radius: 8px; cursor: pointer; font-size: 1.3rem; transition: all 0.2s;"
-                                                onmouseover="this.style.transform='scale(1.1)';" onmouseout="this.style.transform='scale(1)';">
-                                            👁️
-                                        </button>
-                                        <button class="btn-icon" onclick="editKPIManual('${kpi.id}')" title="تعديل" 
-                                                style="padding: 12px; background: #fff3e0; border: none; border-radius: 8px; cursor: pointer; font-size: 1.3rem; transition: all 0.2s;"
-                                                onmouseover="this.style.transform='scale(1.1)';" onmouseout="this.style.transform='scale(1)';">
-                                            ✏️
-                                        </button>
-                                        <button class="btn-icon" onclick="deleteKPIConfirm('${kpi.id}')" title="حذف" 
-                                                style="padding: 12px; background: #ffebee; border: none; border-radius: 8px; cursor: pointer; font-size: 1.3rem; transition: all 0.2s;"
-                                                onmouseover="this.style.transform='scale(1.1)';" onmouseout="this.style.transform='scale(1)';">
-                                            🗑️
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                `}
-            </div>
-        </div>
-    `;
-}
-
-function backToCategories() {
-    console.log('⬅️ Going back to categories');
-    
-    const categoryContainer = document.getElementById('categorySelectionContainer');
-    const kpisContainer = document.getElementById('kpisListContainer');
-    
-    if (categoryContainer) {
-        categoryContainer.style.display = 'block';
-    }
-    
-    if (kpisContainer) {
-        kpisContainer.innerHTML = '';
-        kpisContainer.style.display = 'none';
-    }
-    
-    selectedKPICategory = null;
-}
-
-function renderKPIDetails(kpi, typeInfo) {
-    let html = '';
-    
-    if (typeInfo.inputType === 'formula') {
-        html += `
-            <div style="display: grid; gap: 8px; margin-top: 8px; font-size: 0.9rem; color: #666;">
-                ${kpi.department ? `<div><strong>الإدارة:</strong> ${kpi.department}</div>` : ''}
-                ${kpi.numeratorLabel ? `<div><strong>البسط:</strong> ${kpi.numeratorLabel}</div>` : ''}
-                ${kpi.denominatorLabel ? `<div><strong>المقام:</strong> ${kpi.denominatorLabel}</div>` : ''}
-                ${kpi.formula ? `<div><strong>المعادلة:</strong> ${kpi.formula}</div>` : ''}
-                ${kpi.percentage ? `<div><strong>النسبة:</strong> <span style="color: ${typeInfo.color}; font-weight: 600;">${kpi.percentage}</span></div>` : ''}
-                ${kpi.frequency ? `<div><strong>الدورية:</strong> ${kpi.frequency}</div>` : ''}
-            </div>
-        `;
-    } else if (typeInfo.inputType === 'assessment') {
-        html += `
-            <div style="display: grid; gap: 8px; margin-top: 8px; font-size: 0.9rem; color: #666;">
-                ${kpi.assessment ? `<div><strong>التقييم:</strong> ${kpi.assessment}</div>` : ''}
-                ${kpi.notes ? `<div><strong>ملاحظات:</strong> ${kpi.notes}</div>` : ''}
-            </div>
-        `;
-    } else if (typeInfo.inputType === 'count') {
-        html += `
-            <div style="display: grid; gap: 8px; margin-top: 8px; font-size: 0.9rem; color: #666;">
-                ${kpi.jobTitle ? `<div><strong>المسمى الوظيفي:</strong> ${kpi.jobTitle}</div>` : ''}
-                ${kpi.count ? `<div><strong>العدد:</strong> <span style="color: ${typeInfo.color}; font-weight: 600;">${kpi.count}</span></div>` : ''}
-            </div>
-        `;
-    } else if (typeInfo.inputType === 'monthly_data') {
-        html += `
-            <div style="display: grid; gap: 8px; margin-top: 8px; font-size: 0.9rem; color: #666;">
-                ${kpi.kpiCode ? `<div><strong>المؤشر:</strong> ${kpi.kpiCode}</div>` : ''}
-                ${kpi.monthValue ? `<div><strong>القيمة:</strong> ${kpi.monthValue}</div>` : ''}
-            </div>
-        `;
-    }
-    
-    if (kpi.applicableTo) {
-        html += `
-            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #f0f0f0; font-size: 0.85rem; color: #999;">
-                ${getApplicableFacilitiesText(kpi.applicableTo)}
-            </div>
-        `;
-    }
-    
-    return html;
-}
-
-/**
- * ===== إضافة وتعديل المؤشرات =====
- */
-
-function addKPIManualForCategory() {
-    if (!selectedKPIDataType || !selectedKPICategory) {
-        showError('الرجاء اختيار نوع البيانات والقسم أولاً');
-        return;
-    }
-    
-    currentEditingKPI = null;
-    const typeInfo = getDataTypeInfo(selectedKPIDataType);
-    const catInfo = typeInfo.categories[selectedKPICategory];
-    
-    const modalContent = createKPIFormByType(typeInfo, catInfo, null);
-    showKPIModal(`إضافة مؤشر جديد - ${catInfo.name}`, modalContent);
-}
-
-function createKPIFormByType(typeInfo, catInfo, kpiData = null) {
-    const isEdit = kpiData !== null;
-    let html = `<form id="kpiManualForm" onsubmit="saveKPIManual(event); return false;" style="max-height: 70vh; overflow-y: auto; padding: 5px;">`;
-    
-    html += `
-        <div class="form-group">
-            <label for="kpiCode">كود المؤشر *</label>
-            <input type="text" id="kpiCode" required placeholder="مثال: ${catInfo.id}-01" value="${kpiData?.code || ''}" ${isEdit ? 'readonly' : ''}>
-            <small>الكود يجب أن يكون فريداً ولا يمكن تعديله لاحقاً</small>
-        </div>
-
-        <div class="form-group">
-            <label for="kpiName">اسم المؤشر/المعيار *</label>
-            <input type="text" id="kpiName" required placeholder="أدخل الاسم" value="${kpiData?.name || ''}">
-        </div>
-    `;
-    
-    if (typeInfo.inputType === 'formula') {
-        html += `
-            <div class="form-group">
-                <label for="kpiDepartment">الإدارة المسؤولة *</label>
-                <input type="text" id="kpiDepartment" required placeholder="مثال: إدارة التمريض" value="${kpiData?.department || ''}">
-            </div>
-
-            <div class="form-group">
-                <label for="kpiNumeratorLabel">البسط *</label>
-                <input type="text" id="kpiNumeratorLabel" required placeholder="مثال: عدد الحالات" value="${kpiData?.numeratorLabel || ''}">
-            </div>
-
-            <div class="form-group">
-                <label for="kpiDenominatorLabel">المقام</label>
-                <input type="text" id="kpiDenominatorLabel" placeholder="مثال: إجمالي الحالات (اتركه فارغاً إذا لم يكن موجوداً)" value="${kpiData?.denominatorLabel || ''}">
-            </div>
-
-            <div class="form-group">
-                <label for="kpiFormula">المعادلة الحسابية *</label>
-                <input type="text" id="kpiFormula" required placeholder="مثال: (البسط / المقام) × 100" value="${kpiData?.formula || ''}">
-            </div>
-
-            <div class="form-group">
-                <label for="kpiPercentage">النسبة المئوية *</label>
-                <input type="text" id="kpiPercentage" required placeholder="مثال: 100X أو 1000X" value="${kpiData?.percentage || ''}">
-            </div>
-
-            <div class="form-group">
-                <label for="kpiFrequency">دورية الإبلاغ *</label>
-                <select id="kpiFrequency" required>
-                    <option value="">-- اختر --</option>
-                    <option value="شهري" ${kpiData?.frequency === 'شهري' ? 'selected' : ''}>شهري</option>
-                    <option value="ربع سنوي" ${kpiData?.frequency === 'ربع سنوي' ? 'selected' : ''}>ربع سنوي</option>
-                    <option value="سنوي" ${kpiData?.frequency === 'سنوي' ? 'selected' : ''}>سنوي</option>
-                </select>
-            </div>
-        `;
-    } else if (typeInfo.inputType === 'assessment') {
-        html += `
-            <div class="form-group">
-                <label for="kpiAssessment">التقييم *</label>
-                <select id="kpiAssessment" required>
-                    <option value="">-- اختر --</option>
-                    <option value="2" ${kpiData?.assessment === '2' ? 'selected' : ''}>2</option>
-                    <option value="1" ${kpiData?.assessment === '1' ? 'selected' : ''}>1</option>
-                    <option value="0" ${kpiData?.assessment === '0' ? 'selected' : ''}>0</option>
-                    <option value="N/A" ${kpiData?.assessment === 'N/A' ? 'selected' : ''}>N/A</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="kpiNotes">ملاحظات</label>
-                <textarea id="kpiNotes" rows="3" placeholder="أدخل ملاحظات إضافية...">${kpiData?.notes || ''}</textarea>
-            </div>
-        `;
-    } else if (typeInfo.inputType === 'count') {
-        html += `
-            <div class="form-group">
-                <label for="kpiJobTitle">المسمى الوظيفي *</label>
-                <input type="text" id="kpiJobTitle" required placeholder="مثال: طبيب استشاري" value="${kpiData?.jobTitle || ''}">
-            </div>
-
-            <div class="form-group">
-                <label for="kpiCount">العدد *</label>
-                <input type="number" id="kpiCount" required placeholder="0" value="${kpiData?.count || ''}">
-            </div>
-        `;
-    } else if (typeInfo.inputType === 'monthly_data') {
-        html += `
-            <div class="form-group">
-                <label for="kpiYear">السنة *</label>
-                <input type="number" id="kpiYear" required placeholder="2025" value="${kpiData?.year || new Date().getFullYear()}">
-            </div>
-
-            <div class="form-group">
-                <label for="kpiCodeRef">المؤشر *</label>
-                <input type="text" id="kpiCodeRef" required placeholder="كود المؤشر" value="${kpiData?.kpiCode || ''}">
-            </div>
-
-            <div class="form-group">
-                <label for="kpiMonthValue">القيمة *</label>
-                <input type="number" id="kpiMonthValue" step="0.01" required placeholder="0.00" value="${kpiData?.monthValue || ''}">
-            </div>
-        `;
-    }
-    
-    html += `
-        <div class="form-group">
-            <label style="display: block; margin-bottom: 10px; font-weight: 600;">أنواع المنشآت المتاحة *</label>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="facilityHospital" ${kpiData?.applicableTo?.hospital ? 'checked' : 'checked'}>
-                    <span>🏥 مستشفى</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="facilityHealthCenter" ${kpiData?.applicableTo?.healthCenter ? 'checked' : 'checked'}>
-                    <span>🏥 مركز صحي</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="facilityHealthUnit" ${kpiData?.applicableTo?.healthUnit ? 'checked' : 'checked'}>
-                    <span>🏥 وحدة صحية</span>
-                </label>
-            </div>
-        </div>
-
-        <div class="modal-footer" style="margin-top: 25px; padding-top: 20px; border-top: 1px solid #e0e0e0; display: flex; gap: 10px; justify-content: flex-end;">
-            <button type="button" class="btn btn-secondary" onclick="closeKPIModal()">إلغاء</button>
-            <button type="submit" class="btn btn-primary">💾 ${isEdit ? 'تحديث' : 'حفظ'}</button>
-        </div>
-    </form>
-    `;
-    
-    return html;
-}
-
-function saveKPIManual(event) {
-    event.preventDefault();
-    
-    console.log('💾 Saving KPI...');
-    
-    const typeInfo = getDataTypeInfo(selectedKPIDataType);
-    
-    const kpiData = {
-        dataType: selectedKPIDataType,
-        category: selectedKPICategory,
-        code: document.getElementById('kpiCode').value.trim(),
-        name: document.getElementById('kpiName').value.trim(),
-        applicableTo: {
-            hospital: document.getElementById('facilityHospital').checked,
-            healthCenter: document.getElementById('facilityHealthCenter').checked,
-            healthUnit: document.getElementById('facilityHealthUnit').checked
-        }
-    };
-    
-    if (typeInfo.inputType === 'formula') {
-        kpiData.department = document.getElementById('kpiDepartment').value.trim();
-        kpiData.numeratorLabel = document.getElementById('kpiNumeratorLabel').value.trim();
-        kpiData.denominatorLabel = document.getElementById('kpiDenominatorLabel').value.trim();
-        kpiData.formula = document.getElementById('kpiFormula').value.trim();
-        kpiData.percentage = document.getElementById('kpiPercentage').value.trim();
-        kpiData.frequency = document.getElementById('kpiFrequency').value;
-    } else if (typeInfo.inputType === 'assessment') {
-        kpiData.assessment = document.getElementById('kpiAssessment').value;
-        kpiData.notes = document.getElementById('kpiNotes').value.trim();
-    } else if (typeInfo.inputType === 'count') {
-        kpiData.jobTitle = document.getElementById('kpiJobTitle').value.trim();
-        kpiData.count = parseInt(document.getElementById('kpiCount').value);
-    } else if (typeInfo.inputType === 'monthly_data') {
-        kpiData.year = parseInt(document.getElementById('kpiYear').value);
-        kpiData.kpiCode = document.getElementById('kpiCodeRef').value.trim();
-        kpiData.monthValue = parseFloat(document.getElementById('kpiMonthValue').value);
-    }
-    
-    if (!kpiData.applicableTo.hospital && !kpiData.applicableTo.healthCenter && !kpiData.applicableTo.healthUnit) {
-        showError('يجب اختيار نوع منشأة واحد على الأقل');
-        return;
-    }
-    
-    console.log('KPI Data:', kpiData);
-    
-    let result;
-    if (currentEditingKPI) {
-        kpiData.id = currentEditingKPI;
-        result = updateKPI(currentEditingKPI, kpiData);
-    } else {
-        result = saveKPI(kpiData);
-    }
-    
-    console.log('Save result:', result);
-    
-    if (result.success) {
-        showSuccess(result.message);
-        closeKPIModal();
-        
-        setTimeout(() => {
-            selectCategory(selectedKPICategory);
-            updateDashboardStats();
-        }, 100);
-        
-    } else {
-        showError(result.message);
-    }
-}
-/**
- * ===== عرض وتعديل وحذف المؤشرات =====
- */
-
-function editKPIManual(kpiId) {
-    const kpi = getKPIById(kpiId);
-    if (!kpi) {
-        showError('المؤشر غير موجود');
-        return;
-    }
-    
-    currentEditingKPI = kpiId;
-    selectedKPIDataType = kpi.dataType;
-    selectedKPICategory = kpi.category;
-    
-    const typeInfo = getDataTypeInfo(kpi.dataType);
-    const catInfo = typeInfo.categories[kpi.category];
-    
-    const modalContent = createKPIFormByType(typeInfo, catInfo, kpi);
-    showKPIModal('تعديل مؤشر - ' + catInfo.name, modalContent);
-}
-
-function viewKPIDetails(kpiId) {
-    const kpi = getKPIById(kpiId);
-    if (!kpi) {
-        showError('المؤشر غير موجود');
-        return;
-    }
-    
-    const typeInfo = getDataTypeInfo(kpi.dataType);
-    const catInfo = typeInfo.categories[kpi.category];
-    
-    let details = `
-        <div style="padding: 20px;">
-            <div style="background: ${catInfo.color || typeInfo.color}; color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
-                <div style="font-size: 2rem; margin-bottom: 10px;">${catInfo.icon || typeInfo.icon}</div>
-                <h2 style="margin: 0 0 5px 0;">${kpi.name}</h2>
-                <p style="margin: 0; opacity: 0.9;">${kpi.code}</p>
-            </div>
-            
-            <div style="display: grid; gap: 15px;">
-                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                    <strong style="color: #666;">نوع البيانات:</strong><br>
-                    <span style="font-size: 1.1rem; color: #333;">${typeInfo.name}</span>
-                </div>
-                
-                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                    <strong style="color: #666;">القسم:</strong><br>
-                    <span style="font-size: 1.1rem; color: #333;">${catInfo.name}</span>
-                </div>
-    `;
-    
-    if (typeInfo.inputType === 'formula') {
-        details += `
-            ${kpi.department ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>الإدارة المسؤولة:</strong><br>${kpi.department}</div>` : ''}
-            ${kpi.numeratorLabel ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>البسط:</strong><br>${kpi.numeratorLabel}</div>` : ''}
-            ${kpi.denominatorLabel ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>المقام:</strong><br>${kpi.denominatorLabel}</div>` : ''}
-            ${kpi.formula ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>المعادلة الحسابية:</strong><br>${kpi.formula}</div>` : ''}
-            ${kpi.percentage ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>النسبة المئوية:</strong><br><span style="font-size: 1.3rem; color: ${typeInfo.color}; font-weight: 600;">${kpi.percentage}</span></div>` : ''}
-            ${kpi.frequency ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>دورية الإبلاغ:</strong><br>${kpi.frequency}</div>` : ''}
-        `;
-    } else if (typeInfo.inputType === 'assessment') {
-        details += `
-            ${kpi.assessment ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>التقييم:</strong><br><span style="font-size: 1.5rem; color: ${typeInfo.color}; font-weight: 600;">${kpi.assessment}</span></div>` : ''}
-            ${kpi.notes ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>ملاحظات:</strong><br>${kpi.notes}</div>` : ''}
-        `;
-    } else if (typeInfo.inputType === 'count') {
-        details += `
-            ${kpi.jobTitle ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>المسمى الوظيفي:</strong><br>${kpi.jobTitle}</div>` : ''}
-            ${kpi.count !== undefined ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>العدد:</strong><br><span style="font-size: 1.5rem; color: ${typeInfo.color}; font-weight: 600;">${kpi.count}</span></div>` : ''}
-        `;
-    } else if (typeInfo.inputType === 'monthly_data') {
-        details += `
-            ${kpi.year ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>السنة:</strong><br>${kpi.year}</div>` : ''}
-            ${kpi.kpiCode ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>المؤشر:</strong><br>${kpi.kpiCode}</div>` : ''}
-            ${kpi.monthValue !== undefined ? `<div style="padding: 15px; background: #f8f9fa; border-radius: 8px;"><strong>القيمة:</strong><br><span style="font-size: 1.5rem; color: ${typeInfo.color}; font-weight: 600;">${kpi.monthValue}</span></div>` : ''}
-        `;
-    }
-    
-    details += `
-                <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                    <strong style="color: #666;">المنشآت المتاحة:</strong><br>
-                    <span style="font-size: 1rem; color: #333;">${getApplicableFacilitiesText(kpi.applicableTo || {})}</span>
-                </div>
-            </div>
-            
-            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center;">
-                <button class="btn btn-secondary" onclick="closeKPIModal()">إغلاق</button>
-            </div>
-        </div>
-    `;
-    
-    showKPIModal('تفاصيل المؤشر', details);
-}
-
-function deleteKPIConfirm(kpiId) {
-    const kpi = getKPIById(kpiId);
-    if (!kpi) {
-        showError('المؤشر غير موجود');
-        return;
-    }
-    
-    if (!confirm(`هل أنت متأكد من حذف المؤشر:\n\n${kpi.code} - ${kpi.name}\n\nلا يمكن التراجع عن هذا الإجراء!`)) {
-        return;
-    }
-    
-    const result = deleteKPI(kpiId, kpi.dataType);
-    
-    if (result.success) {
-        showSuccess(result.message);
-        selectCategory(selectedKPICategory);
-        updateDashboardStats();
-    } else {
-        showError(result.message);
-    }
-}
-
-/**
- * ===== Modal للمؤشرات =====
- */
-
-function showKPIModal(title, content) {
-    let modal = document.getElementById('customKPIModal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'customKPIModal';
-        modal.className = 'modal';
-        modal.style.cssText = 'display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;';
-        document.body.appendChild(modal);
-    }
-    
-    modal.innerHTML = `
-        <div class="modal-content" style="background: white; border-radius: 15px; max-width: 700px; width: 90%; max-height: 90vh; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
-            <div class="modal-header" style="padding: 20px 25px; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;">
-                <h2 style="margin: 0; font-size: 1.3rem; color: #333;">${title}</h2>
-                <span onclick="closeKPIModal()" style="cursor: pointer; font-size: 1.5rem; color: #999; line-height: 1;">&times;</span>
-            </div>
-            <div class="modal-body" style="padding: 25px; overflow-y: auto; max-height: calc(90vh - 80px);">
-                ${content}
-            </div>
-        </div>
-    `;
-    
-    modal.style.display = 'flex';
-    
-    modal.onclick = function(e) {
-        if (e.target === modal) {
-            closeKPIModal();
-        }
-    };
-}
-
-function closeKPIModal() {
-    const modal = document.getElementById('customKPIModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-    currentEditingKPI = null;
-}
-
-function openImportModalForCategory() {
-    if (!selectedKPIDataType || !selectedKPICategory) {
-        showError('الرجاء اختيار نوع البيانات والقسم أولاً');
-        return;
-    }
-    
-    const typeInfo = getDataTypeInfo(selectedKPIDataType);
-    const catInfo = typeInfo.categories[selectedKPICategory];
-    
-    document.getElementById('importModalTitle').textContent = `استيراد مؤشرات - ${catInfo.name}`;
-    openModal('importModal');
-}
-
-function exportCategoryKPIs() {
-    showInfo('جاري تطوير ميزة التصدير');
-}
-
-/**
- * ===== إدارة البيانات المدخلة =====
- */
-
-function loadDataTable() {
-    const tbody = document.querySelector('#dataTable tbody');
-    if (!tbody) return;
-    
-    if (kpiData.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center">
-                    <div class="empty-state">
-                        <div class="empty-state-icon">💾</div>
-                        <h3>لا توجد بيانات</h3>
-                        <p>لم يتم إدخال أي بيانات بعد</p>
-                    </div>
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    tbody.innerHTML = kpiData.map(entry => {
-        const facility = facilities.find(f => f.id === entry.facility);
-        const user = users.find(u => u.id === entry.userId);
-        
-        return `
-            <tr>
-                <td>${facility ? facility.name : '-'}</td>
-                <td>${user ? user.name : '-'}</td>
-                <td>${entry.categoryName || '-'}</td>
-                <td>${formatDateArabic(entry.createdAt)}</td>
-                <td>${entry.entries ? entry.entries.length : 0} مؤشر</td>
-                <td>
-                    <span class="badge badge-success">
-                        ${entry.status === 'completed' ? 'مكتمل' : 'قيد المراجعة'}
-                    </span>
-                </td>
-                <td>
-                    <button class="btn-icon" onclick="viewDataEntry('${entry.id}')" title="عرض">👁️</button>
-                    <button class="btn-icon" onclick="deleteDataEntry('${entry.id}')" title="حذف">🗑️</button>
-                </td>
-            </tr>
-        `;
-    }).join('');
-}
-
-function viewDataEntry(entryId) {
-    const entry = kpiData.find(e => e.id === entryId);
-    if (!entry) return;
-    
-    let details = `تفاصيل الإدخال:\n\n`;
-    details += `المنشأة: ${entry.facilityName}\n`;
-    details += `الفئة: ${entry.categoryName}\n`;
-    details += `التاريخ: ${formatDateArabic(entry.createdAt)}\n`;
-    details += `عدد المؤشرات: ${entry.entries ? entry.entries.length : 0}\n\n`;
-    
-    if (entry.entries && entry.entries.length > 0) {
-        details += `المؤشرات:\n`;
-        entry.entries.forEach((kpi, index) => {
-            details += `${index + 1}. ${kpi.kpiName}\n`;
-            if (kpi.result !== undefined) {
-                details += `   النتيجة: ${kpi.result.toFixed(2)}${kpi.unit || '%'}\n`;
-            }
-        });
-    }
-    
-    alert(details);
-}
-
-function deleteDataEntry(entryId) {
-    if (!confirm('هل أنت متأكد من حذف هذا الإدخال؟')) return;
-    
-    kpiData = kpiData.filter(e => e.id !== entryId);
-    saveToStorage('kpiData', kpiData);
-    loadDataTable();
-    updateDashboardStats();
-    showSuccess('تم حذف الإدخال بنجاح');
-}
-
-/**
- * ===== التقارير =====
- */
+// ========================================
+// التقارير
+// ========================================
 
 function loadReports() {
-    updateReportsStats();
-}
-
-function updateReportsStats() {
-    const reportTotalData = document.getElementById('reportTotalData');
-    const reportApprovedData = document.getElementById('reportApprovedData');
-    const reportPendingData = document.getElementById('reportPendingData');
-    const reportActiveFacilities = document.getElementById('reportActiveFacilities');
+    console.log('📊 Loading reports...');
     
-    if (reportTotalData) reportTotalData.textContent = kpiData.length;
+    const container = document.getElementById('reportsContent');
+    if (!container) return;
     
-    const approvedCount = kpiData.filter(d => d.status === 'approved' || d.status === 'completed').length;
-    if (reportApprovedData) reportApprovedData.textContent = approvedCount;
+    let html = `
+        <div class="reports-section">
+            <div class="section-header">
+                <h2>التقارير والإحصائيات</h2>
+            </div>
+            
+            <div class="reports-grid">
+                <div class="report-card" onclick="generateKPIReport()">
+                    <div class="report-icon">📊</div>
+                    <h3>تقرير المؤشرات</h3>
+                    <p>إحصائيات شاملة لجميع المؤشرات</p>
+                </div>
+                
+                <div class="report-card" onclick="generateFacilityReport()">
+                    <div class="report-icon">🏥</div>
+                    <h3>تقرير المنشآت</h3>
+                    <p>بيانات المنشآت والأداء</p>
+                </div>
+                
+                <div class="report-card" onclick="generateUserActivityReport()">
+                    <div class="report-icon">👥</div>
+                    <h3>تقرير نشاط المستخدمين</h3>
+                    <p>إحصائيات استخدام النظام</p>
+                </div>
+                
+                <div class="report-card" onclick="exportAllData()">
+                    <div class="report-icon">💾</div>
+                    <h3>تصدير البيانات</h3>
+                    <p>تصدير جميع البيانات بصيغة JSON</p>
+                </div>
+            </div>
+            
+            <div id="reportResult" style="margin-top: 30px;"></div>
+        </div>
+    `;
     
-    const pendingCount = kpiData.filter(d => d.status === 'pending').length;
-    if (reportPendingData) reportPendingData.textContent = pendingCount;
+    container.innerHTML = html;
+}
+
+function generateKPIReport() {
+    const dataTypes = getAllDataTypes();
+    let reportHtml = `
+        <div class="report-result">
+            <h3>📊 تقرير المؤشرات الشامل</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>نوع البيانات</th>
+                        <th>عدد الأقسام</th>
+                        <th>عدد المؤشرات</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
     
-    const activeFacilitiesCount = facilities.filter(f => f.status === 'active').length;
-    if (reportActiveFacilities) reportActiveFacilities.textContent = activeFacilitiesCount;
+    let totalKPIs = 0;
+    
+    dataTypes.forEach(dataType => {
+        const stats = getKPIStatistics(dataType.id);
+        totalKPIs += stats.totalKPIs;
+        
+        reportHtml += `
+            <tr>
+                <td>${dataType.icon} ${dataType.name}</td>
+                <td>${stats.totalCategories}</td>
+                <td>${stats.totalKPIs}</td>
+            </tr>
+        `;
+    });
+    
+    reportHtml += `
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>الإجمالي</th>
+                        <th>${dataTypes.length}</th>
+                        <th>${totalKPIs}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    `;
+    
+    document.getElementById('reportResult').innerHTML = reportHtml;
 }
 
-function exportFullReport() {
-    showInfo('جاري تطوير ميزة تصدير التقارير');
+function generateFacilityReport() {
+    const reportHtml = `
+        <div class="report-result">
+            <h3>🏥 تقرير المنشآت</h3>
+            <p>إجمالي المنشآت: <strong>${facilities.length}</strong></p>
+            <p>المنشآت النشطة: <strong>${facilities.filter(f => f.status === 'active').length}</strong></p>
+            <p>المنشآت غير النشطة: <strong>${facilities.filter(f => f.status === 'inactive').length}</strong></p>
+        </div>
+    `;
+    
+    document.getElementById('reportResult').innerHTML = reportHtml;
 }
 
-function exportDetailedReport() {
-    showInfo('جاري تطوير ميزة تصدير التقارير التفصيلية');
+function generateUserActivityReport() {
+    const reportHtml = `
+        <div class="report-result">
+            <h3>👥 تقرير نشاط المستخدمين</h3>
+            <p>إجمالي المستخدمين: <strong>${users.length}</strong></p>
+            <p>المستخدمين النشطين: <strong>${users.filter(u => u.status === 'active').length}</strong></p>
+            <p>المدراء: <strong>${users.filter(u => u.role === 'admin').length}</strong></p>
+        </div>
+    `;
+    
+    document.getElementById('reportResult').innerHTML = reportHtml;
 }
 
-function refreshReports() {
-    loadData();
-    loadReports();
-    showSuccess('تم تحديث التقارير');
+function exportAllData() {
+    const allData = {
+        facilities: facilities,
+        users: users,
+        kpiData: kpiData,
+        exportDate: new Date().toISOString()
+    };
+    
+    const json = JSON.stringify(allData, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `system_data_${Date.now()}.json`;
+    a.click();
+    
+    URL.revokeObjectURL(url);
+    showSuccess('تم تصدير البيانات بنجاح');
 }
 
-function applyReportFilters() {
-    showInfo('جاري تطوير ميزة الفلترة');
-}
+// ========================================
+// التنقل بين الأقسام
+// ========================================
 
-function resetReportFilters() {
-    showInfo('جاري تطوير ميزة إعادة التعيين');
-}
-
-/**
- * ===== دوال مساعدة =====
- */
-
-function switchView(viewName) {
-    document.querySelectorAll('.tab-content').forEach(section => {
+function showSection(sectionId) {
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => {
         section.classList.remove('active');
     });
     
-    document.querySelectorAll('.sidebar-nav a').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    const targetSection = document.getElementById(viewName);
+    const targetSection = document.getElementById(sectionId);
     if (targetSection) {
         targetSection.classList.add('active');
     }
     
-    if (event && event.currentTarget) {
-        event.currentTarget.classList.add('active');
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    const activeNav = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
+    if (activeNav) {
+        activeNav.classList.add('active');
     }
     
-    if (viewName === 'dashboard') {
+    // تحميل المحتوى حسب القسم
+    if (sectionId === 'kpiManagement') {
+        loadKPIManagement();
+    } else if (sectionId === 'dashboard') {
         loadDashboard();
-    } else if (viewName === 'facilities') {
-        loadFacilitiesTable();
-    } else if (viewName === 'users') {
-        loadUsersTable();
-    } else if (viewName === 'kpis') {
-        showKPIManagement();
-    } else if (viewName === 'data') {
-        loadDataTable();
-    } else if (viewName === 'reports') {
+    } else if (sectionId === 'facilities') {
+        loadFacilitiesManagement();
+    } else if (sectionId === 'users') {
+        loadUsersManagement();
+    } else if (sectionId === 'reports') {
         loadReports();
     }
 }
 
-function openModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'flex';
-    }
-}
-
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-function formatDateArabic(dateString) {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ar-EG', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-    });
-}
-
-function generateId() {
-    return 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-}
-
-console.log('✅ Admin main script loaded');
+console.log('✅ Admin main script loaded (v2.0 - Complete)');
