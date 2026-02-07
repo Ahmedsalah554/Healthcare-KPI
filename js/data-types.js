@@ -1,303 +1,300 @@
 /**
- * ===== تعريف أنواع البيانات الأربعة =====
+ * ===== تعريف أنواع البيانات الأربعة (حسب الملفات الفعلية) =====
  */
 
 const DATA_TYPES = {
-    PERFORMANCE: {
-        id: 'performance',
-        name: 'مؤشرات الأداء',
-        nameEn: 'Performance Indicators',
-        icon: '📊',
-        color: '#1a73e8',
-        description: 'مؤشرات الأداء الأساسية للمنشأة الصحية',
-        hasCategories: true,
-        inputType: 'formula',
-        frequency: 'monthly',
-        categories: {
-            WFM: {
-                id: 'WFM',
-                name: 'إدارة القوى العاملة',
-                nameEn: 'Workforce Management',
-                icon: '👥',
-                color: '#1a73e8'
-            },
-            UTZ: {
-                id: 'UTZ',
-                name: 'معدلات الاستخدام',
-                nameEn: 'Utilization Rates',
-                icon: '🏥',
-                color: '#4caf50'
-            },
-            MP: {
-                id: 'MP',
-                name: 'الأداء الطبي',
-                nameEn: 'Medical Performance',
-                icon: '⚕️',
-                color: '#f44336'
-            },
-            PHC: {
-                id: 'PHC',
-                name: 'الرعاية الأولية',
-                nameEn: 'Primary Healthcare',
-                icon: '🏥',
-                color: '#ff9800'
-            },
-            IPC: {
-                id: 'IPC',
-                name: 'مكافحة العدوى',
-                nameEn: 'Infection Control',
-                icon: '🦠',
-                color: '#9c27b0'
-            },
-            PS: {
-                id: 'PS',
-                name: 'سلامة المرضى',
-                nameEn: 'Patient Safety',
-                icon: '🛡️',
-                color: '#e91e63'
-            },
-            OHS: {
-                id: 'OHS',
-                name: 'الصحة المهنية',
-                nameEn: 'Occupational Health',
-                icon: '👷',
-                color: '#00bcd4'
-            },
-            MM: {
-                id: 'MM',
-                name: 'إدارة الأدوية',
-                nameEn: 'Medication Management',
-                icon: '💊',
-                color: '#8bc34a'
-            },
-            LAB: {
-                id: 'LAB',
-                name: 'المختبر',
-                nameEn: 'Laboratory',
-                icon: '🧪',
-                color: '#ff5722'
-            },
-            DF: {
-                id: 'DF',
-                name: 'طب الأسنان',
-                nameEn: 'Dental',
-                icon: '🦷',
-                color: '#607d8b'
-            }
-        },
-        fields: {
-            code: { required: true, type: 'text', label: 'كود المؤشر' },
-            name: { required: true, type: 'text', label: 'اسم المؤشر' },
-            formula: { required: true, type: 'text', label: 'الصيغة الحسابية' },
-            numeratorLabel: { required: true, type: 'text', label: 'تسمية البسط' },
-            denominatorLabel: { required: true, type: 'text', label: 'تسمية المقام' },
-            target: { required: true, type: 'number', label: 'المستهدف' },
-            unit: { required: true, type: 'select', label: 'الوحدة', options: ['%', 'عدد', 'ساعة', 'يوم'] }
-        }
-    },
-    
-    EXCELLENCE: {
-        id: 'excellence',
-        name: 'مؤشرات التميز',
-        nameEn: 'Excellence Indicators',
-        icon: '⭐',
-        color: '#f59e0b',
-        description: 'معايير التميز المؤسسي والجودة',
-        hasCategories: true,
-        inputType: 'weighted',
-        frequency: 'yearly',
-        categories: {
-            LEADERSHIP: {
-                id: 'LEADERSHIP',
-                name: 'القيادة',
-                nameEn: 'Leadership',
-                icon: '👨‍💼',
-                color: '#f59e0b',
-                weight: 120
-            },
-            PLANNING: {
-                id: 'PLANNING',
-                name: 'التخطيط الاستراتيجي',
-                nameEn: 'Strategic Planning',
-                icon: '📋',
-                color: '#ef4444',
-                weight: 85
-            },
-            CUSTOMER: {
-                id: 'CUSTOMER',
-                name: 'التركيز على العملاء',
-                nameEn: 'Customer Focus',
-                icon: '👥',
-                color: '#8b5cf6',
-                weight: 85
-            },
-            MEASUREMENT: {
-                id: 'MEASUREMENT',
-                name: 'القياس والتحليل',
-                nameEn: 'Measurement & Analysis',
-                icon: '📊',
-                color: '#3b82f6',
-                weight: 90
-            },
-            WORKFORCE_FOCUS: {
-                id: 'WORKFORCE_FOCUS',
-                name: 'التركيز على القوى العاملة',
-                nameEn: 'Workforce Focus',
-                icon: '👷',
-                color: '#10b981',
-                weight: 85
-            },
-            OPERATIONS: {
-                id: 'OPERATIONS',
-                name: 'العمليات',
-                nameEn: 'Operations',
-                icon: '⚙️',
-                color: '#f97316',
-                weight: 85
-            },
-            RESULTS: {
-                id: 'RESULTS',
-                name: 'النتائج',
-                nameEn: 'Results',
-                icon: '🎯',
-                color: '#06b6d4',
-                weight: 450
-            }
-        },
-        fields: {
-            code: { required: true, type: 'text', label: 'كود المعيار' },
-            name: { required: true, type: 'text', label: 'اسم المعيار' },
-            weight: { required: true, type: 'number', label: 'الوزن' },
-            maxScore: { required: true, type: 'number', label: 'الدرجة القصوى' },
-            subCriteria: { required: false, type: 'textarea', label: 'المعايير الفرعية' }
-        }
-    },
-    
-    MONITORING: {
-        id: 'monitoring',
-        name: 'المتابعة الشهرية',
-        nameEn: 'Monthly Monitoring',
-        icon: '📈',
-        color: '#10b981',
-        description: 'معايير المتابعة والتقييم الشهري',
-        hasCategories: true,
-        inputType: 'checklist',
-        frequency: 'monthly',
-        categories: {
-            QUALITY: {
-                id: 'QUALITY',
-                name: 'معايير الجودة',
-                nameEn: 'Quality Standards',
-                icon: '✨',
-                color: '#10b981'
-            },
-            SAFETY: {
-                id: 'SAFETY',
-                name: 'معايير السلامة',
-                nameEn: 'Safety Standards',
-                icon: '🛡️',
-                color: '#ef4444'
-            },
-            INFECTION: {
-                id: 'INFECTION',
-                name: 'مكافحة العدوى',
-                nameEn: 'Infection Control',
-                icon: '🦠',
-                color: '#8b5cf6'
-            },
-            PHARMACY: {
-                id: 'PHARMACY',
-                name: 'الصيدلية',
-                nameEn: 'Pharmacy',
-                icon: '💊',
-                color: '#3b82f6'
-            },
-            EMERGENCY: {
-                id: 'EMERGENCY',
-                name: 'الطوارئ',
-                nameEn: 'Emergency',
-                icon: '🚨',
-                color: '#f59e0b'
-            },
-            LAB: {
-                id: 'LAB',
-                name: 'المختبر',
-                nameEn: 'Laboratory',
-                icon: '🧪',
-                color: '#06b6d4'
-            },
-            RADIOLOGY: {
-                id: 'RADIOLOGY',
-                name: 'الأشعة',
-                nameEn: 'Radiology',
-                icon: '🔬',
-                color: '#ec4899'
-            }
-        },
-        fields: {
-            code: { required: true, type: 'text', label: 'كود المعيار' },
-            name: { required: true, type: 'text', label: 'المعيار' },
-            description: { required: false, type: 'textarea', label: 'الوصف' },
-            evaluationType: { required: true, type: 'select', label: 'نوع التقييم', options: ['نعم/لا', 'تقييم رقمي (2-1-0-N/A)'] }
-        }
-    },
-    
     WORKFORCE: {
         id: 'workforce',
         name: 'القوى البشرية',
         nameEn: 'Human Resources',
         icon: '👥',
         color: '#8b5cf6',
-        description: 'بيانات الموارد البشرية والإحصائيات',
-        hasCategories: true,
+        description: 'بيانات القوى البشرية والإحصائيات',
         inputType: 'count',
         frequency: 'monthly',
         categories: {
             DOCTORS: {
                 id: 'DOCTORS',
-                name: 'الأطباء',
+                name: 'أطباء بشري',
                 nameEn: 'Doctors',
                 icon: '👨‍⚕️',
-                color: '#8b5cf6',
-                subCategories: ['طبيب استشاري', 'طبيب أخصائي', 'طبيب عام', 'طبيب مقيم']
+                color: '#8b5cf6'
             },
-            NURSES: {
-                id: 'NURSES',
-                name: 'التمريض',
+            PHARMACY: {
+                id: 'PHARMACY',
+                name: 'صيدلة',
+                nameEn: 'Pharmacy',
+                icon: '💊',
+                color: '#3b82f6'
+            },
+            PHYSIOTHERAPY: {
+                id: 'PHYSIOTHERAPY',
+                name: 'علاج طبيعي',
+                nameEn: 'Physiotherapy',
+                icon: '🏃',
+                color: '#10b981'
+            },
+            NURSING: {
+                id: 'NURSING',
+                name: 'تمريض',
                 nameEn: 'Nursing',
                 icon: '👩‍⚕️',
-                color: '#3b82f6',
-                subCategories: ['ممرض/ة أول', 'ممرض/ة', 'مساعد تمريض']
+                color: '#f59e0b'
             },
-            TECHNICIANS: {
-                id: 'TECHNICIANS',
-                name: 'الفنيون',
-                nameEn: 'Technicians',
-                icon: '🔬',
-                color: '#10b981',
-                subCategories: ['فني مختبر', 'فني أشعة', 'فني صيدلية', 'فني أجهزة']
+            CHEMISTRY: {
+                id: 'CHEMISTRY',
+                name: 'كيميائي',
+                nameEn: 'Chemistry',
+                icon: '🧪',
+                color: '#ec4899'
             },
             ADMIN: {
                 id: 'ADMIN',
-                name: 'الإداريون',
+                name: 'إداري',
                 nameEn: 'Administrative',
                 icon: '📋',
-                color: '#f59e0b',
-                subCategories: ['مدير', 'موظف إداري', 'سكرتير']
+                color: '#6b7280'
             },
-            SUPPORT: {
-                id: 'SUPPORT',
-                name: 'الخدمات المساندة',
-                nameEn: 'Support Services',
-                icon: '🧹',
-                color: '#6b7280',
-                subCategories: ['عامل نظافة', 'حارس أمن', 'سائق', 'عامل صيانة']
+            WORKERS: {
+                id: 'WORKERS',
+                name: 'عامل',
+                nameEn: 'Workers',
+                icon: '👷',
+                color: '#78716c'
             }
         },
         fields: {
+            code: { required: true, type: 'text', label: 'رقم الوظيفة' },
             jobTitle: { required: true, type: 'text', label: 'المسمى الوظيفي' },
-            contractType: { required: true, type: 'select', label: 'نوع العقد', options: ['دائم', 'مؤقت', 'متعاقد'] },
-            gender: { required: false, type: 'select', label: 'الجنس', options: ['ذكر', 'أنثى'] }
+            count: { required: true, type: 'number', label: 'العدد' }
+        }
+    },
+    
+    HOSPITAL_ASSESSMENT: {
+        id: 'hospital_assessment',
+        name: 'معايير التقييم',
+        nameEn: 'Hospital Assessment Standards 2025',
+        icon: '⭐',
+        color: '#f59e0b',
+        description: 'معايير تقييم المستشفيات 2025',
+        inputType: 'assessment',
+        frequency: 'monthly',
+        categories: {
+            PLANNING: {
+                id: 'PLANNING',
+                name: 'التخطيط المصمم والخدمات',
+                nameEn: 'Planning and Services',
+                icon: '📋',
+                color: '#3b82f6'
+            },
+            LEADERSHIP: {
+                id: 'LEADERSHIP',
+                name: 'القيادة والحوكمة',
+                nameEn: 'Leadership and Governance',
+                icon: '👨‍💼',
+                color: '#f59e0b'
+            },
+            WORK_ORGANIZATION: {
+                id: 'WORK_ORGANIZATION',
+                name: 'تنظيم العمل',
+                nameEn: 'Work Organization',
+                icon: '⚙️',
+                color: '#10b981'
+            },
+            QUALITY_IMPROVEMENT: {
+                id: 'QUALITY_IMPROVEMENT',
+                name: 'تحسين الجودة والخدمات',
+                nameEn: 'Quality Improvement',
+                icon: '✨',
+                color: '#8b5cf6'
+            },
+            OUTPATIENT_CARE: {
+                id: 'OUTPATIENT_CARE',
+                name: 'الرعاية الطبية الخارجية',
+                nameEn: 'Outpatient Care',
+                icon: '🏥',
+                color: '#ec4899'
+            },
+            FINANCIAL_MANAGEMENT: {
+                id: 'FINANCIAL_MANAGEMENT',
+                name: 'الإدارة المالية',
+                nameEn: 'Financial Management',
+                icon: '💰',
+                color: '#f97316'
+            },
+            SUPPORT_SERVICES: {
+                id: 'SUPPORT_SERVICES',
+                name: 'خدمات الدعم',
+                nameEn: 'Support Services',
+                icon: '🔧',
+                color: '#06b6d4'
+            },
+            NURSING_MANAGEMENT: {
+                id: 'NURSING_MANAGEMENT',
+                name: 'إدارة التمريض',
+                nameEn: 'Nursing Management',
+                icon: '👩‍⚕️',
+                color: '#8b5cf6'
+            },
+            DIAGNOSTIC_SERVICES: {
+                id: 'DIAGNOSTIC_SERVICES',
+                name: 'الخدمات التشخيصية',
+                nameEn: 'Diagnostic Services',
+                icon: '🔬',
+                color: '#ef4444'
+            }
+        },
+        fields: {
+            code: { required: true, type: 'text', label: 'رقم المعيار' },
+            name: { required: true, type: 'text', label: 'المعيار' },
+            assessment: { required: true, type: 'select', label: 'التقييم', options: ['2', '1', '0', 'N/A'] },
+            notes: { required: false, type: 'textarea', label: 'ملاحظات' }
+        }
+    },
+    
+    PERFORMANCE: {
+        id: 'performance',
+        name: 'مؤشرات الأداء الشهري',
+        nameEn: 'Monthly Performance Indicators',
+        icon: '📊',
+        color: '#1a73e8',
+        description: 'مؤشرات الأداء الأساسية - بسط ومقام',
+        inputType: 'formula',
+        frequency: 'monthly',
+        categories: {
+            PREVENTIVE: {
+                id: 'PREVENTIVE',
+                name: 'الوقائي',
+                nameEn: 'Preventive',
+                icon: '🛡️',
+                color: '#10b981'
+            },
+            PLANNING_DEPT: {
+                id: 'PLANNING_DEPT',
+                name: 'إدارة التخطيط',
+                nameEn: 'Planning Department',
+                icon: '📋',
+                color: '#3b82f6'
+            },
+            NURSING_DEPT: {
+                id: 'NURSING_DEPT',
+                name: 'إدارة التمريض',
+                nameEn: 'Nursing Department',
+                icon: '👩‍⚕️',
+                color: '#8b5cf6'
+            },
+            EMERGENCY: {
+                id: 'EMERGENCY',
+                name: 'إدارة الطوارئ',
+                nameEn: 'Emergency',
+                icon: '🚨',
+                color: '#ef4444'
+            },
+            CITIZEN_CARE: {
+                id: 'CITIZEN_CARE',
+                name: 'إدارة رعاية المواطنين',
+                nameEn: 'Citizen Care',
+                icon: '👨‍👩‍👧‍👦',
+                color: '#f59e0b'
+            },
+            PATIENT_SAFETY: {
+                id: 'PATIENT_SAFETY',
+                name: 'إدارة سلامة المرضى',
+                nameEn: 'Patient Safety',
+                icon: '🛡️',
+                color: '#ec4899'
+            },
+            INFORMATION: {
+                id: 'INFORMATION',
+                name: 'إدارة المعلومات',
+                nameEn: 'Information Management',
+                icon: '💾',
+                color: '#06b6d4'
+            },
+            QUALITY: {
+                id: 'QUALITY',
+                name: 'إدارة الجودة',
+                nameEn: 'Quality Management',
+                icon: '✨',
+                color: '#f59e0b'
+            },
+            LAB_SERVICES: {
+                id: 'LAB_SERVICES',
+                name: 'الخدمات المعملية',
+                nameEn: 'Laboratory Services',
+                icon: '🧪',
+                color: '#8b5cf6'
+            },
+            LEADERSHIP_DEPT: {
+                id: 'LEADERSHIP_DEPT',
+                name: 'إدارة القيادة',
+                nameEn: 'Leadership',
+                icon: '👨‍💼',
+                color: '#f97316'
+            },
+            VITAL_RECORDS: {
+                id: 'VITAL_RECORDS',
+                name: 'المكاتب الفنية وركن الإحصاء',
+                nameEn: 'Vital Records',
+                icon: '📊',
+                color: '#3b82f6'
+            },
+            DIALYSIS: {
+                id: 'DIALYSIS',
+                name: 'إدارة غسيل الكلى',
+                nameEn: 'Dialysis',
+                icon: '🩺',
+                color: '#10b981'
+            },
+            ONCOLOGY: {
+                id: 'ONCOLOGY',
+                name: 'إدارة الأورام',
+                nameEn: 'Oncology',
+                icon: '🎗️',
+                color: '#ef4444'
+            }
+        },
+        fields: {
+            code: { required: true, type: 'text', label: 'كود المؤشر' },
+            name: { required: true, type: 'text', label: 'المؤشر' },
+            department: { required: true, type: 'text', label: 'الإدارة المسؤولة' },
+            numeratorLabel: { required: true, type: 'text', label: 'البسط' },
+            denominatorLabel: { required: false, type: 'text', label: 'المقام' },
+            formula: { required: true, type: 'text', label: 'المعادلة الحسابية' },
+            percentage: { required: true, type: 'text', label: 'النسبة المئوية (مثال: 100X)' },
+            frequency: { required: true, type: 'select', label: 'دورية الإبلاغ', options: ['شهري', 'ربع سنوي', 'سنوي'] }
+        }
+    },
+    
+    MONTHLY_INPUT: {
+        id: 'monthly_input',
+        name: 'نموذج الإدخال الشهري',
+        nameEn: 'Monthly Data Input',
+        icon: '📈',
+        color: '#10b981',
+        description: 'إدخال البيانات الشهرية للمؤشرات',
+        inputType: 'monthly_data',
+        frequency: 'monthly',
+        categories: {
+            JANUARY: { id: 'JANUARY', name: 'يناير', nameEn: 'January', icon: '1️⃣', color: '#3b82f6', month: 1 },
+            FEBRUARY: { id: 'FEBRUARY', name: 'فبراير', nameEn: 'February', icon: '2️⃣', color: '#8b5cf6', month: 2 },
+            MARCH: { id: 'MARCH', name: 'مارس', nameEn: 'March', icon: '3️⃣', color: '#10b981', month: 3 },
+            APRIL: { id: 'APRIL', name: 'أبريل', nameEn: 'April', icon: '4️⃣', color: '#f59e0b', month: 4 },
+            MAY: { id: 'MAY', name: 'مايو', nameEn: 'May', icon: '5️⃣', color: '#ef4444', month: 5 },
+            JUNE: { id: 'JUNE', name: 'يونيو', nameEn: 'June', icon: '6️⃣', color: '#ec4899', month: 6 },
+            JULY: { id: 'JULY', name: 'يوليو', nameEn: 'July', icon: '7️⃣', color: '#06b6d4', month: 7 },
+            AUGUST: { id: 'AUGUST', name: 'أغسطس', nameEn: 'August', icon: '8️⃣', color: '#8b5cf6', month: 8 },
+            SEPTEMBER: { id: 'SEPTEMBER', name: 'سبتمبر', nameEn: 'September', icon: '9️⃣', color: '#10b981', month: 9 },
+            OCTOBER: { id: 'OCTOBER', name: 'أكتوبر', nameEn: 'October', icon: '🔟', color: '#f59e0b', month: 10 },
+            NOVEMBER: { id: 'NOVEMBER', name: 'نوفمبر', nameEn: 'November', icon: '1️⃣1️⃣', color: '#3b82f6', month: 11 },
+            DECEMBER: { id: 'DECEMBER', name: 'ديسمبر', nameEn: 'December', icon: '1️⃣2️⃣', color: '#ef4444', month: 12 }
+        },
+        fields: {
+            year: { required: true, type: 'number', label: 'السنة' },
+            kpiCode: { required: true, type: 'select', label: 'المؤشر' },
+            numerator: { required: true, type: 'number', label: 'البسط' },
+            denominator: { required: false, type: 'number', label: 'المقام' },
+            result: { required: false, type: 'number', label: 'النتيجة', readonly: true }
         }
     }
 };
@@ -326,6 +323,7 @@ const FACILITY_TYPES = {
     }
 };
 
+// دوال مساعدة
 function getDataTypeInfo(dataTypeId) {
     return Object.values(DATA_TYPES).find(dt => dt.id === dataTypeId) || null;
 }
@@ -341,10 +339,98 @@ function getAllDataTypes() {
 
 function getInputTypeLabel(inputType) {
     const labels = {
+        count: 'عد مباشر (عدد الموظفين)',
+        assessment: 'تقييم (2-1-0-N/A)',
         formula: 'صيغة حسابية (بسط/مقام)',
-        weighted: 'وزن ودرجة',
-        checklist: 'قائمة فحص',
-        count: 'عد مباشر'
+        monthly_data: 'بيانات شهرية'
     };
     return labels[inputType] || inputType;
 }
+
+function getCategoryName(dataType, categoryKey) {
+    const categories = getCategoriesByDataType(dataType);
+    const category = categories[categoryKey];
+    return category ? category.name : categoryKey;
+}
+
+function getApplicableFacilitiesText(applicableTo) {
+    if (!applicableTo) {
+        return 'جميع المنشآت';
+    }
+    
+    const facilities = [];
+    
+    if (applicableTo.hospital) facilities.push('🏥 مستشفى');
+    if (applicableTo.healthCenter) facilities.push('🏥 مركز صحي');
+    if (applicableTo.healthUnit) facilities.push('🏥 وحدة صحية');
+    
+    return facilities.length > 0 ? facilities.join(', ') : 'غير محدد';
+}
+
+// دالة لتحويل رقم الشهر إلى اسم
+function getMonthNameArabic(monthNumber) {
+    const months = {
+        1: 'يناير', 2: 'فبراير', 3: 'مارس', 4: 'أبريل',
+        5: 'مايو', 6: 'يونيو', 7: 'يوليو', 8: 'أغسطس',
+        9: 'سبتمبر', 10: 'أكتوبر', 11: 'نوفمبر', 12: 'ديسمبر'
+    };
+    return months[monthNumber] || '';
+}
+
+// دالة للحصول على معلومات الشهر من القسم
+function getMonthFromCategory(categoryId) {
+    const categories = DATA_TYPES.MONTHLY_INPUT.categories;
+    const category = Object.values(categories).find(cat => cat.id === categoryId);
+    return category ? category.month : null;
+}
+
+// دالة للتحقق من نوع الإدخال
+function isCountType(dataTypeId) {
+    const type = getDataTypeInfo(dataTypeId);
+    return type?.inputType === 'count';
+}
+
+function isAssessmentType(dataTypeId) {
+    const type = getDataTypeInfo(dataTypeId);
+    return type?.inputType === 'assessment';
+}
+
+function isFormulaType(dataTypeId) {
+    const type = getDataTypeInfo(dataTypeId);
+    return type?.inputType === 'formula';
+}
+
+function isMonthlyDataType(dataTypeId) {
+    const type = getDataTypeInfo(dataTypeId);
+    return type?.inputType === 'monthly_data';
+}
+
+// دالة للحصول على جميع أنواع المنشآت
+function getAllFacilityTypes() {
+    return Object.values(FACILITY_TYPES);
+}
+
+// دالة للحصول على نوع منشأة محدد
+function getFacilityTypeInfo(facilityTypeId) {
+    return FACILITY_TYPES[facilityTypeId] || null;
+}
+
+// دالة للحصول على اسم نوع المنشأة بالعربي
+function getFacilityTypeName(facilityTypeId) {
+    const facilityType = getFacilityTypeInfo(facilityTypeId);
+    return facilityType ? facilityType.name : facilityTypeId;
+}
+
+// دالة للحصول على لون نوع المنشأة
+function getFacilityTypeColor(facilityTypeId) {
+    const facilityType = getFacilityTypeInfo(facilityTypeId);
+    return facilityType ? facilityType.color : '#666666';
+}
+
+// دالة للحصول على أيقونة نوع المنشأة
+function getFacilityTypeIcon(facilityTypeId) {
+    const facilityType = getFacilityTypeInfo(facilityTypeId);
+    return facilityType ? facilityType.icon : '🏥';
+}
+
+console.log('✅ Data types loaded:', Object.keys(DATA_TYPES).length);
