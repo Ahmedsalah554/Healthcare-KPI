@@ -1,801 +1,1296 @@
 /**
- * ===== السكريبت الرئيسي لنظام المستخدم =====
+ * ===== السكريبت الرئيسي لواجهة المستخدم (محدث v2.0) =====
  */
 
-// متغيرات عامة
 let currentUser = null;
 let currentFacility = null;
-let selectedKPI = null;
-let userKPIData = [];
-let currentDataType = 'performance'; // نوع البيانات الحالي
-let selectedMonth = null;
+let selectedDataType = null;
 let selectedCategory = null;
+let selectedSubcategory = null;
+let selectedMonth = null;
+let selectedYear = new Date().getFullYear();
 
-// تهيئة الصفحة عند التحميل
 document.addEventListener('DOMContentLoaded', function() {
-    initializeUserSystem();
+    console.log('🚀 User panel initializing...');
+    initializeUserPanel();
 });
 
-// تهيئة النظام
-function initializeUserSystem() {
-    // التحقق من تسجيل الدخول
-    currentUser = getFromStorage('currentUserApp');
+function initializeUserPanel() {
+    currentUser = getFromStorage('currentUser');
     
     if (!currentUser) {
+        console.log('👤 No user found, showing login page');
         showLoginPage();
     } else {
-        showAppPage();
+        console.log('✅ User found:', currentUser.name);
+        loadUserData();
+        showUserPanel();
     }
-    
-    // تحميل البيانات
-    loadUserData();
-    
-    // تعيين التاريخ الافتراضي إلى اليوم
-    const today = new Date().toISOString().split('T')[0];
-    selectedMonth = today.substring(0, 7); // YYYY-MM
 }
 
-// عرض صفحة تسجيل الدخول
 function showLoginPage() {
-    document.getElementById('loginPage').style.display = 'flex';
-    document.getElementById('appPage').style.display = 'none';
-}
-
-// عرض صفحة التطبيق
-function showAppPage() {
-    document.getElementById('loginPage').style.display = 'none';
-    document.getElementById('appPage').style.display = 'flex';
+    const loginPage = document.getElementById('loginPage');
+    const userPanel = document.getElementById('userPanel');
     
-    // عرض معلومات المستخدم
-    displayUserInfo();
-    
-    // عرض واجهة اختيار نوع البيانات
-    showDataTypeSelection();
-    
-    // تحميل البيانات المدخلة
-    loadDataHistory();
-    
-    // تحديث breadcrumb
-    if (currentUser) {
-        const breadcrumb = document.getElementById('facilityBreadcrumb');
-        if (breadcrumb) {
-            breadcrumb.textContent = currentUser.facilityName;
-        }
+    if (loginPage) {
+        loginPage.classList.remove('hide');
+        loginPage.style.display = 'flex';
+    }
+    if (userPanel) {
+        userPanel.classList.remove('show');
+        userPanel.style.display = 'none';
     }
 }
 
-// معالجة تسجيل الدخول
+function showUserPanel() {
+    const loginPage = document.getElementById('loginPage');
+    const userPanel = document.getElementById('userPanel');
+    
+    console.log('📊 Showing user panel...');
+    
+    if (loginPage) {
+        loginPage.classList.add('hide');
+        loginPage.style.display = 'none';
+    }
+    
+    if (userPanel) {
+        userPanel.classList.add('show');
+        userPanel.style.display = 'flex';
+    }
+    
+    displayUserInfo();
+    loadDataEntry();
+}
+
 function handleLogin(event) {
     event.preventDefault();
+    event.stopPropagation();
+    
+    console.log('🔐 Login attempt...');
     
     const email = document.getElementById('loginEmail').value;
     const password = document.getElementById('loginPassword').value;
     const errorDiv = document.getElementById('loginError');
-
-    // البحث عن المستخدم في قاعدة البيانات
+    
+    // التحقق من المستخدمين المخزنين
     const users = getFromStorage('users', []);
     const user = users.find(u => u.email === email && u.password === password && u.status === 'active');
     
     if (user) {
-        // جلب معلومات المنشأة
-        const facilities = getFromStorage('facilities', []);
-        const facility = facilities.find(f => f.id === user.facility);
+        console.log('✅ Login successful');
         
         currentUser = {
             id: user.id,
             name: user.name,
             email: user.email,
             role: user.role,
-            facility: user.facility,
-            facilityType: user.facilityType || facility?.type || 'hospital', // نوع المنشأة
-            facilityName: facility ? facility.name : 'غير محدد'
+            facility: user.facility
         };
         
-        saveToStorage('currentUserApp', currentUser);
-        showSuccess('تم تسجيل الدخول بنجاح');
-        showAppPage();
-    } else {
+        saveToStorage('currentUser', currentUser);
+        loadUserData();
+        
         if (errorDiv) {
-            errorDiv.textContent = '⚠️ بيانات الدخول غير صحيحة';
+            errorDiv.style.display = 'none';
+        }
+        
+        showUserPanel();
+        showSuccess('تم تسجيل الدخول بنجاح');
+    } else {
+        console.log('❌ Invalid credentials');
+        if (errorDiv) {
+            errorDiv.textContent = '⚠️ بيانات الدخول غير صحيحة أو الحساب غير نشط';
             errorDiv.style.display = 'block';
+            errorDiv.style.background = '#ffebee';
+            errorDiv.style.color = '#c62828';
+            errorDiv.style.padding = '15px';
+            errorDiv.style.borderRadius = '8px';
+            errorDiv.style.marginBottom = '20px';
+            errorDiv.style.borderRight = '4px solid #f44336';
         }
     }
 }
 
-// معالجة تسجيل الخروج
-function handleUserLogout() {
+function handleLogout() {
     if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
-        removeFromStorage('currentUserApp');
+        removeFromStorage('currentUser');
         currentUser = null;
+        currentFacility = null;
         showLoginPage();
         showSuccess('تم تسجيل الخروج بنجاح');
     }
 }
 
-// عرض معلومات المستخدم
 function displayUserInfo() {
     if (currentUser) {
         const userNameDisplay = document.getElementById('userNameDisplay');
-        const userFacilityDisplay = document.getElementById('userFacilityDisplay');
+        const facilityNameDisplay = document.getElementById('facilityNameDisplay');
         
         if (userNameDisplay) userNameDisplay.textContent = currentUser.name;
-        if (userFacilityDisplay) userFacilityDisplay.textContent = `🏥 ${currentUser.facilityName}`;
+        
+        if (currentFacility && facilityNameDisplay) {
+            facilityNameDisplay.textContent = currentFacility.name;
+        }
     }
 }
 
-// تحميل البيانات
 function loadUserData() {
-    userKPIData = getFromStorage('userKPIData', []);
+    if (!currentUser) return;
     
-    // فلترة البيانات الخاصة بالمستخدم الحالي فقط
-    if (currentUser) {
-        userKPIData = userKPIData.filter(entry => 
-            entry.userId === currentUser.id || entry.facility === currentUser.facility
-        );
-    }
+    // تحميل بيانات المنشأة
+    const facilities = getFromStorage('facilities', []);
+    currentFacility = facilities.find(f => f.id === currentUser.facility);
     
-    console.log('📊 User data loaded:', userKPIData.length);
+    console.log('📊 User data loaded:', {
+        user: currentUser.name,
+        facility: currentFacility ? currentFacility.name : 'غير محدد'
+    });
 }
 
-/**
- * ===== اختيار نوع البيانات =====
- */
+// ========================================
+// إدخال البيانات (محدث v2.0)
+// ========================================
 
-// عرض واجهة اختيار نوع البيانات
-function showDataTypeSelection() {
-    const mainContent = document.getElementById('mainContent');
+function loadDataEntry() {
+    console.log('📝 Loading data entry...');
     
-    mainContent.innerHTML = `
-        <div class="page-header">
-            <h1>📊 إدخال البيانات</h1>
-            <p>اختر نوع البيانات المراد إدخالها</p>
-        </div>
-        
-        <div class="data-type-grid">
-            ${Object.keys(DATA_TYPES).map(typeKey => {
-                const type = DATA_TYPES[typeKey];
-                const availableKPIs = getKPIsForFacilityType(type.id, currentUser.facilityType);
-                
-                return `
-                    <div class="data-type-card" onclick="selectDataTypeForEntry('${type.id}')" 
-                         style="border-left: 4px solid ${type.color};">
-                        <div class="card-icon" style="color: ${type.color};">${type.icon}</div>
-                        <h3>${type.name}</h3>
-                        <p>${type.description}</p>
-                        <div class="card-footer">
-                            <span class="badge" style="background: ${type.color};">
-                                ${availableKPIs.length} مؤشر متاح
-                            </span>
-                            <span class="badge-secondary">
-                                ${type.frequency === 'monthly' ? '📅 شهري' : '📅 سنوي'}
-                            </span>
-                        </div>
-                    </div>
-                `;
-            }).join('')}
-        </div>
-        
-        <div class="card mt-20">
-            <div class="card-header">
-                <h3>📋 البيانات المدخلة مؤخراً</h3>
+    const container = document.getElementById('dataEntryContent');
+    if (!container) return;
+    
+    const dataTypes = getAllDataTypes();
+    
+    let html = `
+        <div class="data-entry-container">
+            <div class="section-header">
+                <h2>إدخال البيانات</h2>
+                <p>اختر نوع البيانات لبدء الإدخال</p>
             </div>
-            <div class="card-body" id="recentEntriesContainer">
-                <!-- سيتم تحميل البيانات المدخلة هنا -->
-            </div>
-        </div>
+            
+            <div class="data-type-selector">
+                <h3>اختر نوع البيانات:</h3>
+                <div class="data-type-grid">
     `;
     
-    // تحميل البيانات المدخلة مؤخراً
-    loadRecentEntries();
-}
-
-// تحميل البيانات المدخلة مؤخراً
-function loadRecentEntries() {
-    const container = document.getElementById('recentEntriesContainer');
-    
-    if (!userKPIData || userKPIData.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">📝</div>
-                <p>لم تقم بإدخال أي بيانات بعد</p>
+    dataTypes.forEach(dataType => {
+        html += `
+            <div class="data-type-card" onclick="selectDataType('${dataType.id}')" style="border-left: 4px solid ${dataType.color}">
+                <div class="data-type-icon" style="font-size: 3rem">${dataType.icon}</div>
+                <h4>${dataType.name}</h4>
+                <p class="data-type-desc">${dataType.description}</p>
+                <span class="input-type-badge" style="background: ${dataType.color}20; color: ${dataType.color}">${getInputTypeLabel(dataType.inputType)}</span>
             </div>
         `;
-        return;
-    }
+    });
     
-    // أحدث 5 إدخالات
-    const recentEntries = [...userKPIData]
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-        .slice(0, 5);
-    
-    container.innerHTML = `
-        <div class="entries-list">
-            ${recentEntries.map(entry => {
-                const dataTypeInfo = DATA_TYPES[entry.dataType];
-                return `
-                    <div class="entry-item">
-                        <div class="entry-icon">${dataTypeInfo?.icon || '📊'}</div>
-                        <div class="entry-info">
-                            <h4>${dataTypeInfo?.name || entry.dataType}</h4>
-                            <p>${entry.categoryName || entry.category || 'غير محدد'}</p>
-                            <small>📅 ${formatDateArabic(entry.createdAt)}</small>
-                        </div>
-                        <div class="entry-actions">
-                            <button class="btn-icon" onclick="viewEntry('${entry.id}')" title="عرض">
-                                👁️
-                            </button>
-                            <button class="btn-icon" onclick="editEntry('${entry.id}')" title="تعديل">
-                                ✏️
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('')}
+    html += `
+                </div>
+            </div>
+            
+            <div id="categorySection" style="display: none; margin-top: 30px;"></div>
+            <div id="entryFormSection" style="display: none; margin-top: 30px;"></div>
         </div>
     `;
+    
+    container.innerHTML = html;
 }
 
-// اختيار نوع البيانات للإدخال
-function selectDataTypeForEntry(dataType) {
-    currentDataType = dataType;
+function selectDataType(dataTypeId) {
+    selectedDataType = dataTypeId;
+    selectedCategory = null;
+    selectedSubcategory = null;
     
-    // التحقق من وجود مؤشرات متاحة
-    const availableKPIs = getKPIsForFacilityType(dataType, currentUser.facilityType);
+    const dataType = getDataTypeInfo(dataTypeId);
+    console.log('Selected data type:', dataType);
     
-    if (availableKPIs.length === 0) {
-        showError('لا توجد مؤشرات متاحة لنوع منشأتك في هذه الفئة');
-        return;
-    }
-    
-    // عرض واجهة اختيار الشهر والفئة
-    showMonthAndCategorySelection(dataType);
+    showCategorySelection(dataType);
 }
 
-/**
- * ===== اختيار الشهر والفئة =====
- */
-
-// عرض واجهة اختيار الشهر والفئة
-function showMonthAndCategorySelection(dataType) {
-    const mainContent = document.getElementById('mainContent');
-    const dataTypeInfo = DATA_TYPES[dataType];
+function showCategorySelection(dataType) {
+    const categorySection = document.getElementById('categorySection');
+    if (!categorySection) return;
     
-    // جلب الفئات المتاحة
-    const allCategories = getCategoriesByDataType(dataType);
-    const availableCategories = getAvailableCategoriesForUser(dataType);
+    const categories = dataType.categories;
     
-    mainContent.innerHTML = `
-        <div class="page-header">
-            <button class="btn btn-secondary btn-small" onclick="showDataTypeSelection()">
-                ← رجوع
-            </button>
-            <h1>${dataTypeInfo.icon} ${dataTypeInfo.name}</h1>
-            <p>اختر ${dataTypeInfo.frequency === 'monthly' ? 'الشهر' : 'السنة'} والفئة</p>
+    let html = `
+        <div class="breadcrumb">
+            <span class="active">${dataType.icon} ${dataType.name}</span>
         </div>
         
-        <div class="card">
-            <div class="card-body">
-                <div class="form-group">
-                    <label>${dataTypeInfo.frequency === 'monthly' ? '📅 الشهر' : '📅 السنة'} *</label>
-                    <input type="${dataTypeInfo.frequency === 'monthly' ? 'month' : 'number'}" 
-                           id="selectedPeriod" 
-                           value="${dataTypeInfo.frequency === 'monthly' ? selectedMonth : new Date().getFullYear()}"
-                           onchange="updateAvailableCategories('${dataType}')">
+        <div class="category-selector">
+            <h3>اختر القسم:</h3>
+            <div class="category-grid">
+    `;
+    
+    Object.values(categories).forEach(category => {
+        html += `
+            <div class="category-card" onclick="selectCategory('${dataType.id}', '${category.id}')" style="border-top: 3px solid ${category.color}">
+                <div class="category-icon" style="color: ${category.color}; font-size: 2.5rem">${category.icon}</div>
+                <h4>${category.name}</h4>
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    categorySection.innerHTML = html;
+    categorySection.style.display = 'block';
+    
+    // إخفاء النموذج
+    const entryFormSection = document.getElementById('entryFormSection');
+    if (entryFormSection) {
+        entryFormSection.style.display = 'none';
+    }
+}
+
+function selectCategory(dataTypeId, categoryId) {
+    selectedDataType = dataTypeId;
+    selectedCategory = categoryId;
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    
+    // ✅ التحقق من وجود أقسام فرعية
+    if (hasSubcategories(dataTypeId)) {
+        const subcategories = getSubcategories(dataTypeId, categoryId);
+        
+        if (Object.keys(subcategories).length > 0) {
+            showSubcategorySelection(dataType, categoryId, subcategories);
+            return;
+        }
+    }
+    
+    // لا توجد أقسام فرعية - عرض النموذج مباشرة
+    showEntryForm(dataType, categoryId);
+}
+
+function showSubcategorySelection(dataType, categoryId, subcategories) {
+    const categorySection = document.getElementById('categorySection');
+    if (!categorySection) return;
+    
+    const category = dataType.categories[categoryId];
+    
+    let html = `
+        <div class="breadcrumb">
+            <span onclick="selectDataType('${dataType.id}')" style="cursor: pointer">← ${dataType.icon} ${dataType.name}</span>
+            <span class="active">/ ${category.icon} ${category.name}</span>
+        </div>
+        
+        <div class="subcategory-selector">
+            <h3>اختر القسم الفرعي:</h3>
+            <div class="subcategory-grid">
+    `;
+    
+    Object.values(subcategories).forEach(subcategory => {
+        html += `
+            <div class="subcategory-card" onclick="selectSubcategory('${dataType.id}', '${categoryId}', '${subcategory.id}')">
+                <div class="subcategory-icon" style="font-size: 2rem">${subcategory.icon || '📋'}</div>
+                <h4>${subcategory.name}</h4>
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    categorySection.innerHTML = html;
+}
+
+function selectSubcategory(dataTypeId, categoryId, subcategoryId) {
+    selectedDataType = dataTypeId;
+    selectedCategory = categoryId;
+    selectedSubcategory = subcategoryId;
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    showEntryForm(dataType, categoryId, subcategoryId);
+}
+function showEntryForm(dataType, categoryId, subcategoryId = null) {
+    const entryFormSection = document.getElementById('entryFormSection');
+    if (!entryFormSection) return;
+    
+    const category = dataType.categories[categoryId];
+    const subcategory = subcategoryId ? getSubcategories(dataType.id, categoryId)[subcategoryId] : null;
+    
+    let breadcrumb = `
+        <div class="breadcrumb">
+            <span onclick="selectDataType('${dataType.id}')" style="cursor: pointer">← ${dataType.icon} ${dataType.name}</span>
+            <span onclick="selectCategory('${dataType.id}', '${categoryId}')" style="cursor: pointer">/ ${category.icon} ${category.name}</span>
+    `;
+    
+    if (subcategory) {
+        breadcrumb += `<span class="active">/ ${subcategory.icon || '📋'} ${subcategory.name}</span>`;
+    }
+    
+    breadcrumb += `</div>`;
+    
+    let html = breadcrumb;
+    
+    // ✅ نموذج حسب نوع الإدخال
+    if (dataType.inputType === 'count') {
+        // القوى البشرية - عدد فقط
+        html += `
+            <div class="entry-form-card">
+                <h3>إدخال بيانات: ${category.name}</h3>
+                <p class="form-hint">أدخل العدد الحالي للموظفين في هذا القسم</p>
+                <form onsubmit="submitWorkforceData(event)">
+                    <div class="form-group">
+                        <label>العدد *</label>
+                        <input type="number" id="countValue" min="0" required class="form-control" placeholder="أدخل العدد">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">💾 حفظ البيانات</button>
+                        <button type="button" onclick="loadDataEntry()" class="btn btn-secondary">❌ إلغاء</button>
+                    </div>
+                </form>
+            </div>
+        `;
+    } else if (dataType.inputType === 'assessment') {
+        // معايير التقييم
+        html += `
+            <div class="entry-form-card">
+                <h3>تقييم المعايير: ${subcategory ? subcategory.name : category.name}</h3>
+                <p class="form-hint">قم بتقييم كل معيار وإضافة ملاحظاتك</p>
+                
+                <div id="assessmentsList">
+                    <p style="text-align: center; padding: 20px;">جاري تحميل المعايير...</p>
                 </div>
                 
-                <div class="form-group">
-                    <label>${dataType === 'excellence' ? '📋 الإدارة المسؤولة' : dataType === 'monitoring' ? '📋 القسم' : '📋 الفئة'} *</label>
-                    <select id="selectedCategory" onchange="proceedToDataEntry('${dataType}')">
-                        <option value="">اختر...</option>
-                    </select>
-                    <small id="categoryHint" style="color: #666; display: block; margin-top: 5px;">
-                        سيتم إخفاء الفئات المدخلة تلقائياً
-                    </small>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card" id="enteredCategoriesCard" style="display: none;">
-            <div class="card-header">
-                <h3>✅ الفئات المدخلة</h3>
-            </div>
-            <div class="card-body" id="enteredCategoriesList">
-                <!-- سيتم عرض الفئات المدخلة هنا -->
-            </div>
-        </div>
-    `;
-    
-    // تحديث قائمة الفئات المتاحة
-    updateAvailableCategories(dataType);
-}
-
-// تحديث الفئات المتاحة
-function updateAvailableCategories(dataType) {
-    const periodInput = document.getElementById('selectedPeriod');
-    const categorySelect = document.getElementById('selectedCategory');
-    const period = periodInput.value;
-    
-    if (!period) return;
-    
-    selectedMonth = period;
-    
-    // جلب الفئات المتاحة (غير المدخلة)
-    const availableCategories = getAvailableCategoriesForUser(dataType, period);
-    
-    // تحديث القائمة المنسدلة
-    categorySelect.innerHTML = '<option value="">اختر...</option>';
-    
-    Object.keys(availableCategories).forEach(key => {
-        const option = document.createElement('option');
-        option.value = key;
-        option.textContent = `${key} - ${availableCategories[key]}`;
-        categorySelect.appendChild(option);
-    });
-    
-    // عرض الفئات المدخلة
-    displayEnteredCategories(dataType, period);
-    
-    // إظهار رسالة إذا كل الفئات مدخلة
-    if (Object.keys(availableCategories).length === 0) {
-        categorySelect.innerHTML = '<option value="">تم إدخال جميع الفئات ✅</option>';
-        categorySelect.disabled = true;
-        showSuccess('تم إدخال جميع الفئات لهذه الفترة! 🎉');
-    } else {
-        categorySelect.disabled = false;
-    }
-}
-
-// جلب الفئات المتاحة للمستخدم (غير المدخلة)
-function getAvailableCategoriesForUser(dataType, period = null) {
-    const allCategories = getCategoriesByDataType(dataType);
-    const selectedPeriod = period || selectedMonth;
-    
-    // جلب الفئات المدخلة
-    const enteredCategories = userKPIData.filter(entry => 
-        entry.dataType === dataType &&
-        entry.userId === currentUser.id &&
-        entry.month === selectedPeriod &&
-        entry.status === 'completed'
-    ).map(entry => entry.category || entry.department || entry.section);
-    
-    // إرجاع الفئات غير المدخلة فقط
-    const availableCategories = {};
-    Object.keys(allCategories).forEach(key => {
-        if (!enteredCategories.includes(key)) {
-            // التحقق من وجود مؤشرات متاحة لهذه الفئة
-            const kpis = getAvailableKPIs(dataType, key, currentUser.facilityType);
-            if (kpis.length > 0) {
-                availableCategories[key] = allCategories[key];
-            }
-        }
-    });
-    
-    return availableCategories;
-}
-
-// عرض الفئات المدخلة
-function displayEnteredCategories(dataType, period) {
-    const card = document.getElementById('enteredCategoriesCard');
-    const container = document.getElementById('enteredCategoriesList');
-    
-    // جلب الفئات المدخلة
-    const enteredEntries = userKPIData.filter(entry => 
-        entry.dataType === dataType &&
-        entry.userId === currentUser.id &&
-        entry.month === period
-    );
-    
-    if (enteredEntries.length === 0) {
-        card.style.display = 'none';
-        return;
-    }
-    
-    card.style.display = 'block';
-    
-    container.innerHTML = `
-        <div class="entered-categories-list">
-            ${enteredEntries.map(entry => {
-                const categoryName = getCategoryName(dataType, entry.category || entry.department || entry.section);
-                return `
-                    <div class="entered-category-item">
-                        <div class="category-info">
-                            <strong>✓ ${categoryName}</strong>
-                            <small>📅 ${formatDateArabic(entry.createdAt)}</small>
-                        </div>
-                        <div class="category-actions">
-                            <button class="btn-icon btn-small" onclick="viewEntry('${entry.id}')" title="عرض">
-                                👁️
-                            </button>
-                            <button class="btn-icon btn-small" onclick="editEntry('${entry.id}')" title="تعديل">
-                                ✏️
-                            </button>
-                            <button class="btn-icon btn-small btn-danger" onclick="confirmDeleteEntry('${entry.id}')" title="حذف">
-                                🗑️
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('')}
-        </div>
-    `;
-}
-
-// المتابعة لإدخال البيانات
-function proceedToDataEntry(dataType) {
-    const categorySelect = document.getElementById('selectedCategory');
-    const category = categorySelect.value;
-    
-    if (!category) {
-        showError('الرجاء اختيار الفئة');
-        return;
-    }
-    
-    selectedCategory = category;
-    
-    // عرض نموذج إدخال البيانات
-    showDataEntryForm(dataType, category);
-}
-
-/**
- * ===== نموذج إدخال البيانات =====
- */
-
-// عرض نموذج إدخال البيانات
-function showDataEntryForm(dataType, category) {
-    const mainContent = document.getElementById('mainContent');
-    const dataTypeInfo = DATA_TYPES[dataType];
-    const categoryName = getCategoryName(dataType, category);
-    
-    // جلب المؤشرات المتاحة لهذه الفئة ونوع المنشأة
-    const kpis = getAvailableKPIs(dataType, category, currentUser.facilityType);
-    
-    if (kpis.length === 0) {
-        showError('لا توجد مؤشرات متاحة لهذه الفئة');
-        showMonthAndCategorySelection(dataType);
-        return;
-    }
-    
-    mainContent.innerHTML = `
-        <div class="page-header">
-            <button class="btn btn-secondary btn-small" onclick="showMonthAndCategorySelection('${dataType}')">
-                ← رجوع
-            </button>
-            <div>
-                <h1>${dataTypeInfo.icon} ${categoryName}</h1>
-                <p>🏥 ${currentUser.facilityName} | 📅 ${selectedMonth}</p>
-            </div>
-        </div>
-        
-        <form id="dataEntryForm" onsubmit="handleDataEntrySubmit(event, '${dataType}', '${category}')">
-            <div class="card">
-                <div class="card-header">
-                    <h3>إدخال البيانات (${kpis.length} مؤشر)</h3>
-                    <div class="progress-indicator">
-                        <span id="progressText">0 / ${kpis.length}</span>
-                    </div>
-                </div>
-                <div class="card-body">
-                    ${renderKPIInputFields(kpis, dataType)}
-                </div>
-            </div>
-            
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary btn-large">
-                    💾 حفظ البيانات
-                </button>
-                <button type="button" class="btn btn-secondary" onclick="showMonthAndCategorySelection('${dataType}')">
-                    ❌ إلغاء
-                </button>
-            </div>
-        </form>
-    `;
-    
-    // إضافة مستمعات للتحديث التلقائي
-    addAutoCalculationListeners();
-}
-
-// رسم حقول إدخال المؤشرات
-function renderKPIInputFields(kpis, dataType) {
-    const dataTypeInfo = DATA_TYPES[dataType];
-    
-    return kpis.map((kpi, index) => {
-        if (dataTypeInfo.hasNumeratorDenominator) {
-            // مؤشرات الأداء والتميز (بسط/مقام)
-            return `
-                <div class="kpi-entry-item" data-index="${index}">
-                    <div class="kpi-entry-header">
-                        <h4>${index + 1}. ${kpi.code} - ${kpi.name}</h4>
-                        ${kpi.formula ? `<small>الصيغة: ${kpi.formula}</small>` : ''}
-                        ${kpi.target ? `<small>المستهدف: ${kpi.target} ${kpi.unit || ''}</small>` : ''}
-                    </div>
-                    
-                    <div class="kpi-entry-inputs">
+                <button onclick="showAddCriteriaForm()" class="btn btn-secondary" style="margin-top: 20px;">➕ إضافة معيار جديد</button>
+                
+                <div id="addCriteriaForm" style="display: none; margin-top: 20px;">
+                    <form onsubmit="submitAssessmentData(event)">
                         <div class="form-group">
-                            <label>${kpi.numeratorLabel || 'البسط'}</label>
-                            <input type="number" 
-                                   id="kpi_${kpi.id}_numerator" 
-                                   data-kpi-id="${kpi.id}"
-                                   class="numerator-input"
-                                   step="0.01" 
-                                   required>
+                            <label>المعيار *</label>
+                            <input type="text" id="criteriaName" required class="form-control" placeholder="أدخل اسم المعيار">
                         </div>
-                        
                         <div class="form-group">
-                            <label>${kpi.denominatorLabel || 'المقام'}</label>
-                            <input type="number" 
-                                   id="kpi_${kpi.id}_denominator" 
-                                   data-kpi-id="${kpi.id}"
-                                   class="denominator-input"
-                                   step="0.01" 
-                                   required>
+                            <label>التقييم *</label>
+                            <select id="assessmentValue" required class="form-control">
+                                <option value="">اختر التقييم</option>
+                                <option value="2">⭐⭐ ممتاز (2)</option>
+                                <option value="1">⭐ جيد (1)</option>
+                                <option value="0">❌ ضعيف (0)</option>
+                                <option value="N/A">⚪ لا ينطبق (N/A)</option>
+                            </select>
                         </div>
-                        
                         <div class="form-group">
-                            <label>النتيجة (${kpi.unit || '%'})</label>
-                            <input type="number" 
-                                   id="kpi_${kpi.id}_result" 
-                                   class="result-input"
-                                   readonly 
-                                   style="background: #f0f0f0;">
+                            <label>ملاحظات</label>
+                            <textarea id="assessmentNotes" rows="3" class="form-control" placeholder="أضف ملاحظاتك هنا"></textarea>
                         </div>
-                    </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">💾 حفظ التقييم</button>
+                            <button type="button" onclick="hideAddCriteriaForm()" class="btn btn-secondary">❌ إلغاء</button>
+                        </div>
+                    </form>
                 </div>
-            `;
-        } else if (dataTypeInfo.hasScore) {
-            // المتابعة الشهرية (تقييم)
-            return `
-                <div class="kpi-entry-item" data-index="${index}">
-                    <div class="kpi-entry-header">
-                        <h4>${index + 1}. ${kpi.name}</h4>
-                    </div>
-                    
-                    <div class="score-selector">
-                        <label>
-                            <input type="radio" name="kpi_${kpi.id}_score" value="2" required>
-                            <span class="score-option score-2">2 - ممتاز</span>
-                        </label>
-                        <label>
-                            <input type="radio" name="kpi_${kpi.id}_score" value="1">
-                            <span class="score-option score-1">1 - مقبول</span>
-                        </label>
-                        <label>
-                            <input type="radio" name="kpi_${kpi.id}_score" value="0">
-                            <span class="score-option score-0">0 - غير مستوف</span>
-                        </label>
-                        <label>
-                            <input type="radio" name="kpi_${kpi.id}_score" value="N/A">
-                            <span class="score-option score-na">N/A - غير متاح</span>
-                        </label>
-                    </div>
-                    
-                    <div class="form-group mt-10">
-                        <label>ملاحظات (اختياري)</label>
-                        <textarea id="kpi_${kpi.id}_notes" rows="2" placeholder="أضف ملاحظات..."></textarea>
-                    </div>
-                </div>
-            `;
-        } else if (dataTypeInfo.hasCount) {
-            // القوى البشرية (أرقام مباشرة)
-            return `
-                <div class="kpi-entry-item" data-index="${index}">
-                    <div class="kpi-entry-header">
-                        <h4>${index + 1}. ${kpi.name}</h4>
-                    </div>
-                    
+            </div>
+        `;
+    } else if (dataType.inputType === 'formula') {
+        // مؤشرات الأداء الشهري
+        html += `
+            <div class="entry-form-card">
+                <h3>إدخال بيانات المؤشرات: ${category.name}</h3>
+                
+                <div class="month-year-selector">
                     <div class="form-group">
-                        <label>العدد</label>
-                        <input type="number" 
-                               id="kpi_${kpi.id}_count" 
-                               data-kpi-id="${kpi.id}"
-                               step="1" 
-                               min="0"
-                               required>
+                        <label>الشهر *</label>
+                        <select id="selectedMonth" onchange="loadPerformanceIndicators()" class="form-control">
+                            <option value="">اختر الشهر</option>
+                            <option value="1">يناير</option>
+                            <option value="2">فبراير</option>
+                            <option value="3">مارس</option>
+                            <option value="4">أبريل</option>
+                            <option value="5">مايو</option>
+                            <option value="6">يونيو</option>
+                            <option value="7">يوليو</option>
+                            <option value="8">أغسطس</option>
+                            <option value="9">سبتمبر</option>
+                            <option value="10">أكتوبر</option>
+                            <option value="11">نوفمبر</option>
+                            <option value="12">ديسمبر</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>السنة *</label>
+                        <input type="number" id="selectedYear" value="${selectedYear}" min="2020" max="2050" onchange="loadPerformanceIndicators()" class="form-control">
                     </div>
                 </div>
-            `;
-        }
-    }).join('');
-}
-
-// إضافة مستمعات للحساب التلقائي
-function addAutoCalculationListeners() {
-    // حساب النتيجة تلقائياً عند إدخال البسط والمقام
-    document.querySelectorAll('.numerator-input, .denominator-input').forEach(input => {
-        input.addEventListener('input', function() {
-            const kpiId = this.dataset.kpiId;
-            const numerator = parseFloat(document.getElementById(`kpi_${kpiId}_numerator`)?.value || 0);
-            const denominator = parseFloat(document.getElementById(`kpi_${kpiId}_denominator`)?.value || 0);
-            const resultInput = document.getElementById(`kpi_${kpiId}_result`);
-            
-            if (denominator > 0) {
-                const result = (numerator / denominator) * 100;
-                resultInput.value = result.toFixed(2);
-            } else {
-                resultInput.value = '';
-            }
-            
-            updateProgress();
-        });
-    });
+                
+                <div id="performanceIndicatorsList">
+                    <p style="text-align: center; padding: 20px; color: #666;">اختر الشهر والسنة لعرض المؤشرات</p>
+                </div>
+            </div>
+        `;
+    } else if (dataType.inputType === 'monthly_data') {
+        // مؤشرات التميز الشهرية
+        html += `
+            <div class="entry-form-card">
+                <h3>إدخال مؤشرات التميز: ${category.name}</h3>
+                
+                <div class="month-year-selector">
+                    <div class="form-group">
+                        <label>الشهر *</label>
+                        <select id="excellenceMonth" onchange="loadExcellenceIndicators()" class="form-control">
+                            <option value="">اختر الشهر</option>
+                            <option value="1">يناير</option>
+                            <option value="2">فبراير</option>
+                            <option value="3">مارس</option>
+                            <option value="4">أبريل</option>
+                            <option value="5">مايو</option>
+                            <option value="6">يونيو</option>
+                            <option value="7">يوليو</option>
+                            <option value="8">أغسطس</option>
+                            <option value="9">سبتمبر</option>
+                            <option value="10">أكتوبر</option>
+                            <option value="11">نوفمبر</option>
+                            <option value="12">ديسمبر</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>السنة *</label>
+                        <input type="number" id="excellenceYear" value="${selectedYear}" min="2020" max="2050" onchange="loadExcellenceIndicators()" class="form-control">
+                    </div>
+                </div>
+                
+                <div id="excellenceIndicatorsList">
+                    <p style="text-align: center; padding: 20px; color: #666;">اختر الشهر والسنة لعرض المؤشرات</p>
+                </div>
+            </div>
+        `;
+    }
     
-    // تحديث التقدم عند تحديد التقييم
-    document.querySelectorAll('input[type="radio"]').forEach(input => {
-        input.addEventListener('change', updateProgress);
-    });
-}
-
-// تحديث شريط التقدم
-function updateProgress() {
-    const totalItems = document.querySelectorAll('.kpi-entry-item').length;
-    let completedItems = 0;
+    entryFormSection.innerHTML = html;
+    entryFormSection.style.display = 'block';
     
-    document.querySelectorAll('.kpi-entry-item').forEach(item => {
-        const numeratorInput = item.querySelector('.numerator-input');
-        const scoreInput = item.querySelector('input[type="radio"]:checked');
-        const countInput = item.querySelector('input[type="number"]');
-        
-        if ((numeratorInput && numeratorInput.value) || scoreInput || (countInput && countInput.value)) {
-            completedItems++;
-        }
-    });
-    
-    const progressText = document.getElementById('progressText');
-    if (progressText) {
-        progressText.textContent = `${completedItems} / ${totalItems}`;
+    // تحميل البيانات الحالية
+    if (dataType.inputType === 'assessment') {
+        loadCurrentAssessments(dataType.id, categoryId, subcategoryId);
     }
 }
 
-// معالجة إرسال نموذج البيانات
-function handleDataEntrySubmit(event, dataType, category) {
+// ========================================
+// دوال حفظ البيانات
+// ========================================
+
+function submitWorkforceData(event) {
     event.preventDefault();
     
-    const dataTypeInfo = DATA_TYPES[dataType];
-    const kpis = getAvailableKPIs(dataType, category, currentUser.facilityType);
-    const entries = [];
+    const countValue = parseInt(document.getElementById('countValue').value);
     
-    // جمع البيانات المدخلة
-    kpis.forEach(kpi => {
-        if (dataTypeInfo.hasNumeratorDenominator) {
-            const numerator = parseFloat(document.getElementById(`kpi_${kpi.id}_numerator`)?.value || 0);
-            const denominator = parseFloat(document.getElementById(`kpi_${kpi.id}_denominator`)?.value || 0);
-            const result = denominator > 0 ? (numerator / denominator) * 100 : 0;
-            
-            entries.push({
-                kpiId: kpi.id,
-                kpiCode: kpi.code,
-                kpiName: kpi.name,
-                numerator: numerator,
-                denominator: denominator,
-                result: result,
-                unit: kpi.unit || '%'
-            });
-        } else if (dataTypeInfo.hasScore) {
-            const scoreInput = document.querySelector(`input[name="kpi_${kpi.id}_score"]:checked`);
-            const notes = document.getElementById(`kpi_${kpi.id}_notes`)?.value || '';
-            
-            entries.push({
-                kpiId: kpi.id,
-                kpiCode: kpi.code,
-                kpiName: kpi.name,
-                score: scoreInput ? scoreInput.value : null,
-                notes: notes
-            });
-        } else if (dataTypeInfo.hasCount) {
-            const count = parseInt(document.getElementById(`kpi_${kpi.id}_count`)?.value || 0);
-            
-            entries.push({
-                kpiId: kpi.id,
-                kpiCode: kpi.code,
-                kpiName: kpi.name,
-                count: count
-            });
-        }
-    });
-    
-    // إنشاء كائن البيانات
-    const entryData = {
-        id: generateId(),
-        userId: currentUser.id,
-        facility: currentUser.facility,
-        facilityType: currentUser.facilityType,
-        facilityName: currentUser.facilityName,
-        dataType: dataType,
-        month: selectedMonth,
-        entries: entries,
-        status: 'completed',
+    const data = {
+        dataType: selectedDataType,
+        category: selectedCategory,
+        count: countValue,
+        facility: currentFacility ? currentFacility.id : null,
+        user: currentUser.id,
         createdAt: new Date().toISOString()
     };
     
-    // إضافة الفئة/الإدارة/القسم حسب النوع
-    if (dataType === 'performance') {
-        entryData.category = category;
-        entryData.categoryName = getCategoryName(dataType, category);
-    } else if (dataType === 'excellence') {
-        entryData.department = category;
-        entryData.categoryName = getCategoryName(dataType, category);
-    } else if (dataType === 'monitoring') {
-        entryData.section = category;
-        entryData.categoryName = getCategoryName(dataType, category);
-    } else if (dataType === 'workforce') {
-        entryData.category = category;
-        entryData.categoryName = getCategoryName(dataType, category);
-    }
+    const result = saveKPI(data);
     
-    // حفظ البيانات
-    userKPIData.push(entryData);
-    saveToStorage('userKPIData', userKPIData);
-    
-    // حفظ في kpiData العام (للتقارير)
-    const allKPIData = getFromStorage('kpiData', []);
-    allKPIData.push(entryData);
-    saveToStorage('kpiData', allKPIData);
-    
-    showSuccess('✅ تم حفظ البيانات بنجاح!');
-    
-    // العودة لاختيار الشهر والفئة
-    showMonthAndCategorySelection(dataType);
-}
-
-/**
- * ===== عرض وتعديل البيانات المدخلة =====
- */
-
-// عرض البيانات المدخلة
-function loadDataHistory() {
-    // يتم عرض البيانات المدخلة مؤخراً في الصفحة الرئيسية
-    // تم تنفيذه في loadRecentEntries()
-}
-
-// عرض تفاصيل إدخال
-function viewEntry(entryId) {
-    const entry = userKPIData.find(e => e.id === entryId);
-    if (!entry) {
-        showError('البيانات غير موجودة');
-        return;
-    }
-    
-    // TODO: عرض modal بتفاصيل الإدخال
-    showInfo('عرض التفاصيل - قيد التطوير');
-}
-
-// تعديل إدخال
-function editEntry(entryId) {
-    const entry = userKPIData.find(e => e.id === entryId);
-    if (!entry) {
-        showError('البيانات غير موجودة');
-        return;
-    }
-    
-    // TODO: فتح نموذج التعديل
-    showInfo('تعديل البيانات - قيد التطوير');
-}
-
-// حذف إدخال
-function confirmDeleteEntry(entryId) {
-    if (!confirm('هل أنت متأكد من حذف هذه البيانات؟')) {
-        return;
-    }
-    
-    // حذف من البيانات المحلية
-    userKPIData = userKPIData.filter(e => e.id !== entryId);
-    saveToStorage('userKPIData', userKPIData);
-    
-    // حذف من البيانات العامة
-    let allKPIData = getFromStorage('kpiData', []);
-    allKPIData = allKPIData.filter(e => e.id !== entryId);
-    saveToStorage('kpiData', allKPIData);
-    
-    showSuccess('تم حذف البيانات بنجاح');
-    
-    // تحديث العرض
-    if (currentDataType && selectedMonth) {
-        updateAvailableCategories(currentDataType);
+    if (result.success) {
+        showSuccess('تم حفظ البيانات بنجاح ✅');
+        document.getElementById('countValue').value = '';
     } else {
-        showDataTypeSelection();
+        showError(result.message);
     }
 }
 
-// دالة مساعدة لعرض رسالة معلوماتية
-function showInfo(message) {
-    alert('ℹ️ ' + message);
+function showAddCriteriaForm() {
+    const form = document.getElementById('addCriteriaForm');
+    if (form) {
+        form.style.display = 'block';
+        form.scrollIntoView({ behavior: 'smooth' });
+    }
 }
+
+function hideAddCriteriaForm() {
+    const form = document.getElementById('addCriteriaForm');
+    if (form) {
+        form.style.display = 'none';
+        // مسح الحقول
+        document.getElementById('criteriaName').value = '';
+        document.getElementById('assessmentValue').value = '';
+        document.getElementById('assessmentNotes').value = '';
+    }
+}
+
+function submitAssessmentData(event) {
+    event.preventDefault();
+    
+    const criteriaName = document.getElementById('criteriaName').value;
+    const assessmentValue = document.getElementById('assessmentValue').value;
+    const assessmentNotes = document.getElementById('assessmentNotes').value;
+    
+    const data = {
+        dataType: selectedDataType,
+        category: selectedCategory,
+        subcategory: selectedSubcategory,
+        name: criteriaName,
+        assessment: assessmentValue,
+        notes: assessmentNotes,
+        facility: currentFacility ? currentFacility.id : null,
+        user: currentUser.id,
+        createdAt: new Date().toISOString()
+    };
+    
+    const result = saveKPI(data);
+    
+    if (result.success) {
+        showSuccess('تم حفظ التقييم بنجاح ✅');
+        hideAddCriteriaForm();
+        loadCurrentAssessments(selectedDataType, selectedCategory, selectedSubcategory);
+    } else {
+        showError(result.message);
+    }
+}
+
+function loadCurrentAssessments(dataTypeId, categoryId, subcategoryId = null) {
+    const listContainer = document.getElementById('assessmentsList');
+    if (!listContainer) return;
+    
+    let assessments;
+    if (subcategoryId) {
+        assessments = getKPIsBySubcategory(dataTypeId, categoryId, subcategoryId);
+    } else {
+        assessments = getKPIsByCategory(dataTypeId, categoryId);
+    }
+    
+    if (assessments.length === 0) {
+        listContainer.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">لا توجد معايير مضافة بعد</p>';
+        return;
+    }
+    
+    let html = '<div class="assessments-table"><table class="data-table"><thead><tr><th>المعيار</th><th>التقييم</th><th>الملاحظات</th><th>الإجراءات</th></tr></thead><tbody>';
+    
+    assessments.forEach(item => {
+        let assessmentBadge = '';
+        if (item.assessment === '2') {
+            assessmentBadge = '<span class="badge badge-success">⭐⭐ ممتاز</span>';
+        } else if (item.assessment === '1') {
+            assessmentBadge = '<span class="badge badge-warning">⭐ جيد</span>';
+        } else if (item.assessment === '0') {
+            assessmentBadge = '<span class="badge badge-danger">❌ ضعيف</span>';
+        } else {
+            assessmentBadge = '<span class="badge badge-secondary">⚪ لا ينطبق</span>';
+        }
+        
+        html += `
+            <tr>
+                <td>${item.name}</td>
+                <td>${assessmentBadge}</td>
+                <td>${item.notes || '-'}</td>
+                <td>
+                    <button onclick="editAssessment('${item.id}')" class="btn-icon" title="تعديل">✏️</button>
+                    <button onclick="deleteAssessment('${dataTypeId}', '${categoryId}', '${item.id}', ${subcategoryId ? `'${subcategoryId}'` : 'null'})" class="btn-icon" title="حذف">🗑️</button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    listContainer.innerHTML = html;
+}
+
+function editAssessment(assessmentId) {
+    showError('وظيفة التعديل قيد التطوير');
+}
+
+function deleteAssessment(dataTypeId, categoryId, assessmentId, subcategoryId = null) {
+    if (!confirm('هل أنت متأكد من حذف هذا التقييم؟')) return;
+    
+    const result = deleteKPI(dataTypeId, categoryId, assessmentId, subcategoryId);
+    
+    if (result.success) {
+        showSuccess('تم حذف التقييم بنجاح');
+        loadCurrentAssessments(dataTypeId, categoryId, subcategoryId);
+    } else {
+        showError(result.message);
+    }
+}
+
+function loadPerformanceIndicators() {
+    const month = document.getElementById('selectedMonth').value;
+    const year = document.getElementById('selectedYear').value;
+    const listContainer = document.getElementById('performanceIndicatorsList');
+    
+    if (!month || !year || !listContainer) {
+        if (listContainer) {
+            listContainer.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">اختر الشهر والسنة لعرض المؤشرات</p>';
+        }
+        return;
+    }
+    
+    selectedMonth = parseInt(month);
+    selectedYear = parseInt(year);
+    
+    // جلب المؤشرات من القسم الحالي
+    const indicators = getKPIsByCategory(selectedDataType, selectedCategory);
+    
+    if (indicators.length === 0) {
+        listContainer.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">لا توجد مؤشرات مضافة في هذا القسم</p>';
+        return;
+    }
+    
+    let html = '<div class="indicators-list">';
+    
+    indicators.forEach(indicator => {
+        const savedData = getMonthlyData(selectedDataType, selectedCategory, selectedYear, selectedMonth)
+            .find(d => d.kpiCode === indicator.code);
+        
+        html += `
+            <div class="indicator-card">
+                <h4>${indicator.code} - ${indicator.name}</h4>
+                <p class="indicator-desc">${indicator.formulaDescription || indicator.description || ''}</p>
+                
+                <form onsubmit="submitIndicatorData(event, '${indicator.id}', '${indicator.code}', '${indicator.indicatorType}')">
+        `;
+        
+        if (indicator.indicatorType === 'formula') {
+            html += `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>البسط ${indicator.numeratorLabel ? '(' + indicator.numeratorLabel + ')' : ''}</label>
+                        <input type="number" id="numerator_${indicator.id}" value="${savedData?.numerator || ''}" min="0" step="0.01" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>المقام ${indicator.denominatorLabel ? '(' + indicator.denominatorLabel + ')' : ''}</label>
+                        <input type="number" id="denominator_${indicator.id}" value="${savedData?.denominator || ''}" min="0" step="0.01" required class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>النتيجة (تلقائي)</label>
+                        <input type="text" id="result_${indicator.id}" value="${savedData?.result || '-'}" readonly class="form-control" style="background: #f5f5f5;">
+                    </div>
+                </div>
+            `;
+        } else if (indicator.indicatorType === 'direct') {
+            html += `
+                <div class="form-group">
+                    <label>القيمة</label>
+                    <input type="number" id="value_${indicator.id}" value="${savedData?.value || ''}" min="0" step="0.01" required class="form-control">
+                </div>
+            `;
+        }
+        
+        html += `
+                    <button type="submit" class="btn btn-primary btn-sm">💾 حفظ</button>
+                </form>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    listContainer.innerHTML = html;
+}
+
+function submitIndicatorData(event, indicatorId, kpiCode, indicatorType) {
+    event.preventDefault();
+    
+    let data = {
+        dataType: selectedDataType,
+        category: selectedCategory,
+        kpiCode: kpiCode,
+        month: selectedMonth,
+        year: selectedYear,
+        indicatorType: indicatorType,
+        facility: currentFacility ? currentFacility.id : null,
+        user: currentUser.id
+    };
+    
+    if (indicatorType === 'formula') {
+        const numerator = parseFloat(document.getElementById(`numerator_${indicatorId}`).value);
+        const denominator = parseFloat(document.getElementById(`denominator_${indicatorId}`).value);
+        const result = calculateResult('formula', numerator, denominator);
+        
+        data.numerator = numerator;
+        data.denominator = denominator;
+        data.result = result;
+        
+        // عرض النتيجة
+        document.getElementById(`result_${indicatorId}`).value = result.toFixed(2) + '%';
+    } else if (indicatorType === 'direct') {
+        const value = parseFloat(document.getElementById(`value_${indicatorId}`).value);
+        data.value = value;
+        data.result = value;
+    }
+    
+    const saveResult = saveMonthlyData(data);
+    
+    if (saveResult.success) {
+        showSuccess('تم حفظ البيانات بنجاح ✅');
+    } else {
+        showError(saveResult.message);
+    }
+}
+
+function loadExcellenceIndicators() {
+    const month = document.getElementById('excellenceMonth').value;
+    const year = document.getElementById('excellenceYear').value;
+    const listContainer = document.getElementById('excellenceIndicatorsList');
+    
+    if (!month || !year || !listContainer) {
+        if (listContainer) {
+            listContainer.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">اختر الشهر والسنة لعرض المؤشرات</p>';
+        }
+        return;
+    }
+    
+    selectedMonth = parseInt(month);
+    selectedYear = parseInt(year);
+    
+    const indicators = getKPIsByCategory(selectedDataType, selectedCategory);
+    
+    if (indicators.length === 0) {
+        listContainer.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">لا توجد مؤشرات مضافة في هذا القسم</p>';
+        return;
+    }
+    
+    let html = '<div class="indicators-list">';
+    
+    indicators.forEach(indicator => {
+        const savedData = getMonthlyData(selectedDataType, selectedCategory, selectedYear, selectedMonth)
+            .find(d => d.kpiCode === indicator.code);
+        
+        html += `
+            <div class="indicator-card">
+                <h4>${indicator.code} - ${indicator.name}</h4>
+                <p class="indicator-desc">${indicator.calculationFormula || ''}</p>
+                <p><small>الإدارة المسؤولة: ${indicator.responsibleDepartment}</small></p>
+                
+                <form onsubmit="submitExcellenceData(event, '${indicator.id}', '${indicator.code}')">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>البسط (القيمة الفعلية)</label>
+                            <input type="number" id="excellence_numerator_${indicator.id}" value="${savedData?.numerator || ''}" min="0" step="0.01" required class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>الهدف</label>
+                            <input type="number" id="excellence_target_${indicator.id}" value="${savedData?.target || ''}" min="0" step="0.01" required class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>النسبة المئوية (تلقائي)</label>
+                            <input type="text" id="excellence_percentage_${indicator.id}" value="${savedData?.percentage ? savedData.percentage.toFixed(2) + '%' : '-'}" readonly class="form-control" style="background: #f5f5f5;">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">💾 حفظ</button>
+                </form>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    listContainer.innerHTML = html;
+}
+
+function submitExcellenceData(event, indicatorId, kpiCode) {
+    event.preventDefault();
+    
+    const numerator = parseFloat(document.getElementById(`excellence_numerator_${indicatorId}`).value);
+    const target = parseFloat(document.getElementById(`excellence_target_${indicatorId}`).value);
+    const percentage = calculateResult('monthly_data', numerator, null, target);
+    
+    const data = {
+        dataType: selectedDataType,
+        category: selectedCategory,
+        kpiCode: kpiCode,
+        month: selectedMonth,
+        year: selectedYear,
+        numerator: numerator,
+        target: target,
+        percentage: percentage,
+        facility: currentFacility ? currentFacility.id : null,
+        user: currentUser.id
+    };
+    
+    // عرض النسبة
+    document.getElementById(`excellence_percentage_${indicatorId}`).value = percentage.toFixed(2) + '%';
+    
+    const result = saveMonthlyData(data);
+    
+    if (result.success) {
+        showSuccess('تم حفظ البيانات بنجاح ✅');
+    } else {
+        showError(result.message);
+    }
+}
+// ========================================
+// عرض البيانات
+// ========================================
+
+function loadDataView() {
+    console.log('👁️ Loading data view...');
+    
+    const container = document.getElementById('dataViewContent');
+    if (!container) return;
+    
+    const dataTypes = getAllDataTypes();
+    
+    let html = `
+        <div class="data-view-container">
+            <div class="section-header">
+                <h2>عرض البيانات</h2>
+                <p>استعراض البيانات المدخلة</p>
+            </div>
+            
+            <div class="data-type-selector">
+                <h3>اختر نوع البيانات:</h3>
+                <div class="data-type-grid">
+    `;
+    
+    dataTypes.forEach(dataType => {
+        const stats = getKPIStatistics(dataType.id);
+        
+        html += `
+            <div class="data-type-card" onclick="viewDataType('${dataType.id}')" style="border-left: 4px solid ${dataType.color}">
+                <div class="data-type-icon" style="font-size: 3rem">${dataType.icon}</div>
+                <h4>${dataType.name}</h4>
+                <p class="data-type-desc">${dataType.description}</p>
+                <div class="stats-badge">
+                    <span>📊 ${stats.totalKPIs} مؤشر</span>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `
+                </div>
+            </div>
+            
+            <div id="dataViewResults" style="display: none; margin-top: 30px;"></div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+function viewDataType(dataTypeId) {
+    const resultsContainer = document.getElementById('dataViewResults');
+    if (!resultsContainer) return;
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    const categories = dataType.categories;
+    
+    let html = `
+        <div class="data-view-results">
+            <div class="breadcrumb">
+                <span onclick="loadDataView()" style="cursor: pointer">← عرض البيانات</span>
+                <span class="active">/ ${dataType.icon} ${dataType.name}</span>
+            </div>
+            
+            <h3>البيانات حسب الأقسام:</h3>
+    `;
+    
+    Object.values(categories).forEach(category => {
+        const kpis = getKPIsByCategory(dataTypeId, category.id);
+        
+        html += `
+            <div class="category-data-card" style="border-right: 4px solid ${category.color}">
+                <div class="category-header">
+                    <h4>${category.icon} ${category.name}</h4>
+                    <span class="count-badge">${kpis.length} عنصر</span>
+                </div>
+        `;
+        
+        if (kpis.length === 0) {
+            html += '<p style="color: #666; padding: 20px;">لا توجد بيانات مدخلة</p>';
+        } else {
+            html += '<div class="data-table-container"><table class="data-table"><thead><tr>';
+            
+            // رؤوس الجدول حسب نوع البيانات
+            if (dataType.inputType === 'count') {
+                html += '<th>العدد</th><th>تاريخ الإدخال</th>';
+            } else if (dataType.inputType === 'assessment') {
+                html += '<th>المعيار</th><th>التقييم</th><th>الملاحظات</th><th>تاريخ الإدخال</th>';
+            } else if (dataType.inputType === 'formula') {
+                html += '<th>الكود</th><th>المؤشر</th><th>النوع</th><th>الدورية</th>';
+            } else if (dataType.inputType === 'monthly_data') {
+                html += '<th>الكود</th><th>المؤشر</th><th>الإدارة المسؤولة</th><th>الدورية</th>';
+            }
+            
+            html += '</tr></thead><tbody>';
+            
+            kpis.forEach(item => {
+                html += '<tr>';
+                
+                if (dataType.inputType === 'count') {
+                    html += `
+                        <td><strong>${item.count}</strong></td>
+                        <td>${formatDateArabic(item.createdAt)}</td>
+                    `;
+                } else if (dataType.inputType === 'assessment') {
+                    let badge = '';
+                    if (item.assessment === '2') badge = '<span class="badge badge-success">⭐⭐</span>';
+                    else if (item.assessment === '1') badge = '<span class="badge badge-warning">⭐</span>';
+                    else if (item.assessment === '0') badge = '<span class="badge badge-danger">❌</span>';
+                    else badge = '<span class="badge badge-secondary">⚪</span>';
+                    
+                    html += `
+                        <td>${item.name}</td>
+                        <td>${badge}</td>
+                        <td>${item.notes || '-'}</td>
+                        <td>${formatDateArabic(item.createdAt)}</td>
+                    `;
+                } else if (dataType.inputType === 'formula') {
+                    html += `
+                        <td><strong>${item.code}</strong></td>
+                        <td>${item.name}</td>
+                        <td>${item.indicatorType === 'formula' ? '📊 صيغة حسابية' : '🔢 قيمة مباشرة'}</td>
+                        <td>${item.frequency}</td>
+                    `;
+                } else if (dataType.inputType === 'monthly_data') {
+                    html += `
+                        <td><strong>${item.code}</strong></td>
+                        <td>${item.name}</td>
+                        <td>${item.responsibleDepartment || '-'}</td>
+                        <td>${item.periodicity}</td>
+                    `;
+                }
+                
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table></div>';
+        }
+        
+        html += '</div>';
+    });
+    
+    html += '</div>';
+    
+    resultsContainer.innerHTML = html;
+    resultsContainer.style.display = 'block';
+    resultsContainer.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ========================================
+// التقارير
+// ========================================
+
+function loadReports() {
+    console.log('📊 Loading reports...');
+    
+    const container = document.getElementById('reportsContent');
+    if (!container) return;
+    
+    let html = `
+        <div class="reports-section">
+            <div class="section-header">
+                <h2>التقارير</h2>
+                <p>تقارير شاملة عن البيانات المدخلة</p>
+            </div>
+            
+            <div class="reports-grid">
+                <div class="report-card" onclick="generateMyDataReport()">
+                    <div class="report-icon">📊</div>
+                    <h3>تقرير بياناتي</h3>
+                    <p>ملخص شامل لجميع بياناتك</p>
+                </div>
+                
+                <div class="report-card" onclick="generateMonthlyReport()">
+                    <div class="report-icon">📅</div>
+                    <h3>التقرير الشهري</h3>
+                    <p>بيانات الشهر الحالي</p>
+                </div>
+                
+                <div class="report-card" onclick="generateAssessmentReport()">
+                    <div class="report-icon">⭐</div>
+                    <h3>تقرير التقييمات</h3>
+                    <p>ملخص معايير التقييم</p>
+                </div>
+                
+                <div class="report-card" onclick="exportMyData()">
+                    <div class="report-icon">💾</div>
+                    <h3>تصدير بياناتي</h3>
+                    <p>تصدير جميع البيانات</p>
+                </div>
+            </div>
+            
+            <div id="reportResult" style="margin-top: 30px;"></div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+function generateMyDataReport() {
+    const reportContainer = document.getElementById('reportResult');
+    if (!reportContainer) return;
+    
+    const dataTypes = getAllDataTypes();
+    let totalItems = 0;
+    
+    let html = `
+        <div class="report-result">
+            <h3>📊 تقرير بياناتي الشامل</h3>
+            <div class="report-stats">
+                <div class="stat-card">
+                    <div class="stat-icon">📁</div>
+                    <div class="stat-info">
+                        <h4>أنواع البيانات</h4>
+                        <p class="stat-value">${dataTypes.length}</p>
+                    </div>
+                </div>
+    `;
+    
+    dataTypes.forEach(dataType => {
+        const stats = getKPIStatistics(dataType.id);
+        totalItems += stats.totalKPIs;
+        
+        html += `
+            <div class="stat-card">
+                <div class="stat-icon">${dataType.icon}</div>
+                <div class="stat-info">
+                    <h4>${dataType.name}</h4>
+                    <p class="stat-value">${stats.totalKPIs}</p>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `
+                <div class="stat-card stat-total">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-info">
+                        <h4>إجمالي البيانات</h4>
+                        <p class="stat-value">${totalItems}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="report-details">
+                <h4>التفاصيل:</h4>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>نوع البيانات</th>
+                            <th>عدد الأقسام</th>
+                            <th>عدد العناصر</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+    
+    dataTypes.forEach(dataType => {
+        const stats = getKPIStatistics(dataType.id);
+        
+        html += `
+            <tr>
+                <td>${dataType.icon} ${dataType.name}</td>
+                <td>${stats.totalCategories}</td>
+                <td>${stats.totalKPIs}</td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    reportContainer.innerHTML = html;
+    reportContainer.scrollIntoView({ behavior: 'smooth' });
+}
+
+function generateMonthlyReport() {
+    const reportContainer = document.getElementById('reportResult');
+    if (!reportContainer) return;
+    
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
+    
+    let html = `
+        <div class="report-result">
+            <h3>📅 التقرير الشهري - ${getMonthNameArabic(currentMonth)} ${currentYear}</h3>
+            <p>البيانات المدخلة خلال الشهر الحالي</p>
+        </div>
+    `;
+    
+    reportContainer.innerHTML = html;
+    showSuccess('تقرير الشهر الحالي قيد التطوير');
+}
+
+function generateAssessmentReport() {
+    const reportContainer = document.getElementById('reportResult');
+    if (!reportContainer) return;
+    
+    const assessmentType = getDataTypeInfo('hospital_assessment');
+    
+    if (!assessmentType) {
+        reportContainer.innerHTML = '<p>لا توجد بيانات تقييم</p>';
+        return;
+    }
+    
+    const allAssessments = getAllKPIsByType('hospital_assessment');
+    
+    const excellent = allAssessments.filter(a => a.assessment === '2').length;
+    const good = allAssessments.filter(a => a.assessment === '1').length;
+    const poor = allAssessments.filter(a => a.assessment === '0').length;
+    const na = allAssessments.filter(a => a.assessment === 'N/A').length;
+    
+    let html = `
+        <div class="report-result">
+            <h3>⭐ تقرير التقييمات</h3>
+            <div class="assessment-summary">
+                <div class="assessment-stat" style="background: #4caf50;">
+                    <h4>⭐⭐ ممتاز</h4>
+                    <p class="stat-value">${excellent}</p>
+                </div>
+                <div class="assessment-stat" style="background: #ff9800;">
+                    <h4>⭐ جيد</h4>
+                    <p class="stat-value">${good}</p>
+                </div>
+                <div class="assessment-stat" style="background: #f44336;">
+                    <h4>❌ ضعيف</h4>
+                    <p class="stat-value">${poor}</p>
+                </div>
+                <div class="assessment-stat" style="background: #9e9e9e;">
+                    <h4>⚪ لا ينطبق</h4>
+                    <p class="stat-value">${na}</p>
+                </div>
+            </div>
+            <p style="margin-top: 20px;">إجمالي المعايير المقيمة: <strong>${allAssessments.length}</strong></p>
+        </div>
+    `;
+    
+    reportContainer.innerHTML = html;
+    reportContainer.scrollIntoView({ behavior: 'smooth' });
+}
+
+function exportMyData() {
+    const dataTypes = getAllDataTypes();
+    const exportData = {
+        user: {
+            name: currentUser.name,
+            email: currentUser.email,
+            facility: currentFacility ? currentFacility.name : 'غير محدد'
+        },
+        exportDate: new Date().toISOString(),
+        data: {}
+    };
+    
+    dataTypes.forEach(dataType => {
+        exportData.data[dataType.id] = getAllKPIsByType(dataType.id);
+    });
+    
+    const json = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `my_data_${currentUser.id}_${Date.now()}.json`;
+    a.click();
+    
+    URL.revokeObjectURL(url);
+    showSuccess('تم تصدير بياناتك بنجاح ✅');
+}
+
+// ========================================
+// التنقل بين الأقسام
+// ========================================
+
+function showSection(sectionId) {
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) {
+        targetSection.classList.add('active');
+    }
+    
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    const activeNav = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
+    if (activeNav) {
+        activeNav.classList.add('active');
+    }
+    
+    // تحميل المحتوى حسب القسم
+    if (sectionId === 'dataEntry') {
+        loadDataEntry();
+    } else if (sectionId === 'dataView') {
+        loadDataView();
+    } else if (sectionId === 'reports') {
+        loadReports();
+    }
+}
+
+// ========================================
+// دوال مساعدة
+// ========================================
+
+function formatDateArabic(dateString) {
+    if (!dateString) return '-';
+    
+    const date = new Date(dateString);
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = date.getFullYear();
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    
+    const monthName = getMonthNameArabic(month);
+    
+    return `${day} ${monthName} ${year} - ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
+
+// ========================================
+// رسائل النجاح والخطأ
+// ========================================
+
+function showSuccess(message) {
+    const notification = document.createElement('div');
+    notification.className = 'notification notification-success';
+    notification.innerHTML = `
+        <span class="notification-icon">✅</span>
+        <span class="notification-message">${message}</span>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 3000);
+}
+
+function showError(message) {
+    const notification = document.createElement('div');
+    notification.className = 'notification notification-error';
+    notification.innerHTML = `
+        <span class="notification-icon">❌</span>
+        <span class="notification-message">${message}</span>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(notification);
+        }, 300);
+    }, 4000);
+}
+
+console.log('✅ User main script loaded (v2.0 - Complete)');
