@@ -76,6 +76,9 @@ function handleLogin(event) {
     const password = document.getElementById('loginPassword').value;
     const errorDiv = document.getElementById('loginError');
 
+    console.log('Email:', email);
+    console.log('Password:', password);
+
     if (email === 'admin@system.com' && password === 'admin123') {
         console.log('✅ Login successful');
         
@@ -88,13 +91,31 @@ function handleLogin(event) {
         };
         
         saveToStorage('currentUser', currentUser);
-        loadData();
         
         if (errorDiv) {
             errorDiv.style.display = 'none';
         }
         
-        showAdminPanel();
+        // إخفاء صفحة تسجيل الدخول
+        const loginPage = document.getElementById('loginPage');
+        if (loginPage) {
+            loginPage.style.display = 'none';
+        }
+        
+        // إظهار لوحة التحكم
+        const adminPanel = document.getElementById('adminPanel');
+        if (adminPanel) {
+            adminPanel.style.display = 'flex';
+        }
+        
+        loadData();
+        displayUserInfo();
+        
+        setTimeout(() => {
+            loadDashboard();
+            updateDashboardStats();
+        }, 100);
+        
         showSuccess('تم تسجيل الدخول بنجاح');
     } else {
         console.log('❌ Invalid credentials');
@@ -109,8 +130,9 @@ function handleLogin(event) {
             errorDiv.style.borderRight = '4px solid #f44336';
         }
     }
+    
+    return false;
 }
-
 function handleLogout() {
     if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
         removeFromStorage('currentUser');
