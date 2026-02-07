@@ -33,8 +33,20 @@ function showLoginPage() {
     const loginPage = document.getElementById('loginPage');
     const adminPanel = document.getElementById('adminPanel');
     
-    if (loginPage) loginPage.style.display = 'flex';
-    if (adminPanel) adminPanel.style.display = 'none';
+    if (loginPage) {
+        loginPage.style.display = 'flex';
+        loginPage.style.visibility = 'visible';
+        loginPage.style.opacity = '1';
+        loginPage.style.pointerEvents = 'auto';
+        loginPage.classList.remove('hide');
+    }
+    
+    if (adminPanel) {
+        adminPanel.style.display = 'none';
+        adminPanel.style.visibility = 'hidden';
+        adminPanel.style.opacity = '0';
+        adminPanel.classList.remove('show');
+    }
 }
 
 // عرض لوحة التحكم
@@ -42,27 +54,34 @@ function showAdminPanel() {
     const loginPage = document.getElementById('loginPage');
     const adminPanel = document.getElementById('adminPanel');
     
-    // إخفاء صفحة اللوجن بشكل كامل
+    console.log('📊 Showing admin panel...');
+    
+    // إخفاء صفحة اللوجن
     if (loginPage) {
         loginPage.style.display = 'none';
+        loginPage.style.visibility = 'hidden';
+        loginPage.style.opacity = '0';
+        loginPage.style.pointerEvents = 'none';
+        loginPage.classList.add('hide');
     }
     
     // إظهار لوحة التحكم
     if (adminPanel) {
         adminPanel.style.display = 'flex';
+        adminPanel.style.visibility = 'visible';
+        adminPanel.style.opacity = '1';
+        adminPanel.classList.add('show');
     }
     
     // عرض معلومات المستخدم
     displayUserInfo();
     
     // تحميل لوحة المعلومات
-    loadDashboard();
-    
-    // تحديث الإحصائيات
-    updateDashboardStats();
+    setTimeout(() => {
+        updateDashboardStats();
+        loadDashboard();
+    }, 100);
 }
-
-// معالجة تسجيل الدخول
 // معالجة تسجيل الدخول
 function handleLogin(event) {
     event.preventDefault();
