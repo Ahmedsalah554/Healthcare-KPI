@@ -1,15 +1,18 @@
 /**
- * ===== تعريف أنواع البيانات الأربعة (حسب الملفات الفعلية) =====
+ * ===== تعريف أنواع البيانات الأربعة (محدث حسب المواصفات الجديدة) =====
  */
 
 const DATA_TYPES = {
+    // ========================================
+    // 1️⃣ القوى البشرية - عدد فقط
+    // ========================================
     WORKFORCE: {
         id: 'workforce',
         name: 'القوى البشرية',
         nameEn: 'Human Resources',
         icon: '👥',
         color: '#8b5cf6',
-        description: 'بيانات القوى البشرية والإحصائيات',
+        description: 'بيانات القوى البشرية - عدد فقط',
         inputType: 'count',
         frequency: 'monthly',
         categories: {
@@ -64,12 +67,13 @@ const DATA_TYPES = {
             }
         },
         fields: {
-            code: { required: true, type: 'text', label: 'رقم الوظيفة' },
-            jobTitle: { required: true, type: 'text', label: 'المسمى الوظيفي' },
-            count: { required: true, type: 'number', label: 'العدد' }
+            count: { required: true, type: 'number', label: 'العدد', min: 0 }
         }
     },
     
+    // ========================================
+    // 2️⃣ معايير التقييم - 20 قسم رئيسي + أقسام فرعية
+    // ========================================
     HOSPITAL_ASSESSMENT: {
         id: 'hospital_assessment',
         name: 'معايير التقييم',
@@ -79,86 +83,309 @@ const DATA_TYPES = {
         description: 'معايير تقييم المستشفيات 2025',
         inputType: 'assessment',
         frequency: 'monthly',
+        hasSubcategories: true,
         categories: {
-            PLANNING: {
-                id: 'PLANNING',
-                name: 'التخطيط المصمم والخدمات',
-                nameEn: 'Planning and Services',
+            // 1. التسجيل الطبي
+            MEDICAL_RECORDS: {
+                id: 'MEDICAL_RECORDS',
+                name: 'التسجيل الطبي',
+                nameEn: 'Medical Records',
                 icon: '📋',
-                color: '#3b82f6'
+                color: '#3b82f6',
+                subcategories: {
+                    MEDICAL_FILES: { id: 'MEDICAL_FILES', name: 'الملفات الطبية', icon: '📁' },
+                    RECORDS: { id: 'RECORDS', name: 'السجلات', icon: '📝' },
+                    DECLARATIONS: { id: 'DECLARATIONS', name: 'الإقرارات', icon: '📄' }
+                }
             },
-            LEADERSHIP: {
-                id: 'LEADERSHIP',
-                name: 'القيادة والحوكمة',
-                nameEn: 'Leadership and Governance',
-                icon: '👨‍💼',
-                color: '#f59e0b'
-            },
-            WORK_ORGANIZATION: {
-                id: 'WORK_ORGANIZATION',
-                name: 'تنظيم العمل',
-                nameEn: 'Work Organization',
-                icon: '⚙️',
-                color: '#10b981'
-            },
-            QUALITY_IMPROVEMENT: {
-                id: 'QUALITY_IMPROVEMENT',
-                name: 'تحسين الجودة والخدمات',
-                nameEn: 'Quality Improvement',
-                icon: '✨',
-                color: '#8b5cf6'
-            },
-            OUTPATIENT_CARE: {
-                id: 'OUTPATIENT_CARE',
-                name: 'الرعاية الطبية الخارجية',
-                nameEn: 'Outpatient Care',
+            
+            // 2. الخدمات الطبية المساعدة
+            AUXILIARY_MEDICAL_SERVICES: {
+                id: 'AUXILIARY_MEDICAL_SERVICES',
+                name: 'الخدمات الطبية المساعدة',
+                nameEn: 'Auxiliary Medical Services',
                 icon: '🏥',
-                color: '#ec4899'
+                color: '#10b981',
+                subcategories: {}
             },
-            FINANCIAL_MANAGEMENT: {
-                id: 'FINANCIAL_MANAGEMENT',
-                name: 'الإدارة المالية',
-                nameEn: 'Financial Management',
-                icon: '💰',
-                color: '#f97316'
+            
+            // 3. الصيدلية
+            PHARMACY: {
+                id: 'PHARMACY',
+                name: 'الصيدلية',
+                nameEn: 'Pharmacy',
+                icon: '💊',
+                color: '#f59e0b',
+                subcategories: {
+                    DRUG_LISTS: { id: 'DRUG_LISTS', name: 'قوائم الأدوية', icon: '📋' }
+                }
             },
-            SUPPORT_SERVICES: {
-                id: 'SUPPORT_SERVICES',
-                name: 'خدمات الدعم',
-                nameEn: 'Support Services',
-                icon: '🔧',
-                color: '#06b6d4'
-            },
-            NURSING_MANAGEMENT: {
-                id: 'NURSING_MANAGEMENT',
-                name: 'إدارة التمريض',
-                nameEn: 'Nursing Management',
-                icon: '👩‍⚕️',
-                color: '#8b5cf6'
-            },
-            DIAGNOSTIC_SERVICES: {
-                id: 'DIAGNOSTIC_SERVICES',
-                name: 'الخدمات التشخيصية',
-                nameEn: 'Diagnostic Services',
+            
+            // 4. المعمل
+            LABORATORY: {
+                id: 'LABORATORY',
+                name: 'المعمل',
+                nameEn: 'Laboratory',
                 icon: '🔬',
-                color: '#ef4444'
+                color: '#8b5cf6',
+                subcategories: {
+                    WORK_ORGANIZATION: { id: 'WORK_ORGANIZATION', name: 'تنظيم العمل', icon: '⚙️' },
+                    LAB_RECORDS: { id: 'LAB_RECORDS', name: 'سجلات المعمل', icon: '📝' },
+                    LAB_POLICIES: { id: 'LAB_POLICIES', name: 'سياسات المعمل', icon: '📜' },
+                    LAB_LISTS: { id: 'LAB_LISTS', name: 'قوائم المعمل', icon: '📋' },
+                    SAFETY_REQUIREMENTS: { id: 'SAFETY_REQUIREMENTS', name: 'اشتراطات السلامة بالمعمل', icon: '⚠️' },
+                    QUALITY_CONTROL: { id: 'QUALITY_CONTROL', name: 'ضبط الجودة بالمعمل', icon: '✅' },
+                    WORK_PROCEDURES: { id: 'WORK_PROCEDURES', name: 'إجراءات العمل', icon: '📖' },
+                    MICROBIOLOGY_LAB: { id: 'MICROBIOLOGY_LAB', name: 'معمل الميكروبيولوجي', icon: '🦠' },
+                    SAMPLE_COLLECTION: { id: 'SAMPLE_COLLECTION', name: 'توافر الاشتراطات بمكان سحب العينات', icon: '💉' }
+                }
+            },
+            
+            // 5. الأشعة
+            RADIOLOGY: {
+                id: 'RADIOLOGY',
+                name: 'الأشعة',
+                nameEn: 'Radiology',
+                icon: '📡',
+                color: '#ec4899',
+                subcategories: {
+                    INFRASTRUCTURE: { id: 'INFRASTRUCTURE', name: 'البنية التحتية بالأشعة', icon: '🏗️' },
+                    EQUIPMENT: { id: 'EQUIPMENT', name: 'التجهيزات بالأشعة', icon: '🔧' },
+                    SAFETY_REQUIREMENTS: { id: 'SAFETY_REQUIREMENTS', name: 'اشتراطات السلامة بالأشعة', icon: '⚠️' },
+                    PROTECTION_EQUIPMENT: { id: 'PROTECTION_EQUIPMENT', name: 'معدات الوقاية الشخصية', icon: '🦺' },
+                    LISTS: { id: 'LISTS', name: 'القوائم', icon: '📋' },
+                    RECORDS: { id: 'RECORDS', name: 'السجلات', icon: '📝' },
+                    GENERAL_NOTES: { id: 'GENERAL_NOTES', name: 'ملاحظات عامة', icon: '📌' }
+                }
+            },
+            
+            // 6. بنك الدم
+            BLOOD_BANK: {
+                id: 'BLOOD_BANK',
+                name: 'بنك الدم',
+                nameEn: 'Blood Bank',
+                icon: '🩸',
+                color: '#ef4444',
+                subcategories: {
+                    INFRASTRUCTURE: { id: 'INFRASTRUCTURE', name: 'البنية التحتية ببنك الدم', icon: '🏗️' },
+                    EQUIPMENT: { id: 'EQUIPMENT', name: 'التجهيزات ببنك الدم', icon: '🔧' },
+                    RECORDS: { id: 'RECORDS', name: 'السجلات', icon: '📝' },
+                    FORMS: { id: 'FORMS', name: 'النماذج ببنك الدم', icon: '📄' },
+                    BLOOD_BAG_SPECS: { id: 'BLOOD_BAG_SPECS', name: 'مواصفات كيس الدم', icon: '💉' }
+                }
+            },
+            
+            // 7. الخدمات المساعدة غير الطبية
+            NON_MEDICAL_SUPPORT: {
+                id: 'NON_MEDICAL_SUPPORT',
+                name: 'الخدمات المساعدة غير الطبية',
+                nameEn: 'Non-Medical Support Services',
+                icon: '🔧',
+                color: '#06b6d4',
+                subcategories: {}
+            },
+            
+            // 8. وحدة التعقيم المركزي
+            STERILIZATION: {
+                id: 'STERILIZATION',
+                name: 'وحدة التعقيم المركزي',
+                nameEn: 'Central Sterilization Unit',
+                icon: '🧼',
+                color: '#10b981',
+                subcategories: {
+                    EQUIPMENT: { id: 'EQUIPMENT', name: 'تجهيزات الوحدة', icon: '🔧' },
+                    SUPPLIES: { id: 'SUPPLIES', name: 'ملاحظة المستلزمات', icon: '📦' },
+                    WORK_PROCEDURES: { id: 'WORK_PROCEDURES', name: 'إجراءات العمل', icon: '📖' },
+                    AUTOCLAVE_EFFICIENCY: { id: 'AUTOCLAVE_EFFICIENCY', name: 'متابعة كفاءة التعقيم بجهاز الأوتوكلاف', icon: '🔬' },
+                    RECORDS: { id: 'RECORDS', name: 'السجلات', icon: '📝' },
+                    CLEANING_SCHEDULES: { id: 'CLEANING_SCHEDULES', name: 'القوائم – جداول تنظيف', icon: '📋' }
+                }
+            },
+            
+            // 9. وحدة غسيل المفروشات
+            LAUNDRY: {
+                id: 'LAUNDRY',
+                name: 'وحدة غسيل المفروشات',
+                nameEn: 'Laundry Unit',
+                icon: '🧺',
+                color: '#8b5cf6',
+                subcategories: {
+                    EQUIPMENT: { id: 'EQUIPMENT', name: 'تجهيزات المغسلة', icon: '🔧' },
+                    SUPPLIES: { id: 'SUPPLIES', name: 'ملاحظة المستلزمات', icon: '📦' },
+                    WORK_ENVIRONMENT: { id: 'WORK_ENVIRONMENT', name: 'بيئة العمل', icon: '🏭' },
+                    RECORDS: { id: 'RECORDS', name: 'السجلات', icon: '📝' }
+                }
+            },
+            
+            // 10. ��حدة التغذية (المطبخ)
+            NUTRITION: {
+                id: 'NUTRITION',
+                name: 'وحدة التغذية (المطبخ)',
+                nameEn: 'Nutrition Unit (Kitchen)',
+                icon: '🍽️',
+                color: '#f59e0b',
+                subcategories: {
+                    KITCHEN_DESIGN: { id: 'KITCHEN_DESIGN', name: 'تصميم مطبخ المستشفى', icon: '🏗️' },
+                    WORKFLOW: { id: 'WORKFLOW', name: 'مسار العمل في المطبخ', icon: '🔄' },
+                    SUPPLIES: { id: 'SUPPLIES', name: 'ملاحظة المستلزمات', icon: '📦' },
+                    SCHEDULES_CERTIFICATES: { id: 'SCHEDULES_CERTIFICATES', name: 'الجداول – القوائم – الشهادات الصحية', icon: '📋' }
+                }
+            },
+            
+            // 11. غرفة حفظ الموتى
+            MORGUE: {
+                id: 'MORGUE',
+                name: 'غرفة حفظ الموتى',
+                nameEn: 'Morgue',
+                icon: '⚰️',
+                color: '#6b7280',
+                subcategories: {
+                    GENERAL_REQUIREMENTS: { id: 'GENERAL_REQUIREMENTS', name: 'اشتراطات عامة', icon: '📜' }
+                }
+            },
+            
+            // 12. غرفة النفايات
+            WASTE_ROOM: {
+                id: 'WASTE_ROOM',
+                name: 'غرفة النفايات',
+                nameEn: 'Waste Room',
+                icon: '🗑️',
+                color: '#78716c',
+                subcategories: {}
+            },
+            
+            // 13. الانضباط والالتزام الإداري
+            DISCIPLINE_COMMITMENT: {
+                id: 'DISCIPLINE_COMMITMENT',
+                name: 'الانضباط والالتزام الإداري',
+                nameEn: 'Discipline and Administrative Commitment',
+                icon: '⚖️',
+                color: '#3b82f6',
+                subcategories: {
+                    HUMAN_RESOURCES: { id: 'HUMAN_RESOURCES', name: 'الموارد البشرية', icon: '👥' },
+                    TRAINING: { id: 'TRAINING', name: 'التعليم والتدريب المستمر', icon: '📚' },
+                    RECORDS: { id: 'RECORDS', name: 'السجلات', icon: '📝' }
+                }
+            },
+            
+            // 14. الشئون المالية
+            FINANCIAL_AFFAIRS: {
+                id: 'FINANCIAL_AFFAIRS',
+                name: 'الشئون المالية',
+                nameEn: 'Financial Affairs',
+                icon: '💰',
+                color: '#f97316',
+                subcategories: {
+                    RECORDS: { id: 'RECORDS', name: 'السجلات', icon: '📝' }
+                }
+            },
+            
+            // 15. المخازن
+            WAREHOUSES: {
+                id: 'WAREHOUSES',
+                name: 'المخازن',
+                nameEn: 'Warehouses',
+                icon: '📦',
+                color: '#06b6d4',
+                subcategories: {
+                    RECORDS_FORMS: { id: 'RECORDS_FORMS', name: 'السجلات / النماذج', icon: '📋' }
+                }
+            },
+            
+            // 16. وحدة العناية المركزة
+            ICU: {
+                id: 'ICU',
+                name: 'وحدة العناية المركزة',
+                nameEn: 'Intensive Care Unit',
+                icon: '🏥',
+                color: '#ef4444',
+                subcategories: {
+                    INFRASTRUCTURE: { id: 'INFRASTRUCTURE', name: 'البنية التحتية بوحدة العناية المركزة', icon: '🏗️' },
+                    EQUIPMENT: { id: 'EQUIPMENT', name: 'التجهيزات الخاصة بوحدة العناية المركزة', icon: '🔧' },
+                    MEDICAL_NURSING_CARE: { id: 'MEDICAL_NURSING_CARE', name: 'الرعاية الطبية والتمريضية', icon: '👨‍⚕️' },
+                    RECORDS: { id: 'RECORDS', name: 'السجلات', icon: '📝' }
+                }
+            },
+            
+            // 17. قسم الاستقبال والطوارئ
+            EMERGENCY: {
+                id: 'EMERGENCY',
+                name: 'قسم الاستقبال والطوارئ',
+                nameEn: 'Emergency Department',
+                icon: '🚨',
+                color: '#ef4444',
+                subcategories: {
+                    INFRASTRUCTURE: { id: 'INFRASTRUCTURE', name: 'البنية التحتية بالاستقبال والطوارئ', icon: '🏗️' },
+                    EQUIPMENT: { id: 'EQUIPMENT', name: 'التجهيزات بالطوارئ', icon: '🔧' },
+                    RECORDS: { id: 'RECORDS', name: 'السجلات بالطوارئ', icon: '📝' },
+                    CLINICAL_GUIDELINES: { id: 'CLINICAL_GUIDELINES', name: 'أدلة العمل الإكلينيكية بالطوارئ', icon: '📖' }
+                }
+            },
+            
+            // 18. قسم العمليات
+            OPERATIONS: {
+                id: 'OPERATIONS',
+                name: 'قسم العمليات',
+                nameEn: 'Operations Department',
+                icon: '🏥',
+                color: '#8b5cf6',
+                subcategories: {
+                    INFRASTRUCTURE: { id: 'INFRASTRUCTURE', name: 'البنية التحتية بالعمليات', icon: '🏗️' },
+                    EQUIPMENT: { id: 'EQUIPMENT', name: 'التجهيزات بالعمليات', icon: '🔧' },
+                    RECORDS: { id: 'RECORDS', name: 'السجلات بالعمليات', icon: '📝' }
+                }
+            },
+            
+            // 19. وحدة الغسيل الكلوي
+            DIALYSIS: {
+                id: 'DIALYSIS',
+                name: 'وحدة الغسيل الكلوي',
+                nameEn: 'Dialysis Unit',
+                icon: '🩺',
+                color: '#10b981',
+                subcategories: {
+                    INFRASTRUCTURE: { id: 'INFRASTRUCTURE', name: 'البنية التحتية بوحدة الغسيل الكلوي', icon: '🏗️' },
+                    POLICIES_PROCEDURES: { id: 'POLICIES_PROCEDURES', name: 'السياسات والإجراءات بوحدة الغسيل الكلوي', icon: '📜' },
+                    WORK_PROTOCOL: { id: 'WORK_PROTOCOL', name: 'بروتوكول العمل', icon: '📖' },
+                    MEDICAL_FILE: { id: 'MEDICAL_FILE', name: 'الملف الطبي', icon: '📁' },
+                    RECORDS: { id: 'RECORDS', name: 'السجلات', icon: '📝' },
+                    DECLARATIONS: { id: 'DECLARATIONS', name: 'الإقرارات', icon: '📄' },
+                    PATIENT_TESTS: { id: 'PATIENT_TESTS', name: 'فحوصات المرضى', icon: '🔬' }
+                }
+            },
+            
+            // 20. العلاج الطبيعي
+            PHYSIOTHERAPY: {
+                id: 'PHYSIOTHERAPY',
+                name: 'العلاج الطبيعي',
+                nameEn: 'Physiotherapy',
+                icon: '🏃',
+                color: '#10b981',
+                subcategories: {
+                    GENERAL_REQUIREMENTS: { id: 'GENERAL_REQUIREMENTS', name: 'الاشتراطات العامة', icon: '📜' },
+                    EQUIPMENT: { id: 'EQUIPMENT', name: 'التجهيزات اللازمة طبقاً لنوع الخدمة المقدمة', icon: '🔧' },
+                    RECORDS: { id: 'RECORDS', name: 'السجلات', icon: '📝' },
+                    INFECTION_CONTROL: { id: 'INFECTION_CONTROL', name: 'مكافحة العدوى بالعلاج الطبيعي', icon: '🦠' }
+                }
             }
         },
         fields: {
-            code: { required: true, type: 'text', label: 'رقم المعيار' },
             name: { required: true, type: 'text', label: 'المعيار' },
             assessment: { required: true, type: 'select', label: 'التقييم', options: ['2', '1', '0', 'N/A'] },
             notes: { required: false, type: 'textarea', label: 'ملاحظات' }
         }
     },
     
+    // ========================================
+    // 3️⃣ مؤشرات الأد��ء الشهري - نوعين (formula / direct)
+    // ========================================
     PERFORMANCE: {
         id: 'performance',
         name: 'مؤشرات الأداء الشهري',
         nameEn: 'Monthly Performance Indicators',
         icon: '📊',
         color: '#1a73e8',
-        description: 'مؤشرات الأداء الأساسية - بسط ومقام',
+        description: 'مؤشرات الأداء - صيغة حسابية أو قيمة مباشرة',
         inputType: 'formula',
         frequency: 'monthly',
         categories: {
@@ -257,44 +484,102 @@ const DATA_TYPES = {
         fields: {
             code: { required: true, type: 'text', label: 'كود المؤشر' },
             name: { required: true, type: 'text', label: 'المؤشر' },
-            department: { required: true, type: 'text', label: 'الإدارة المسؤولة' },
-            numeratorLabel: { required: true, type: 'text', label: 'البسط' },
-            denominatorLabel: { required: false, type: 'text', label: 'المقام' },
-            formula: { required: true, type: 'text', label: 'المعادلة الحسابية' },
-            percentage: { required: true, type: 'text', label: 'النسبة المئوية (مثال: 100X)' },
+            indicatorType: { 
+                required: true, 
+                type: 'select', 
+                label: 'نوع المؤشر', 
+                options: [
+                    { value: 'formula', label: 'صيغة حسابية (بسط ÷ مقام × 100)' },
+                    { value: 'direct', label: 'قيمة مباشرة (رقم واحد)' }
+                ]
+            },
+            formulaDescription: { required: false, type: 'textarea', label: 'وصف المعادلة (للصيغة الحسابية)' },
+            numeratorLabel: { required: false, type: 'text', label: 'البسط (توضيح)' },
+            denominatorLabel: { required: false, type: 'text', label: 'المقام (توضيح)' },
+            description: { required: false, type: 'textarea', label: 'الوصف/التعليمات (للقيمة المباشرة)' },
             frequency: { required: true, type: 'select', label: 'دورية الإبلاغ', options: ['شهري', 'ربع سنوي', 'سنوي'] }
         }
     },
     
+    // ========================================
+    // 4️⃣ نموذج الإدخال الشهري - مؤشرات التميز (8 إدارات)
+    // ========================================
     MONTHLY_INPUT: {
         id: 'monthly_input',
-        name: 'نموذج الإدخال الشهري',
-        nameEn: 'Monthly Data Input',
+        name: 'نموذج الإدخال الشهري (مؤشرات التميز)',
+        nameEn: 'Monthly Excellence Indicators',
         icon: '📈',
         color: '#10b981',
-        description: 'إدخال البيانات الشهرية للمؤشرات',
+        description: 'مؤشرات التميز - إدخال شهري حسب الإدارات',
         inputType: 'monthly_data',
         frequency: 'monthly',
         categories: {
-            JANUARY: { id: 'JANUARY', name: 'يناير', nameEn: 'January', icon: '1️⃣', color: '#3b82f6', month: 1 },
-            FEBRUARY: { id: 'FEBRUARY', name: 'فبراير', nameEn: 'February', icon: '2️⃣', color: '#8b5cf6', month: 2 },
-            MARCH: { id: 'MARCH', name: 'مارس', nameEn: 'March', icon: '3️⃣', color: '#10b981', month: 3 },
-            APRIL: { id: 'APRIL', name: 'أبريل', nameEn: 'April', icon: '4️⃣', color: '#f59e0b', month: 4 },
-            MAY: { id: 'MAY', name: 'مايو', nameEn: 'May', icon: '5️⃣', color: '#ef4444', month: 5 },
-            JUNE: { id: 'JUNE', name: 'يونيو', nameEn: 'June', icon: '6️⃣', color: '#ec4899', month: 6 },
-            JULY: { id: 'JULY', name: 'يوليو', nameEn: 'July', icon: '7️⃣', color: '#06b6d4', month: 7 },
-            AUGUST: { id: 'AUGUST', name: 'أغسطس', nameEn: 'August', icon: '8️⃣', color: '#8b5cf6', month: 8 },
-            SEPTEMBER: { id: 'SEPTEMBER', name: 'سبتمبر', nameEn: 'September', icon: '9️⃣', color: '#10b981', month: 9 },
-            OCTOBER: { id: 'OCTOBER', name: 'أكتوبر', nameEn: 'October', icon: '🔟', color: '#f59e0b', month: 10 },
-            NOVEMBER: { id: 'NOVEMBER', name: 'نوفمبر', nameEn: 'November', icon: '1️⃣1️⃣', color: '#3b82f6', month: 11 },
-            DECEMBER: { id: 'DECEMBER', name: 'ديسمبر', nameEn: 'December', icon: '1️⃣2️⃣', color: '#ef4444', month: 12 }
+            PREVENTIVE_GENERAL: {
+                id: 'PREVENTIVE_GENERAL',
+                name: 'إدارة الوقائي',
+                nameEn: 'Preventive Department',
+                icon: '🛡️',
+                color: '#10b981'
+            },
+            PREVENTIVE_ENV_HEALTH: {
+                id: 'PREVENTIVE_ENV_HEALTH',
+                name: 'إدارة الوقائي (صحة البيئة)',
+                nameEn: 'Preventive (Environmental Health)',
+                icon: '🌿',
+                color: '#22c55e'
+            },
+            PREVENTIVE_ENV_MONITORING: {
+                id: 'PREVENTIVE_ENV_MONITORING',
+                name: 'إدارة الوقائي (الرصد البيئي)',
+                nameEn: 'Preventive (Environmental Monitoring)',
+                icon: '📊',
+                color: '#84cc16'
+            },
+            SAFETY_HEALTH: {
+                id: 'SAFETY_HEALTH',
+                name: 'إدارة السلامة والصحة المهنية',
+                nameEn: 'Occupational Safety and Health',
+                icon: '⚠️',
+                color: '#f59e0b'
+            },
+            ENV_HEALTH_PREVENTIVE: {
+                id: 'ENV_HEALTH_PREVENTIVE',
+                name: 'إدارة صحة البيئة (الوقائي)',
+                nameEn: 'Environmental Health (Preventive)',
+                icon: '🌍',
+                color: '#10b981'
+            },
+            ENV_MONITORING_CLIMATE: {
+                id: 'ENV_MONITORING_CLIMATE',
+                name: 'إدارة الرصد البيئي (ملف تغيير المناخ)',
+                nameEn: 'Environmental Monitoring (Climate Change)',
+                icon: '🌡️',
+                color: '#06b6d4'
+            },
+            ENV_HEALTH: {
+                id: 'ENV_HEALTH',
+                name: 'إدارة صحة البيئة',
+                nameEn: 'Environmental Health Department',
+                icon: '♻️',
+                color: '#14b8a6'
+            },
+            HEPATITIS: {
+                id: 'HEPATITIS',
+                name: 'إدارة الفيروسات الكبدية',
+                nameEn: 'Viral Hepatitis Department',
+                icon: '🦠',
+                color: '#ef4444'
+            }
         },
         fields: {
-            year: { required: true, type: 'number', label: 'السنة' },
-            kpiCode: { required: true, type: 'select', label: 'المؤشر' },
-            numerator: { required: true, type: 'number', label: 'البسط' },
-            denominator: { required: false, type: 'number', label: 'المقام' },
-            result: { required: false, type: 'number', label: 'النتيجة', readonly: true }
+            code: { required: true, type: 'text', label: 'كود المؤشر' },
+            name: { required: true, type: 'text', label: 'المؤشر' },
+            responsibleDepartment: { required: true, type: 'text', label: 'الإدارة المسؤولة' },
+            calculationFormula: { required: true, type: 'textarea', label: 'معادلة الاحتساب' },
+            numerator: { required: true, type: 'number', label: 'البسط (القيمة الفعلية)' },
+            target: { required: true, type: 'number', label: 'الهدف' },
+            percentage: { required: false, type: 'number', label: 'النسبة المئوية', readonly: true },
+            periodicity: { required: true, type: 'select', label: 'دورية التقييم', options: ['شهري', 'ربع سنوي', 'سنوي'] }
         }
     }
 };
@@ -323,7 +608,10 @@ const FACILITY_TYPES = {
     }
 };
 
-// دوال مساعدة
+// ========================================
+// ��وال مساعدة
+// ========================================
+
 function getDataTypeInfo(dataTypeId) {
     return Object.values(DATA_TYPES).find(dt => dt.id === dataTypeId) || null;
 }
@@ -339,10 +627,10 @@ function getAllDataTypes() {
 
 function getInputTypeLabel(inputType) {
     const labels = {
-        count: 'عد مباشر (عدد الموظفين)',
+        count: 'عدد فقط',
         assessment: 'تقييم (2-1-0-N/A)',
-        formula: 'صيغة حسابية (بسط/مقام)',
-        monthly_data: 'بيانات شهرية'
+        formula: 'صيغة حسابية أو قيمة مباشرة',
+        monthly_data: 'بيانات شهرية (بسط + هدف)'
     };
     return labels[inputType] || inputType;
 }
@@ -351,6 +639,26 @@ function getCategoryName(dataType, categoryKey) {
     const categories = getCategoriesByDataType(dataType);
     const category = categories[categoryKey];
     return category ? category.name : categoryKey;
+}
+
+// ✅ دوال جديدة للأقسام الفرعية
+function getSubcategories(dataTypeId, categoryId) {
+    const dataType = getDataTypeInfo(dataTypeId);
+    if (!dataType || !dataType.hasSubcategories) return {};
+    
+    const category = dataType.categories[categoryId];
+    return category?.subcategories || {};
+}
+
+function hasSubcategories(dataTypeId) {
+    const dataType = getDataTypeInfo(dataTypeId);
+    return dataType?.hasSubcategories || false;
+}
+
+function getSubcategoryName(dataTypeId, categoryId, subcategoryId) {
+    const subcategories = getSubcategories(dataTypeId, categoryId);
+    const subcategory = subcategories[subcategoryId];
+    return subcategory ? subcategory.name : subcategoryId;
 }
 
 function getApplicableFacilitiesText(applicableTo) {
@@ -367,7 +675,6 @@ function getApplicableFacilitiesText(applicableTo) {
     return facilities.length > 0 ? facilities.join(', ') : 'غير محدد';
 }
 
-// دالة لتحويل رقم الشهر إلى اسم
 function getMonthNameArabic(monthNumber) {
     const months = {
         1: 'يناير', 2: 'فبراير', 3: 'مارس', 4: 'أبريل',
@@ -377,14 +684,6 @@ function getMonthNameArabic(monthNumber) {
     return months[monthNumber] || '';
 }
 
-// دالة للحصول على معلومات الشهر من القسم
-function getMonthFromCategory(categoryId) {
-    const categories = DATA_TYPES.MONTHLY_INPUT.categories;
-    const category = Object.values(categories).find(cat => cat.id === categoryId);
-    return category ? category.month : null;
-}
-
-// دالة للتحقق من نوع الإدخال
 function isCountType(dataTypeId) {
     const type = getDataTypeInfo(dataTypeId);
     return type?.inputType === 'count';
@@ -405,32 +704,29 @@ function isMonthlyDataType(dataTypeId) {
     return type?.inputType === 'monthly_data';
 }
 
-// دالة للحصول على جميع أنواع المنشآت
 function getAllFacilityTypes() {
     return Object.values(FACILITY_TYPES);
 }
 
-// دالة للحصول على نوع منشأة محدد
 function getFacilityTypeInfo(facilityTypeId) {
     return FACILITY_TYPES[facilityTypeId] || null;
 }
 
-// دالة للحصول على اسم نوع المنشأة بالعربي
 function getFacilityTypeName(facilityTypeId) {
     const facilityType = getFacilityTypeInfo(facilityTypeId);
     return facilityType ? facilityType.name : facilityTypeId;
 }
 
-// دالة للحصول على لون نوع المنشأة
 function getFacilityTypeColor(facilityTypeId) {
     const facilityType = getFacilityTypeInfo(facilityTypeId);
     return facilityType ? facilityType.color : '#666666';
 }
 
-// دالة للحصول على أيقونة نوع المنشأة
 function getFacilityTypeIcon(facilityTypeId) {
     const facilityType = getFacilityTypeInfo(facilityTypeId);
     return facilityType ? facilityType.icon : '🏥';
 }
 
-console.log('✅ Data types loaded:', Object.keys(DATA_TYPES).length);
+console.log('✅ Data types loaded (Updated v2.0):', Object.keys(DATA_TYPES).length);
+console.log('📊 Total main categories:', Object.values(DATA_TYPES).reduce((acc, dt) => acc + Object.keys(dt.categories).length, 0));
+console.log('🔹 Hospital Assessment Subcategories:', Object.values(DATA_TYPES.HOSPITAL_ASSESSMENT.categories).reduce((acc, cat) => acc + Object.keys(cat.subcategories || {}).length, 0));
