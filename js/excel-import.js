@@ -1,612 +1,552 @@
 /**
- * ===== استيراد المؤشرات من Excel/CSV =====
+ * ===== استيراد البيانات من Excel (محدث v2.0) =====
+ * دعم الأقسام الفرعية والهيكل الجديد
  */
 
-function handleKPIFileSelect(event) {
-    const file = event.target.files[0];
+// تحميل مكتبة SheetJS (XLSX)
+// يجب تضمين المكتبة في HTML: <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+let selectedImportDataType = null;
+let selectedImportCategory = null;
+let selectedImportSubcategory = null;
+
+// ========================================
+// واجهة الاستيراد
+// ========================================
+
+function loadImportInterface() {
+    console.log('📥 Loading import interface...');
     
-    if (!file) {
+    const container = document.getElementById('importContent');
+    if (!container) return;
+    
+    const dataTypes = getAllDataTypes();
+    
+    let html = `
+        <div class="import-container">
+            <div class="section-header">
+                <h2>استيراد البيانات من Excel</h2>
+                <p>اختر نوع البيانات ثم قم برفع ملف Excel</p>
+            </div>
+            
+            <div class="import-steps">
+                <div class="step-card">
+                    <div class="step-number">1️⃣</div>
+                    <h4>اختر نوع البيانات</h4>
+                    <p>حدد نوع البيانات التي تريد استيرادها</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2️⃣</div>
+                    <h4>اختر القسم</h4>
+                    <p>حدد القسم أو القسم الفرعي</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3️⃣</div>
+                    <h4>رفع الملف</h4>
+                    <p>اختر ملف Excel وقم بالاستيراد</p>
+                </div>
+            </div>
+            
+            <div class="data-type-selector">
+                <h3>الخطوة 1: اختر نوع البيانات</h3>
+                <div class="data-type-grid">
+    `;
+    
+    dataTypes.forEach(dataType => {
+        html += `
+            <div class="data-type-card" onclick="selectImportDataType('${dataType.id}')" style="border-left: 4px solid ${dataType.color}">
+                <div class="data-type-icon" style="font-size: 3rem">${dataType.icon}</div>
+                <h4>${dataType.name}</h4>
+                <p class="data-type-desc">${dataType.description}</p>
+            </div>
+        `;
+    });
+    
+    html += `
+                </div>
+            </div>
+            
+            <div id="importCategorySection" style="display: none; margin-top: 30px;"></div>
+            <div id="importFileSection" style="display: none; margin-top: 30px;"></div>
+            <div id="importResultSection" style="display: none; margin-top: 30px;"></div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+function selectImportDataType(dataTypeId) {
+    selectedImportDataType = dataTypeId;
+    selectedImportCategory = null;
+    selectedImportSubcategory = null;
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    console.log('Selected import data type:', dataType);
+    
+    showImportCategorySelection(dataType);
+}
+
+function showImportCategorySelection(dataType) {
+    const categorySection = document.getElementById('importCategorySection');
+    if (!categorySection) return;
+    
+    const categories = dataType.categories;
+    
+    let html = `
+        <div class="import-step-section">
+            <h3>الخطوة 2: اختر القسم</h3>
+            <div class="category-grid">
+    `;
+    
+    Object.values(categories).forEach(category => {
+        html += `
+            <div class="category-card" onclick="selectImportCategory('${dataType.id}', '${category.id}')" style="border-top: 3px solid ${category.color}">
+                <div class="category-icon" style="color: ${category.color}; font-size: 2.5rem">${category.icon}</div>
+                <h4>${category.name}</h4>
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    categorySection.innerHTML = html;
+    categorySection.style.display = 'block';
+    
+    // إخفاء الأقسام التالية
+    document.getElementById('importFileSection').style.display = 'none';
+    document.getElementById('importResultSection').style.display = 'none';
+}
+
+function selectImportCategory(dataTypeId, categoryId) {
+    selectedImportDataType = dataTypeId;
+    selectedImportCategory = categoryId;
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    
+    // التحقق من وجود أقسام فرعية
+    if (hasSubcategories(dataTypeId)) {
+        const subcategories = getSubcategories(dataTypeId, categoryId);
+        
+        if (Object.keys(subcategories).length > 0) {
+            showImportSubcategorySelection(dataType, categoryId, subcategories);
+            return;
+        }
+    }
+    
+    // لا توجد أقسام فرعية - عرض واجهة رفع الملف
+    showImportFileUpload(dataType, categoryId);
+}
+
+function showImportSubcategorySelection(dataType, categoryId, subcategories) {
+    const categorySection = document.getElementById('importCategorySection');
+    if (!categorySection) return;
+    
+    const category = dataType.categories[categoryId];
+    
+    let html = `
+        <div class="import-step-section">
+            <div class="breadcrumb">
+                <span onclick="selectImportDataType('${dataType.id}')" style="cursor: pointer">← ${dataType.icon} ${dataType.name}</span>
+                <span class="active">/ ${category.icon} ${category.name}</span>
+            </div>
+            
+            <h3>اختر القسم الفرعي:</h3>
+            <div class="subcategory-grid">
+    `;
+    
+    Object.values(subcategories).forEach(subcategory => {
+        html += `
+            <div class="subcategory-card" onclick="selectImportSubcategory('${dataType.id}', '${categoryId}', '${subcategory.id}')">
+                <div class="subcategory-icon" style="font-size: 2rem">${subcategory.icon || '📋'}</div>
+                <h4>${subcategory.name}</h4>
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    categorySection.innerHTML = html;
+}
+
+function selectImportSubcategory(dataTypeId, categoryId, subcategoryId) {
+    selectedImportDataType = dataTypeId;
+    selectedImportCategory = categoryId;
+    selectedImportSubcategory = subcategoryId;
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    showImportFileUpload(dataType, categoryId, subcategoryId);
+}
+
+function showImportFileUpload(dataType, categoryId, subcategoryId = null) {
+    const fileSection = document.getElementById('importFileSection');
+    if (!fileSection) return;
+    
+    const category = dataType.categories[categoryId];
+    const subcategory = subcategoryId ? getSubcategories(dataType.id, categoryId)[subcategoryId] : null;
+    
+    let html = `
+        <div class="import-step-section">
+            <h3>الخطوة 3: رفع ملف Excel</h3>
+            
+            <div class="import-info-card">
+                <h4>📋 المعلومات المطلوبة:</h4>
+                <p><strong>نوع البيانات:</strong> ${dataType.icon} ${dataType.name}</p>
+                <p><strong>القسم:</strong> ${category.icon} ${category.name}</p>
+    `;
+    
+    if (subcategory) {
+        html += `<p><strong>القسم الفرعي:</strong> ${subcategory.icon || '📋'} ${subcategory.name}</p>`;
+    }
+    
+    html += `
+            </div>
+            
+            <div class="template-section">
+                <h4>📥 تحميل القالب:</h4>
+                <p>قم بتحميل قالب Excel المناسب لنوع البيانات</p>
+                <button onclick="downloadExcelTemplate('${dataType.id}', '${categoryId}')" class="btn btn-secondary">
+                    📄 تحميل القالب
+                </button>
+            </div>
+            
+            <div class="upload-section">
+                <h4>📤 رفع الملف:</h4>
+                <div class="file-input-wrapper">
+                    <input type="file" id="excelFileInput" accept=".xlsx,.xls" onchange="handleFileSelect(event)" class="file-input">
+                    <label for="excelFileInput" class="file-input-label">
+                        <span class="file-icon">📁</span>
+                        <span class="file-text">اختر ��لف Excel</span>
+                    </label>
+                </div>
+                <p id="selectedFileName" class="selected-file-name"></p>
+                <button id="importButton" onclick="importExcelFile()" class="btn btn-primary" style="display: none;">
+                    🚀 بدء الاستيراد
+                </button>
+            </div>
+        </div>
+    `;
+    
+    fileSection.innerHTML = html;
+    fileSection.style.display = 'block';
+}
+
+// ========================================
+// تحميل قوالب Excel
+// ========================================
+
+function downloadExcelTemplate(dataTypeId, categoryId) {
+    const dataType = getDataTypeInfo(dataTypeId);
+    
+    if (!dataType) {
+        showError('نوع البيانات غير موجود');
         return;
     }
     
-    console.log('📁 File selected:', file.name);
+    // إنشاء قالب Excel حسب نوع البيانات
+    let worksheetData = [];
     
-    const fileExtension = file.name.split('.').pop().toLowerCase();
-    const validExtensions = ['xlsx', 'xls', 'csv'];
+    if (dataType.inputType === 'count') {
+        // القوى البشرية
+        worksheetData = [
+            ['العدد'],
+            ['0'],
+            ['مثال: 25']
+        ];
+    } else if (dataType.inputType === 'assessment') {
+        // معايير التقييم
+        worksheetData = [
+            ['المعيار', 'التقييم', 'ملاحظات'],
+            ['', '', ''],
+            ['مثال: النظافة العامة', '2', 'ممتاز']
+        ];
+    } else if (dataType.inputType === 'formula') {
+        // مؤشرات الأداء
+        worksheetData = [
+            ['الكود', 'المؤشر', 'نوع المؤشر', 'وصف المعادلة', 'البسط', 'المقام', 'الوصف', 'دورية الإبلاغ'],
+            ['', '', 'formula أو direct', '', '', '', '', 'شهري'],
+            ['WFM-01', 'نسبة الحضور', 'formula', '(الحاضرين ÷ الإجمالي) × 100', 'عدد الحاضرين', 'إجمالي الموظفين', '', 'شهري']
+        ];
+    } else if (dataType.inputType === 'monthly_data') {
+        // مؤشرات التميز
+        worksheetData = [
+            ['الكود', 'المؤشر', 'الإدارة المسؤولة', 'معادلة الاحتساب', 'دورية التقييم'],
+            ['', '', '', '', 'شهري'],
+            ['A1', 'مؤشر الإنجاز', 'إدارة الوقائي', '(البسط ÷ الهدف) × 100', 'شهري']
+        ];
+    }
     
-    if (!validExtensions.includes(fileExtension)) {
-        showError('نوع الملف غير صحيح. يرجى اختيار ملف Excel (.xlsx, .xls) أو CSV (.csv)');
-        event.target.value = '';
+    // إنشاء workbook
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+    
+    // تنسيق العمود الأول (رأس الجدول)
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+        const address = XLSX.utils.encode_col(C) + "1";
+        if (!ws[address]) continue;
+        ws[address].s = {
+            font: { bold: true },
+            fill: { fgColor: { rgb: "4472C4" } },
+            alignment: { horizontal: "center" }
+        };
+    }
+    
+    XLSX.utils.book_append_sheet(wb, ws, "البيانات");
+    
+    // تصدير الملف
+    const fileName = `template_${dataType.id}_${categoryId}_${Date.now()}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    
+    showSuccess('تم تحميل القالب بنجاح ✅');
+}
+
+// ========================================
+// معالجة الملفات
+// ========================================
+
+let selectedFile = null;
+
+function handleFileSelect(event) {
+    selectedFile = event.target.files[0];
+    
+    if (!selectedFile) return;
+    
+    const fileNameDisplay = document.getElementById('selectedFileName');
+    const importButton = document.getElementById('importButton');
+    
+    if (fileNameDisplay) {
+        fileNameDisplay.textContent = `📄 الملف المحدد: ${selectedFile.name}`;
+        fileNameDisplay.style.display = 'block';
+        fileNameDisplay.style.color = '#4caf50';
+        fileNameDisplay.style.padding = '10px';
+        fileNameDisplay.style.background = '#e8f5e9';
+        fileNameDisplay.style.borderRadius = '8px';
+        fileNameDisplay.style.marginTop = '10px';
+    }
+    
+    if (importButton) {
+        importButton.style.display = 'inline-block';
+    }
+}
+
+function importExcelFile() {
+    if (!selectedFile) {
+        showError('الرجاء اختيار ملف أولاً');
         return;
     }
     
-    if (!selectedKPIDataType || !selectedKPICategory) {
-        showError('الرجاء اختيار نوع البيانات والقسم أولاً');
-        event.target.value = '';
+    if (!selectedImportDataType || !selectedImportCategory) {
+        showError('الرجاء اختيار نوع البيانات والقسم');
         return;
     }
-    
-    showLoadingMessage('جاري قراءة الملف...');
     
     const reader = new FileReader();
     
     reader.onload = function(e) {
         try {
-            let data;
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
             
-            if (fileExtension === 'csv') {
-                data = parseCSV(e.target.result);
-            } else {
-                const workbook = XLSX.read(e.target.result, { type: 'binary' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                data = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-            }
+            // قراءة أول ورقة عمل
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
             
-            console.log('📊 Data read:', data.length, 'rows');
-            console.log('First 3 rows:', data.slice(0, 3));
+            // تحويل إلى JSON
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
             
-            processImportedData(data);
+            console.log('📊 Excel data loaded:', jsonData);
+            
+            // معالجة البيانات
+            processImportedData(jsonData);
             
         } catch (error) {
-            console.error('Error reading file:', error);
-            showError('حدث خطأ في قراءة الملف: ' + error.message);
-            hideLoadingMessage();
+            console.error('❌ Import error:', error);
+            showError('خطأ في قراءة الملف: ' + error.message);
         }
     };
     
     reader.onerror = function() {
         showError('فشل في قراءة الملف');
-        hideLoadingMessage();
     };
     
-    if (fileExtension === 'csv') {
-        reader.readAsText(file, 'UTF-8');
-    } else {
-        reader.readAsBinaryString(file);
-    }
+    reader.readAsArrayBuffer(selectedFile);
 }
 
-function processImportedData(data) {
-    if (!data || data.length < 2) {
-        showError('الملف فارغ أو لا يحتوي على بيانات كافية');
-        hideLoadingMessage();
+// ========================================
+// معالجة البيانات المستوردة
+// ========================================
+
+function processImportedData(excelData) {
+    const dataType = getDataTypeInfo(selectedImportDataType);
+    
+    if (!dataType) {
+        showError('نوع البيانات غير صحيح');
         return;
     }
     
-    console.log('🔄 Processing data...');
+    // إزالة رأس الجدول
+    const headers = excelData[0];
+    const rows = excelData.slice(1).filter(row => row && row.length > 0);
     
-    const typeInfo = getDataTypeInfo(selectedKPIDataType);
-    if (!typeInfo) {
-        showError('يرجى اختيار نوع البيانات أولاً');
-        hideLoadingMessage();
+    console.log('Headers:', headers);
+    console.log('Rows:', rows);
+    
+    if (rows.length === 0) {
+        showError('لا توجد بيانات في الملف');
         return;
     }
-    
-    // تنظيف الهيدر من القيم الفارغة
-    const rawHeaders = data[0];
-    const headers = rawHeaders.map(h => {
-        if (h === null || h === undefined || h === '') {
-            return '';
-        }
-        return String(h).trim();
-    }).filter(h => h !== '');
-    
-    console.log('📋 Cleaned Headers:', headers);
-    
-    if (headers.length === 0) {
-        showError('الملف لا يحتوي على أعمدة صالحة');
-        hideLoadingMessage();
-        return;
-    }
-    
-    const requiredColumns = detectRequiredColumns(headers, typeInfo);
-    
-    if (!requiredColumns.valid) {
-        showError('الملف لا يحتوي على الأعمدة المطلوبة:\n\n' + requiredColumns.missing.join('\n'));
-        hideLoadingMessage();
-        return;
-    }
-    
-    const kpis = [];
-    const errors = [];
-    const skipped = [];
-    
-    for (let i = 1; i < data.length; i++) {
-        const row = data[i];
-        
-        if (!row || row.length === 0 || !row[0]) {
-            continue;
-        }
-        
-        try {
-            const kpiData = extractKPIFromRow(row, rawHeaders, requiredColumns, typeInfo);
-            
-            if (kpiData) {
-                if (kpiExistsInCategory(selectedKPIDataType, selectedKPICategory, kpiData.code)) {
-                    skipped.push(`${kpiData.code} - ${kpiData.name} (موجود مسبقاً)`);
-                } else {
-                    kpis.push(kpiData);
-                }
-            }
-        } catch (error) {
-            errors.push(`الصف ${i + 1}: ${error.message}`);
-        }
-    }
-    
-    console.log('✅ Processed:', kpis.length, 'KPIs');
-    console.log('⚠️ Skipped:', skipped.length, 'KPIs');
-    console.log('❌ Errors:', errors.length, 'rows');
-    
-    showImportPreview(kpis, skipped, errors, typeInfo);
-}
-
-function detectRequiredColumns(headers, typeInfo) {
-    const result = {
-        valid: true,
-        missing: [],
-        columns: {}
-    };
-    
-    console.log('🔍 Detecting columns for:', typeInfo.id, '- Input type:', typeInfo.inputType);
-    console.log('Headers to search:', headers);
-    
-    // دالة مساعدة للبحث الآمن
-    function findColumnIndex(aliases) {
-        return headers.findIndex(h => {
-            if (!h || h === '') return false;
-            const headerLower = String(h).toLowerCase().trim();
-            return aliases.some(alias => headerLower.includes(alias.toLowerCase()));
-        });
-    }
-    
-    // الأعمدة الأساسية (موجودة في جميع الأنواع)
-    const codeIndex = findColumnIndex(['كود', 'الكود', 'code', 'رمز', 'رقم']);
-    const nameIndex = findColumnIndex(['اسم', 'الاسم', 'name', 'المؤشر', 'indicator', 'الوظيفة', 'المعيار', 'المسمى']);
-    
-    if (codeIndex !== -1) {
-        result.columns.code = codeIndex;
-        console.log(`✅ Found code at index ${codeIndex}`);
-    } else {
-        result.missing.push('كود المؤشر');
-        result.valid = false;
-        console.log('❌ Missing code column');
-    }
-    
-    if (nameIndex !== -1) {
-        result.columns.name = nameIndex;
-        console.log(`✅ Found name at index ${nameIndex}`);
-    } else {
-        result.missing.push('اسم المؤشر');
-        result.valid = false;
-        console.log('❌ Missing name column');
-    }
-    
-    // أعمدة خاصة حسب نوع الإدخال
-    if (typeInfo.inputType === 'formula') {
-        console.log('🔍 Looking for formula type columns...');
-        
-        const deptIndex = findColumnIndex(['إدارة', 'الإدارة', 'department', 'مسؤول', 'المسؤولة']);
-        const numeratorIndex = findColumnIndex(['بسط', 'البسط', 'numerator']);
-        const denominatorIndex = findColumnIndex(['مقام', 'المقام', 'denominator']);
-        const formulaIndex = findColumnIndex(['صيغة', 'الصيغة', 'formula', 'معادلة', 'المعادلة']);
-        const percentageIndex = findColumnIndex(['نسبة', 'النسبة', 'percentage', '%']);
-        const frequencyIndex = findColumnIndex(['دورية', 'الدورية', 'frequency', 'إبلاغ']);
-        
-        if (deptIndex !== -1) result.columns.department = deptIndex;
-        if (numeratorIndex !== -1) result.columns.numerator = numeratorIndex;
-        if (denominatorIndex !== -1) result.columns.denominator = denominatorIndex;
-        if (formulaIndex !== -1) result.columns.formula = formulaIndex;
-        if (percentageIndex !== -1) result.columns.percentage = percentageIndex;
-        if (frequencyIndex !== -1) result.columns.frequency = frequencyIndex;
-        
-    } else if (typeInfo.inputType === 'assessment') {
-        console.log('🔍 Looking for assessment type columns...');
-        
-        const assessmentIndex = findColumnIndex(['تقييم', 'التقييم', 'assessment', 'evaluation']);
-        const notesIndex = findColumnIndex(['ملاحظات', 'notes', 'تعليق', 'وصف']);
-        
-        if (assessmentIndex !== -1) result.columns.assessment = assessmentIndex;
-        if (notesIndex !== -1) result.columns.notes = notesIndex;
-        
-    } else if (typeInfo.inputType === 'count') {
-        console.log('🔍 Looking for count type columns...');
-        
-        const jobIndex = findColumnIndex(['وظيفة', 'المسمى', 'job', 'title', 'مسمى وظيفي']);
-        const countIndex = findColumnIndex(['عدد', 'العدد', 'count', 'number']);
-        
-        if (jobIndex !== -1) result.columns.jobTitle = jobIndex;
-        if (countIndex !== -1) result.columns.count = countIndex;
-        
-    } else if (typeInfo.inputType === 'monthly_data') {
-        console.log('🔍 Looking for monthly_data type columns...');
-        
-        const yearIndex = findColumnIndex(['سنة', 'السنة', 'year']);
-        const kpiCodeIndex = findColumnIndex(['مؤشر', 'المؤشر', 'kpi', 'indicator']);
-        const valueIndex = findColumnIndex(['قيمة', 'القيمة', 'value', 'نتيجة']);
-        
-        if (yearIndex !== -1) result.columns.year = yearIndex;
-        if (kpiCodeIndex !== -1) result.columns.kpiCode = kpiCodeIndex;
-        if (valueIndex !== -1) result.columns.monthValue = valueIndex;
-    }
-    
-    // أعمدة المنشآت (اختيارية)
-    const hospitalIndex = findColumnIndex(['مستشفى', 'hospital']);
-    const centerIndex = findColumnIndex(['مركز', 'center', 'صحي']);
-    const unitIndex = findColumnIndex(['وحدة', 'unit']);
-    
-    if (hospitalIndex !== -1) result.columns.hospital = hospitalIndex;
-    if (centerIndex !== -1) result.columns.healthCenter = centerIndex;
-    if (unitIndex !== -1) result.columns.healthUnit = unitIndex;
-    
-    console.log('📊 Detection result:', result);
-    
-    return result;
-}
-
-function extractKPIFromRow(row, headers, columns, typeInfo) {
-    const kpiData = {
-        dataType: selectedKPIDataType,
-        category: selectedKPICategory,
-        code: String(row[columns.columns.code] || '').trim(),
-        name: String(row[columns.columns.name] || '').trim(),
-        applicableTo: {
-            hospital: true,
-            healthCenter: true,
-            healthUnit: true
-        }
-    };
-    
-    if (!kpiData.code || !kpiData.name) {
-        throw new Error('الكود أو الاسم فارغ');
-    }
-    
-    // استخراج البيانات حسب نوع الإدخال
-    if (typeInfo.inputType === 'formula') {
-        if (columns.columns.department !== undefined) {
-            kpiData.department = String(row[columns.columns.department] || '').trim();
-        }
-        if (columns.columns.numerator !== undefined) {
-            kpiData.numeratorLabel = String(row[columns.columns.numerator] || '').trim();
-        }
-        if (columns.columns.denominator !== undefined) {
-            kpiData.denominatorLabel = String(row[columns.columns.denominator] || '').trim();
-        }
-        if (columns.columns.formula !== undefined) {
-            kpiData.formula = String(row[columns.columns.formula] || '').trim();
-        }
-        if (columns.columns.percentage !== undefined) {
-            kpiData.percentage = String(row[columns.columns.percentage] || '').trim();
-        }
-        if (columns.columns.frequency !== undefined) {
-            kpiData.frequency = String(row[columns.columns.frequency] || '').trim();
-        }
-        
-    } else if (typeInfo.inputType === 'assessment') {
-        if (columns.columns.assessment !== undefined) {
-            kpiData.assessment = String(row[columns.columns.assessment] || '').trim();
-        }
-        if (columns.columns.notes !== undefined) {
-            kpiData.notes = String(row[columns.columns.notes] || '').trim();
-        }
-        
-    } else if (typeInfo.inputType === 'count') {
-        if (columns.columns.jobTitle !== undefined) {
-            kpiData.jobTitle = String(row[columns.columns.jobTitle] || '').trim();
-        }
-        if (columns.columns.count !== undefined) {
-            const countValue = row[columns.columns.count];
-            kpiData.count = parseInt(countValue) || 0;
-        }
-        
-    } else if (typeInfo.inputType === 'monthly_data') {
-        if (columns.columns.year !== undefined) {
-            const yearValue = row[columns.columns.year];
-            kpiData.year = parseInt(yearValue) || new Date().getFullYear();
-        }
-        if (columns.columns.kpiCode !== undefined) {
-            kpiData.kpiCode = String(row[columns.columns.kpiCode] || '').trim();
-        }
-        if (columns.columns.monthValue !== undefined) {
-            const monthValue = row[columns.columns.monthValue];
-            kpiData.monthValue = parseFloat(monthValue) || 0;
-        }
-    }
-    
-    // استخراج أنواع المنشآت
-    if (columns.columns.hospital !== undefined) {
-        const val = String(row[columns.columns.hospital] || '').trim().toLowerCase();
-        kpiData.applicableTo.hospital = ['نعم', 'yes', '1', 'true', 'x', '✓', '√'].includes(val);
-    }
-    if (columns.columns.healthCenter !== undefined) {
-        const val = String(row[columns.columns.healthCenter] || '').trim().toLowerCase();
-        kpiData.applicableTo.healthCenter = ['نعم', 'yes', '1', 'true', 'x', '✓', '√'].includes(val);
-    }
-    if (columns.columns.healthUnit !== undefined) {
-        const val = String(row[columns.columns.healthUnit] || '').trim().toLowerCase();
-        kpiData.applicableTo.healthUnit = ['نعم', 'yes', '1', 'true', 'x', '✓', '√'].includes(val);
-    }
-    
-    return kpiData;
-}
-
-function showImportPreview(kpis, skipped, errors, typeInfo) {
-    hideLoadingMessage();
-    
-    const previewContainer = document.getElementById('importPreview');
-    if (!previewContainer) return;
-    
-    const catInfo = typeInfo.categories[selectedKPICategory];
-    
-    let html = '';
-    
-    html += `
-        <div style="margin: 20px 0; padding: 20px; background: linear-gradient(135deg, ${catInfo.color || typeInfo.color}20 0%, ${catInfo.color || typeInfo.color}10 100%); border-radius: 10px; border-right: 4px solid ${catInfo.color || typeInfo.color};">
-            <h3 style="margin: 0 0 15px 0; color: #333; display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 1.5rem;">${catInfo.icon || typeInfo.icon}</span>
-                <span>📊 ملخص الاستيراد - ${catInfo.name}</span>
-            </h3>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;">
-                <div style="padding: 15px; background: white; border-radius: 8px; border: 2px solid #4caf50;">
-                    <div style="font-size: 2rem; color: #4caf50; font-weight: 700;">${kpis.length}</div>
-                    <div style="color: #666; font-size: 0.9rem;">جاهز للإضافة</div>
-                </div>
-                <div style="padding: 15px; background: white; border-radius: 8px; border: 2px solid #ff9800;">
-                    <div style="font-size: 2rem; color: #ff9800; font-weight: 700;">${skipped.length}</div>
-                    <div style="color: #666; font-size: 0.9rem;">تم تجاهله</div>
-                </div>
-                <div style="padding: 15px; background: white; border-radius: 8px; border: 2px solid #f44336;">
-                    <div style="font-size: 2rem; color: #f44336; font-weight: 700;">${errors.length}</div>
-                    <div style="color: #666; font-size: 0.9rem;">أخطاء</div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    if (kpis.length > 0) {
-        html += `
-            <div style="margin: 20px 0;">
-                <h4 style="color: #4caf50; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
-                    <span>✅</span>
-                    <span>المؤشرات الجاهزة للإضافة (${kpis.length})</span>
-                </h4>
-                <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px; background: white;">
-                    ${kpis.map((kpi, index) => {
-                        let details = '';
-                        if (typeInfo.inputType === 'formula') {
-                            details = kpi.percentage ? `النسبة: ${kpi.percentage}` : '';
-                        } else if (typeInfo.inputType === 'assessment') {
-                            details = kpi.assessment ? `التقييم: ${kpi.assessment}` : '';
-                        } else if (typeInfo.inputType === 'count') {
-                            details = kpi.count ? `العدد: ${kpi.count}` : '';
-                        } else if (typeInfo.inputType === 'monthly_data') {
-                            details = kpi.monthValue ? `القيمة: ${kpi.monthValue}` : '';
-                        }
-                        
-                        return `
-                            <div style="padding: 10px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
-                                <div style="flex: 1;">
-                                    <strong style="color: ${catInfo.color || typeInfo.color};">${kpi.code}</strong> - ${kpi.name}
-                                    ${details ? `<small style="color: #999; display: block; margin-top: 3px;">${details}</small>` : ''}
-                                </div>
-                                <span style="color: #4caf50; font-size: 1.2rem;">✓</span>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-        `;
-    }
-    
-    if (skipped.length > 0) {
-        html += `
-            <div style="margin: 20px 0;">
-                <h4 style="color: #ff9800; margin-bottom: 10px;">⚠️ المؤشرات المتجاهلة (${skipped.length})</h4>
-                <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ffe0b2; border-radius: 8px; padding: 10px; background: #fff3e0;">
-                    ${skipped.map(item => `
-                        <div style="padding: 5px 10px; color: #e65100; font-size: 0.9rem;">• ${item}</div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    }
-    
-    if (errors.length > 0) {
-        html += `
-            <div style="margin: 20px 0;">
-                <h4 style="color: #f44336; margin-bottom: 10px;">❌ الأخطاء (${errors.length})</h4>
-                <div style="max-height: 200px; overflow-y: auto; border: 1px solid #ffcdd2; border-radius: 8px; padding: 10px; background: #ffebee;">
-                    ${errors.map(error => `
-                        <div style="padding: 5px 10px; color: #c62828; font-size: 0.9rem;">• ${error}</div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    }
-    
-    html += `
-        <div style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #e0e0e0; display: flex; gap: 15px; justify-content: center;">
-            ${kpis.length > 0 ? `
-                <button class="btn btn-success btn-large" onclick="confirmImport()" style="min-width: 200px; padding: 15px 30px; font-size: 1.1rem;">
-                    ✓ تأكيد وإضافة ${kpis.length} مؤشر
-                </button>
-            ` : ''}
-            <button class="btn btn-secondary" onclick="cancelImport()" style="padding: 15px 30px;">
-                إلغاء
-            </button>
-        </div>
-    `;
-    
-    previewContainer.innerHTML = html;
-    
-    window.pendingKPIsImport = kpis;
-}
-
-function confirmImport() {
-    if (!window.pendingKPIsImport || window.pendingKPIsImport.length === 0) {
-        showError('لا توجد بيانات للاستيراد');
-        return;
-    }
-    
-    console.log('💾 Importing', window.pendingKPIsImport.length, 'KPIs...');
-    
-    showLoadingMessage('جاري إضافة المؤشرات...');
     
     let successCount = 0;
-    let failCount = 0;
+    let errorCount = 0;
+    const errors = [];
     
-    window.pendingKPIsImport.forEach(kpiData => {
-        console.log('Saving KPI:', kpiData.code);
-        const result = saveKPI(kpiData);
-        if (result.success) {
-            successCount++;
-            console.log('✅ Saved:', kpiData.code);
-        } else {
-            failCount++;
-            console.error('❌ Failed:', kpiData.code, result.message);
+    rows.forEach((row, index) => {
+        // تجاهل الصفوف الفارغة أو أمثلة
+        if (!row[0] || row[0].toString().includes('مثال')) {
+            return;
+        }
+        
+        let kpiData = {
+            dataType: selectedImportDataType,
+            category: selectedImportCategory,
+            subcategory: selectedImportSubcategory,
+            createdAt: new Date().toISOString(),
+            imported: true
+        };
+        
+        try {
+            if (dataType.inputType === 'count') {
+                // القوى البشرية
+                kpiData.count = parseInt(row[0]) || 0;
+                
+            } else if (dataType.inputType === 'assessment') {
+                // معايير التقييم
+                kpiData.name = row[0] || '';
+                kpiData.assessment = row[1] || '';
+                kpiData.notes = row[2] || '';
+                
+                if (!kpiData.name) throw new Error('المعيار مطلوب');
+                
+            } else if (dataType.inputType === 'formula') {
+                // مؤشرات الأداء
+                kpiData.code = row[0] || '';
+                kpiData.name = row[1] || '';
+                kpiData.indicatorType = row[2] || 'formula';
+                kpiData.formulaDescription = row[3] || '';
+                kpiData.numeratorLabel = row[4] || '';
+                kpiData.denominatorLabel = row[5] || '';
+                kpiData.description = row[6] || '';
+                kpiData.frequency = row[7] || 'شهري';
+                
+                if (!kpiData.code || !kpiData.name) throw new Error('الكود والاسم مطلوبان');
+                
+            } else if (dataType.inputType === 'monthly_data') {
+                // مؤشرات التميز
+                kpiData.code = row[0] || '';
+                kpiData.name = row[1] || '';
+                kpiData.responsibleDepartment = row[2] || '';
+                kpiData.calculationFormula = row[3] || '';
+                kpiData.periodicity = row[4] || 'شهري';
+                
+                if (!kpiData.code || !kpiData.name) throw new Error('الكود والاسم مطلوبان');
+            }
+            
+            // حفظ البيانات
+            const result = saveKPI(kpiData);
+            
+            if (result.success) {
+                successCount++;
+            } else {
+                errorCount++;
+                errors.push(`الصف ${index + 2}: ${result.message}`);
+            }
+            
+        } catch (error) {
+            errorCount++;
+            errors.push(`الصف ${index + 2}: ${error.message}`);
         }
     });
     
-    hideLoadingMessage();
-    closeModal('importModal');
-    
-    if (successCount > 0) {
-        showSuccess(`تم إضافة ${successCount} مؤشر بنجاح! 🎉`);
-        
-        setTimeout(() => {
-            console.log('🔄 Reloading category...');
-            selectCategory(selectedKPICategory);
-            updateDashboardStats();
-        }, 500);
-    }
-    
-    if (failCount > 0) {
-        showWarning(`فشل في إضافة ${failCount} مؤشر`);
-    }
-    
-    window.pendingKPIsImport = null;
-    
-    const fileInput = document.getElementById('kpiFileInput');
-    if (fileInput) {
-        fileInput.value = '';
-    }
-    
-    const previewContainer = document.getElementById('importPreview');
-    if (previewContainer) {
-        previewContainer.innerHTML = '';
-    }
+    // عرض النتائج
+    displayImportResults(successCount, errorCount, errors);
 }
 
-function cancelImport() {
-    if (confirm('هل أنت متأكد من إلغاء الاستيراد؟')) {
-        window.pendingKPIsImport = null;
-        
-        const fileInput = document.getElementById('kpiFileInput');
-        if (fileInput) {
-            fileInput.value = '';
-        }
-        
-        const previewContainer = document.getElementById('importPreview');
-        if (previewContainer) {
-            previewContainer.innerHTML = '';
-        }
-        
-        closeModal('importModal');
-    }
-}
-
-function parseCSV(text) {
-    const lines = text.split('\n');
-    const result = [];
+function displayImportResults(successCount, errorCount, errors) {
+    const resultSection = document.getElementById('importResultSection');
+    if (!resultSection) return;
     
-    for (let line of lines) {
-        if (!line.trim()) continue;
-        
-        const row = [];
-        let cell = '';
-        let inQuotes = false;
-        
-        for (let i = 0; i < line.length; i++) {
-            const char = line[i];
+    let html = `
+        <div class="import-results">
+            <h3>📊 نتائج الاستيراد</h3>
             
-            if (char === '"') {
-                inQuotes = !inQuotes;
-            } else if (char === ',' && !inQuotes) {
-                row.push(cell.trim());
-                cell = '';
-            } else {
-                cell += char;
-            }
-        }
-        
-        row.push(cell.trim());
-        result.push(row);
-    }
-    
-    return result;
-}
-
-function showLoadingMessage(message) {
-    const previewContainer = document.getElementById('importPreview');
-    if (previewContainer) {
-        previewContainer.innerHTML = `
-            <div style="text-align: center; padding: 60px 20px;">
-                <div style="font-size: 3rem; margin-bottom: 20px; animation: spin 1s linear infinite;">⏳</div>
-                <h3 style="color: #333; margin-bottom: 10px;">${message}</h3>
-                <p style="color: #666;">الرجاء الانتظار...</p>
+            <div class="results-summary">
+                <div class="result-card result-success">
+                    <div class="result-icon">✅</div>
+                    <div class="result-info">
+                        <h4>نجح</h4>
+                        <p class="result-value">${successCount}</p>
+                    </div>
+                </div>
+                
+                <div class="result-card result-error">
+                    <div class="result-icon">❌</div>
+                    <div class="result-info">
+                        <h4>فشل</h4>
+                        <p class="result-value">${errorCount}</p>
+                    </div>
+                </div>
+                
+                <div class="result-card result-total">
+                    <div class="result-icon">📊</div>
+                    <div class="result-info">
+                        <h4>الإجمالي</h4>
+                        <p class="result-value">${successCount + errorCount}</p>
+                    </div>
+                </div>
             </div>
-            <style>
-                @keyframes spin {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-            </style>
+    `;
+    
+    if (errorCount > 0 && errors.length > 0) {
+        html += `
+            <div class="errors-section">
+                <h4>⚠️ الأخطاء:</h4>
+                <ul class="error-list">
+        `;
+        
+        errors.forEach(error => {
+            html += `<li>${error}</li>`;
+        });
+        
+        html += `
+                </ul>
+            </div>
         `;
     }
-}
-
-function hideLoadingMessage() {
-    // يتم استبدالها بالمحتوى الجديد
-}
-
-function downloadExcelTemplate() {
-    if (!selectedKPIDataType || !selectedKPICategory) {
-        showError('الرجاء اختيار نوع البيانات والقسم أولاً');
-        return;
+    
+    html += `
+            <div class="result-actions">
+                <button onclick="loadImportInterface()" class="btn btn-primary">🔄 استيراد ملف آخر</button>
+            </div>
+        </div>
+    `;
+    
+    resultSection.innerHTML = html;
+    resultSection.style.display = 'block';
+    resultSection.scrollIntoView({ behavior: 'smooth' });
+    
+    if (successCount > 0) {
+        showSuccess(`تم استيراد ${successCount} سجل بنجاح ✅`);
     }
     
-    const typeInfo = getDataTypeInfo(selectedKPIDataType);
-    const catInfo = typeInfo.categories[selectedKPICategory];
-    
-    let headers = [];
-    let example = [];
-    
-    if (typeInfo.inputType === 'formula') {
-        headers = ['الكود', 'المؤشر', 'الإدارة المسؤولة', 'البسط', 'المقام', 'المعادلة الحسابية', 'النسبة المئوية', 'دورية الإبلاغ', 'مستشفى', 'مركز صحي', 'وحدة صحية'];
-        example = [`${catInfo.id}-01`, 'مثال على مؤشر', 'إدارة التمريض', 'عدد الحالات', 'إجمالي الحالات', '(البسط / المقام) × 100', '100X', 'شهري', 'نعم', 'نعم', 'لا'];
-        
-    } else if (typeInfo.inputType === 'assessment') {
-        headers = ['رقم المعيار', 'المعيار', 'التقييم', 'ملاحظات', 'مستشفى', 'مركز صحي', 'وحدة صحية'];
-        example = [`${catInfo.id}-01`, 'مثال على معيار', '2', 'ملاحظات اختيارية', 'نعم', 'نعم', 'نعم'];
-        
-    } else if (typeInfo.inputType === 'count') {
-        headers = ['الكود', 'المسمى الوظيفي', 'العدد', 'مستشفى', 'مركز صحي', 'وحدة صحية'];
-        example = [`${catInfo.id}-01`, 'طبيب استشاري', '5', 'نعم', 'نعم', 'لا'];
-        
-    } else if (typeInfo.inputType === 'monthly_data') {
-        headers = ['السنة', 'المؤشر', 'القيمة', 'مستشفى', 'مركز صحي', 'وحدة صحية'];
-        example = ['2025', 'A1', '85.5', 'نعم', 'نعم', 'نعم'];
+    if (errorCount > 0) {
+        showError(`فشل استيراد ${errorCount} سجل`);
     }
-    
-    const data = [headers, example];
-    
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'نموذج');
-    
-    const fileName = `نموذج_${catInfo.name}_${typeInfo.name}.xlsx`;
-    XLSX.writeFile(wb, fileName);
-    
-    showSuccess('تم تنزيل النموذج بنجاح');
 }
 
-console.log('✅ Excel import functions loaded');
+console.log('✅ Excel import script loaded (v2.0)');
