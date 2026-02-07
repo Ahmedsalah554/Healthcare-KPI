@@ -57,7 +57,6 @@ function getAvailableKPIs(dataType, category, facilityType) {
 
 // جلب مؤشر بواسطة ID
 function getKPIById(kpiId) {
-    // البحث في جميع أنواع البيانات
     const dataTypes = ['performance', 'excellence', 'monitoring', 'workforce'];
     
     for (const dataType of dataTypes) {
