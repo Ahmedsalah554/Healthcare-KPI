@@ -1356,5 +1356,43 @@ function refreshReports() {
     loadReportsData();
     showSuccess('تم تحديث التقارير بنجاح');
 }
+// ===== دوال استيراد Excel/CSV =====
+
+// فتح نافذة الاستيراد
+function openImportModal() {
+    const previewContainer = document.getElementById('importPreview');
+    if (previewContainer) {
+        previewContainer.innerHTML = '';
+    }
+    
+    const fileInput = document.getElementById('kpiFileInput');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+    
+    console.log('📂 فتح نافذة الاستيراد');
+    openModal('importModal');
+}
+
+// معالجة اختيار الملف
+function handleKPIFileSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    console.log('📁 تم اختيار الملف:', file.name);
+    
+    const fileName = file.name.toLowerCase();
+    if (!fileName.endsWith('.csv') && !fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+        showError('يرجى اختيار ملف CSV أو Excel');
+        return;
+    }
+    
+    if (typeof handleFileUpload === 'function') {
+        handleFileUpload(file);
+    } else {
+        showError('خطأ: دالة handleFileUpload غير موجودة');
+        console.error('❌ handleFileUpload is not defined');
+    }
+}
 
 console.log('✅ Admin Main loaded successfully');
