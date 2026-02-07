@@ -36,8 +36,21 @@ function showLoginPage() {
 
 // عرض لوحة التحكم
 function showAdminPanel() {
-    document.getElementById('loginPage').style.display = 'none';
-    document.getElementById('adminPanel').style.display = 'flex';
+    const loginPage = document.getElementById('loginPage');
+    const adminPanel = document.getElementById('adminPanel');
+    
+    if (loginPage) {
+        loginPage.style.display = 'none';
+        loginPage.style.visibility = 'hidden';
+        loginPage.style.opacity = '0';
+        loginPage.style.pointerEvents = 'none';
+    }
+    
+    if (adminPanel) {
+        adminPanel.style.display = 'flex';
+        adminPanel.style.visibility = 'visible';
+        adminPanel.style.opacity = '1';
+    }
     
     // عرض معلومات المستخدم
     displayUserInfo();
