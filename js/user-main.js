@@ -149,14 +149,22 @@ function displayUserInfo() {
         const userNameDisplay = document.getElementById('userNameDisplay');
         const facilityNameDisplay = document.getElementById('facilityNameDisplay');
         
-        if (userNameDisplay) userNameDisplay.textContent = currentUser.name;
+        console.log('👤 Displaying user info:', {
+            user: currentUser.name,
+            facility: currentFacility ? currentFacility.name : 'غير محدد'
+        });
+        
+        if (userNameDisplay) {
+            userNameDisplay.textContent = currentUser.name;
+        }
         
         if (currentFacility && facilityNameDisplay) {
             facilityNameDisplay.textContent = currentFacility.name;
+        } else if (facilityNameDisplay) {
+            facilityNameDisplay.textContent = 'غير محدد';
         }
     }
 }
-
 function loadUserData() {
     if (!currentUser) return;
     
@@ -177,67 +185,53 @@ function loadUserData() {
 function loadDataEntry() {
     console.log('📝 Loading data entry...');
     
-    // التأكد من وجود الـ container
-    let container = document.getElementById('dataEntryContent');
-    
-    // إذا مش موجود، جرب categoriesView
-    if (!container) {
-        container = document.getElementById('categoriesView');
-    }
-    
-    // إذا لسه مش موجود، جرب categoriesContainer
-    if (!container) {
-        container = document.getElementById('categoriesContainer');
-    }
+    const container = document.getElementById('mainDataEntry');
     
     if (!container) {
-        console.error('❌ Container not found!');
-        console.log('Available elements:', {
-            dataEntryContent: document.getElementById('dataEntryContent'),
-            categoriesView: document.getElementById('categoriesView'),
-            categoriesContainer: document.getElementById('categoriesContainer')
-        });
+        console.error('❌ mainDataEntry container not found!');
         return;
     }
     
-    console.log('✅ Container found:', container.id);
+    console.log('✅ Container found!');
     
     const dataTypes = getAllDataTypes();
     
     let html = `
-        <div class="data-entry-container">
-            <div class="page-header">
-                <h1>📋 إدخال بيانات المؤشرات</h1>
-                <div class="breadcrumb">المنشأة: ${currentFacility ? currentFacility.name : 'غير محدد'}</div>
-            </div>
-            
-            <div class="data-type-selector">
-                <h3 style="color: #2c3e50; margin-bottom: 20px;">اختر نوع البيانات:</h3>
-                <div class="data-type-grid">
+        <div class="page-header">
+            <h1>📋 إدخال بيانات المؤشرات</h1>
+            <div class="breadcrumb">المنشأة: ${currentFacility ? currentFacility.name : 'غير محدد'}</div>
+        </div>
+        
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h3 style="color: #2c3e50; margin-bottom: 25px; font-size: 1.5rem;">اختر نوع البيانات:</h3>
+            <div class="data-type-grid">
     `;
     
     dataTypes.forEach(dataType => {
+        const stats = getKPIStatistics ? getKPIStatistics(dataType.id) : { totalKPIs: 0 };
+        
         html += `
-            <div class="data-type-card" onclick="selectDataType('${dataType.id}')" style="border-left: 4px solid ${dataType.color}">
-                <div class="data-type-icon" style="font-size: 3rem">${dataType.icon}</div>
-                <h4>${dataType.name}</h4>
-                <p class="data-type-desc">${dataType.description}</p>
-                <span class="input-type-badge" style="background: ${dataType.color}20; color: ${dataType.color}">${getInputTypeLabel(dataType.inputType)}</span>
+            <div class="data-type-card" onclick="selectDataType('${dataType.id}')" style="border-left: 4px solid ${dataType.color}; cursor: pointer;">
+                <div class="data-type-icon" style="font-size: 3rem; margin-bottom: 15px;">${dataType.icon}</div>
+                <h4 style="color: #2c3e50; margin-bottom: 10px; font-size: 1.2rem;">${dataType.name}</h4>
+                <p class="data-type-desc" style="color: #666; font-size: 0.9rem; line-height: 1.5; min-height: 60px;">${dataType.description}</p>
+                <span class="input-type-badge" style="background: ${dataType.color}20; color: ${dataType.color}; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: inline-block; margin-top: 10px;">${getInputTypeLabel(dataType.inputType)}</span>
+                <div style="margin-top: 10px; color: #999; font-size: 0.85rem;">📊 ${stats.totalKPIs} مؤشر</div>
             </div>
         `;
     });
     
     html += `
-                </div>
             </div>
-            
-            <div id="categorySection" style="display: none; margin-top: 30px;"></div>
-            <div id="entryFormSection" style="display: none; margin-top: 30px;"></div>
         </div>
+        
+        <div id="categorySection" style="display: none; margin-top: 30px;"></div>
+        <div id="entryFormSection" style="display: none; margin-top: 30px;"></div>
     `;
     
     container.innerHTML = html;
-    console.log('✅ Data entry content loaded!');
+    console.log('✅ Data entry HTML loaded successfully!');
+    console.log('📊 Total data types:', dataTypes.length);
 }
 
 function selectDataType(dataTypeId) {
