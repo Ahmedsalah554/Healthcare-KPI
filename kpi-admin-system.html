@@ -755,43 +755,46 @@
     </div>
 
     <!-- Import Modal -->
-    <div class="modal" id="importModal">
-        <div class="modal-content" style="max-width: 900px;">
-            <div class="modal-header">
-                <h2 id="importModalTitle">📤 استيراد المؤشرات من Excel/CSV</h2>
-                <span class="close" onclick="closeModal('importModal')">&times;</span>
+<div id="importModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="importModalTitle">استيراد المؤشرات من Excel</h2>
+            <span class="close" onclick="closeModal('importModal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom: 20px; padding: 20px; background: #e3f2fd; border-radius: 8px; border-right: 4px solid #2196f3;">
+                <h4 style="margin: 0 0 10px 0; color: #1976d2;">📋 تعليمات الاستيراد</h4>
+                <ul style="margin: 0; padding-right: 20px; color: #666;">
+                    <li>يجب أن يحتوي الملف على الأعمدة المطلوبة حسب نوع البيانات</li>
+                    <li>الصف الأول يجب أن يحتوي على عناوين الأعمدة</li>
+                    <li>يمكنك تحميل نموذج Excel جاهز أدناه</li>
+                    <li>الملفات المدعومة: .xlsx, .xls, .csv</li>
+                </ul>
             </div>
-            
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    <strong>📋 تعليمات الاستيراد:</strong>
-                    <ul style="margin: 10px 0 0 20px;">
-                        <li>الملف يجب أن يكون بصيغة <strong>CSV</strong> أو <strong>Excel</strong> (.xlsx, .xls)</li>
-                        <li>الأعمدة المطلوبة: <strong>اسم المؤشر - كود المؤشر - الصيغة الحسابية</strong></li>
-                        <li>سيتم استخراج الفئة تلقائياً من كود المؤشر (مثل: WFM-01)</li>
-                        <li>المؤشرات المكررة سيتم تجاهلها تلقائياً</li>
-                    </ul>
-                </div>
-                
-                <div style="margin: 30px 0; text-align: center; padding: 40px; border: 3px dashed #1a73e8; border-radius: 12px; background: #f8f9fa;">
-                    <input type="file" id="kpiFileInput" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleKPIFileSelect(event)">
-                    
-                    <div style="font-size: 4rem; margin-bottom: 20px; color: #1a73e8;">📁</div>
-                    
-                    <button class="btn btn-primary btn-large" onclick="document.getElementById('kpiFileInput').click()">
-                        📂 اختر ملف Excel أو CSV
-                    </button>
-                    
-                    <p style="margin-top: 20px; color: #666; font-size: 1rem;">
-                        أو اسحب الملف وأفلته هنا
-                    </p>
-                </div>
-                
-                <div id="importPreview"></div>
+
+            <div style="text-align: center; margin-bottom: 25px;">
+                <button class="btn btn-primary" onclick="downloadExcelTemplate()" style="padding: 12px 30px; font-size: 1.05rem;">
+                    📥 تحميل نموذج Excel
+                </button>
             </div>
+
+            <div style="margin-bottom: 20px;">
+                <label for="kpiFileInput" style="display: block; margin-bottom: 10px; font-weight: 600; color: #333;">
+                    اختر ملف Excel أو CSV:
+                </label>
+                <input 
+                    type="file" 
+                    id="kpiFileInput" 
+                    accept=".xlsx,.xls,.csv" 
+                    onchange="handleKPIFileSelect(event)"
+                    style="width: 100%; padding: 10px; border: 2px dashed #ccc; border-radius: 8px; background: #f9f9f9; cursor: pointer;"
+                >
+            </div>
+
+            <div id="importPreview" style="margin-top: 20px;"></div>
         </div>
     </div>
-
+</div>
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
