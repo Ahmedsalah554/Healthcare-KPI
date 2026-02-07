@@ -109,6 +109,11 @@ function showError(message) {
     alert.style.right = '20px';
     alert.style.zIndex = '9999';
     alert.style.minWidth = '300px';
+    alert.style.background = '#f44336';
+    alert.style.color = 'white';
+    alert.style.padding = '15px 20px';
+    alert.style.borderRadius = '8px';
+    alert.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
     alert.style.animation = 'slideInRight 0.3s ease-out';
     
     document.body.appendChild(alert);
