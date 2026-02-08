@@ -2,12 +2,46 @@
  * ===== نظام المستخدم - إدخال البيانات (v3.0 - مع نظام القفل) =====
  */
 
+// ========================================
+// دوال مساعدة للمؤشرات (fallback)
+// ========================================
+
+// التأكد من وجود الدوال (في حالة تأخر تحميل storage.js)
+if (typeof getCustomKPIsForCategory === 'undefined') {
+    function getCustomKPIsForCategory(dataTypeId, categoryId) {
+        const allKPIs = getFromStorage('customKPIs', []);
+        return allKPIs.filter(kpi => 
+            kpi.dataType === dataTypeId && 
+            kpi.category === categoryId && 
+            !kpi.subcategory
+        );
+    }
+}
+
+if (typeof getCustomKPIsForSubcategory === 'undefined') {
+    function getCustomKPIsForSubcategory(dataTypeId, categoryId, subcategoryId) {
+        const allKPIs = getFromStorage('customKPIs', []);
+        return allKPIs.filter(kpi => 
+            kpi.dataType === dataTypeId && 
+            kpi.category === categoryId && 
+            kpi.subcategory === subcategoryId
+        );
+    }
+}
+
+console.log('✅ User KPI helper functions ready');
+
+// ========================================
+// المتغيرات العامة
+// ========================================
+
 let currentUser = null;
 let currentFacility = null;
 let selectedDataType = null;
 let selectedCategory = null;
 let selectedSubcategory = null;
 
+// ... باقي الكود بدون تغيير
 // ========================================
 // تسجيل الدخول
 // ========================================
