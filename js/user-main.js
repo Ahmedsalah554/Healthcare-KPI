@@ -235,14 +235,227 @@ function loadDataEntry() {
 }
 
 function selectDataType(dataTypeId) {
+    console.log('✅ Selected data type:', dataTypeId);
+    
     selectedDataType = dataTypeId;
     selectedCategory = null;
     selectedSubcategory = null;
     
     const dataType = getDataTypeInfo(dataTypeId);
-    console.log('Selected data type:', dataType);
+    
+    if (!dataType) {
+        console.error('❌ Data type not found:', dataTypeId);
+        showError('نوع البيانات غير موجود');
+        return;
+    }
+    
+    console.log('📊 Data type info:', dataType);
     
     showCategorySelection(dataType);
+}
+
+function showCategorySelection(dataType) {
+    const categorySection = document.getElementById('categorySection');
+    
+    if (!categorySection) {
+        console.error('❌ categorySection not found!');
+        return;
+    }
+    
+    const categories = dataType.categories;
+    
+    let html = `
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <div style="margin-bottom: 20px;">
+                <button onclick="loadDataEntry()" style="
+                    background: rgba(26, 115, 232, 0.1);
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    color: #1a73e8;
+                    cursor: pointer;
+                    font-weight: 600;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    transition: all 0.3s;
+                " onmouseover="this.style.background='#1a73e8'; this.style.color='white';" 
+                   onmouseout="this.style.background='rgba(26, 115, 232, 0.1)'; this.style.color='#1a73e8';">
+                    ← العودة
+                </button>
+            </div>
+            
+            <div style="background: linear-gradient(135deg, ${dataType.color} 0%, ${dataType.color}cc 100%); color: white; padding: 20px; border-radius: 10px; margin-bottom: 25px;">
+                <h2 style="font-size: 1.5rem; margin: 0;">${dataType.icon} ${dataType.name}</h2>
+                <p style="margin: 5px 0 0 0; opacity: 0.9;">${dataType.description}</p>
+            </div>
+            
+            <h3 style="color: #2c3e50; margin-bottom: 20px;">اختر القسم:</h3>
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px;">
+    `;
+    
+    Object.values(categories).forEach(category => {
+        html += `
+            <div onclick="selectCategory('${dataType.id}', '${category.id}')" style="
+                background: white;
+                padding: 20px;
+                border-radius: 12px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+                cursor: pointer;
+                transition: all 0.3s;
+                text-align: center;
+                border-top: 3px solid ${category.color};
+            " onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 5px 20px rgba(0,0,0,0.15)';" 
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 10px rgba(0,0,0,0.08)';">
+                
+                <div style="font-size: 2.5rem; color: ${category.color}; margin-bottom: 10px;">${category.icon}</div>
+                <h4 style="color: #2c3e50; font-size: 1rem; margin: 0;">${category.name}</h4>
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    categorySection.innerHTML = html;
+    categorySection.style.display = 'block';
+    
+    // إخفاء النموذج
+    const entryFormSection = document.getElementById('entryFormSection');
+    if (entryFormSection) {
+        entryFormSection.style.display = 'none';
+    }
+    
+    // Scroll إلى القسم
+    categorySection.scrollIntoView({ behavior: 'smooth' });
+    
+    console.log('✅ Categories loaded:', Object.keys(categories).length);
+}
+
+function selectCategory(dataTypeId, categoryId) {
+    console.log('✅ Selected category:', categoryId);
+    
+    selectedDataType = dataTypeId;
+    selectedCategory = categoryId;
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    
+    // التحقق من وجود أقسام فرعية
+    if (hasSubcategories(dataTypeId)) {
+        const subcategories = getSubcategories(dataTypeId, categoryId);
+        
+        if (Object.keys(subcategories).length > 0) {
+            showSubcategorySelection(dataType, categoryId, subcategories);
+            return;
+        }
+    }
+    
+    // لا توجد أقسام فرعية - عرض النموذج مباشرة
+    showEntryForm(dataType, categoryId);
+}
+
+function showSubcategorySelection(dataType, categoryId, subcategories) {
+    const categorySection = document.getElementById('categorySection');
+    if (!categorySection) return;
+    
+    const category = dataType.categories[categoryId];
+    
+    let html = `
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <div style="margin-bottom: 20px;">
+                <button onclick="showCategorySelection(getDataTypeInfo('${dataType.id}'))" style="
+                    background: rgba(26, 115, 232, 0.1);
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    color: #1a73e8;
+                    cursor: pointer;
+                    font-weight: 600;
+                ">← العودة للأقسام</button>
+            </div>
+            
+            <div style="background: ${category.color}20; padding: 15px; border-radius: 10px; border-right: 4px solid ${category.color}; margin-bottom: 25px;">
+                <h3 style="margin: 0; color: #2c3e50;">${dataType.icon} ${dataType.name} / ${category.icon} ${category.name}</h3>
+            </div>
+            
+            <h3 style="color: #2c3e50; margin-bottom: 20px;">اختر القسم الفرعي:</h3>
+            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 15px;">
+    `;
+    
+    Object.values(subcategories).forEach(subcategory => {
+        html += `
+            <div onclick="selectSubcategory('${dataType.id}', '${categoryId}', '${subcategory.id}')" style="
+                background: white;
+                padding: 15px;
+                border-radius: 10px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+                cursor: pointer;
+                transition: all 0.3s;
+                text-align: center;
+            " onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.12)';" 
+               onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.08)';">
+                
+                <div style="font-size: 2rem; margin-bottom: 8px;">${subcategory.icon || '📋'}</div>
+                <h4 style="color: #2c3e50; font-size: 0.9rem; margin: 0;">${subcategory.name}</h4>
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    categorySection.innerHTML = html;
+    categorySection.scrollIntoView({ behavior: 'smooth' });
+}
+
+function selectSubcategory(dataTypeId, categoryId, subcategoryId) {
+    console.log('✅ Selected subcategory:', subcategoryId);
+    
+    selectedDataType = dataTypeId;
+    selectedCategory = categoryId;
+    selectedSubcategory = subcategoryId;
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    showEntryForm(dataType, categoryId, subcategoryId);
+}
+
+function showEntryForm(dataType, categoryId, subcategoryId = null) {
+    const entryFormSection = document.getElementById('entryFormSection');
+    if (!entryFormSection) return;
+    
+    const category = dataType.categories[categoryId];
+    const subcategory = subcategoryId ? getSubcategories(dataType.id, categoryId)[subcategoryId] : null;
+    
+    let html = `
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <div style="margin-bottom: 20px;">
+                <button onclick="showCategorySelection(getDataTypeInfo('${dataType.id}'))" style="
+                    background: rgba(26, 115, 232, 0.1);
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    color: #1a73e8;
+                    cursor: pointer;
+                    font-weight: 600;
+                ">← العودة</button>
+            </div>
+            
+            <h3 style="color: #2c3e50;">نموذج إدخال البيانات</h3>
+            <p style="color: #666;">نوع البيانات: <strong>${dataType.name}</strong> - القسم: <strong>${category.name}</strong>${subcategory ? ' - القسم الفرعي: <strong>' + subcategory.name + '</strong>' : ''}</p>
+            
+            <div style="background: #e3f2fd; padding: 20px; border-radius: 10px; border-right: 4px solid #1a73e8; margin: 20px 0;">
+                <p style="margin: 0; color: #1565c0;">سيتم إضافة نموذج الإدخال هنا قريباً...</p>
+            </div>
+        </div>
+    `;
+    
+    entryFormSection.innerHTML = html;
+    entryFormSection.style.display = 'block';
+    entryFormSection.scrollIntoView({ behavior: 'smooth' });
 }
 
 function showCategorySelection(dataType) {
