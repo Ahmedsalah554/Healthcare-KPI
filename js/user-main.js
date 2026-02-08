@@ -497,14 +497,157 @@ function showCategoryEntryForm(dataType, categoryId, subcategoryId = null) {
     const category = dataType.categories[categoryId];
     const subcategory = subcategoryId ? getSubcategories(dataType.id, categoryId)[subcategoryId] : null;
     
+    // جلب المؤشرات المخصصة
+    let customKPIs = [];
+    if (subcategoryId) {
+        customKPIs = getCustomKPIsForSubcategory(dataType.id, categoryId, subcategoryId);
+    } else {
+        customKPIs = getCustomKPIsForCategory(dataType.id, categoryId);
+    }
+    
     let html = `
         <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
             <div style="background: ${category.color}20; padding: 20px; border-radius: 10px; border-right: 4px solid ${category.color}; margin-bottom: 25px;">
                 <h3 style="margin: 0 0 5px 0; color: #2c3e50;">إدخال بيانات: ${category.name}</h3>
                 ${subcategory ? `<p style="margin: 0; color: #666;">القسم الفرعي: ${subcategory.name}</p>` : ''}
             </div>
+    `;
+    
+    // عرض المؤشرات المخصصة إذا وجدت
+    if (customKPIs.length > 0) {
+        html += `
+            <div style="background: #e3f2fd; padding: 20px; border-radius: 10px; margin-bottom: 25px; border-right: 4px solid #2196f3;">
+                <h4 style="color: #1565c0; margin-bottom: 15px;">📊 المؤشرات المتاحة (${customKPIs.length})</h4>
+                <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">اختر مؤشراً لإدخال بياناته:</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
+        `;
+        
+        customKPIs.forEach(kpi => {
+            // التحقق من حالة الإدخال
+            const entryStatus = checkKPIEntryStatus(dataType.id, categoryId, subcategoryId, kpi.id);
+            const isLocked = entryStatus.isLocked;
+            const hasData = entryStatus.hasData;
             
-            <form onsubmit="submitCategoryData(event, '${dataType.id}', '${categoryId}', ${subcategoryId ? `'${subcategoryId}'` : 'null'})">
+            let statusBadge = '';
+            let cardStyle = '';
+            let clickable = true;
+            
+            if (isLocked) {
+                statusBadge = '<div style="background: #f44336; color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.75rem; margin-top: 8px;">🔒 مقفل</div>';
+                cardStyle = 'opacity: 0.6; cursor: not-allowed; background: #f5f5f5;';
+                clickable = false;
+            } else if (hasData) {
+                statusBadge = '<div style="background: #4caf50; color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.75rem; margin-top: 8px;">✅ تم الإدخال</div>';
+                cardStyle = 'border: 2px solid #4caf50; background: #e8f5e9;';
+            } else {
+                statusBadge = '<div style="background: #ff9800; color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.75rem; margin-top: 8px;">⏳ في انتظار الإدخال</div>';
+                cardStyle = 'background: white;';
+            }
+            
+            const onclick = clickable ? `onclick="showKPIEntryForm('${dataType.id}', '${categoryId}', '${subcategoryId || ''}', '${kpi.id}')"` : '';
+            
+            html += `
+                <div ${onclick} style="
+                    ${cardStyle}
+                    padding: 15px;
+                    border-radius: 10px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    transition: all 0.3s;
+                    ${clickable ? 'cursor: pointer;' : ''}
+                " ${clickable ? `onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.1)'"` : ''}>
+                    <div style="font-weight: 700; color: #2196f3; margin-bottom: 5px; font-size: 0.9rem;">${kpi.code}</div>
+                    <div style="font-size: 0.85rem; color: #333; margin-bottom: 8px; min-height: 40px;">${kpi.name}</div>
+                    ${kpi.formula ? `<div style="font-size: 0.7rem; color: #666; background: #f5f5f5; padding: 5px; border-radius: 5px; margin-bottom: 8px;">${kpi.formula}</div>` : ''}
+                    ${statusBadge}
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    } else {
+        // لا توجد مؤشرات مخصصة - عرض رسالة
+        html += `
+            <div style="text-align: center; padding: 40px; background: #fff3e0; border-radius: 10px; border: 2px dashed #ff9800;">
+                <div style="font-size: 3rem; margin-bottom: 15px;">📋</div>
+                <h4 style="color: #f57c00; margin-bottom: 10px;">لا توجد مؤشرات متاحة</h4>
+                <p style="color: #666;">يرجى التواصل مع المسؤول لإضافة المؤشرات</p>
+            </div>
+        `;
+    }
+    
+    html += `
+        </div>
+    `;
+    
+    formContainer.innerHTML = html;
+    formContainer.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ========================================
+// التحقق من حالة إدخال المؤشر
+// ========================================
+
+function checkKPIEntryStatus(dataTypeId, categoryId, subcategoryId, kpiId) {
+    const lockKey = `kpi_lock_${dataTypeId}_${categoryId}${subcategoryId ? '_' + subcategoryId : ''}_${kpiId}_${currentUser.id}`;
+    const dataKey = `kpi_data_${dataTypeId}_${categoryId}${subcategoryId ? '_' + subcategoryId : ''}_${kpiId}_${currentUser.id}`;
+    
+    const isLocked = getFromStorage(lockKey, false);
+    const hasData = getFromStorage(dataKey, null) !== null;
+    
+    return { isLocked, hasData };
+}
+
+// ========================================
+// عرض نموذج إدخال بيانات المؤشر
+// ========================================
+
+function showKPIEntryForm(dataTypeId, categoryId, subcategoryId, kpiId) {
+    const formContainer = document.getElementById('categoryEntryForm');
+    if (!formContainer) return;
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    const category = dataType.categories[categoryId];
+    const subcategory = subcategoryId ? getSubcategories(dataTypeId, categoryId)[subcategoryId] : null;
+    
+    // جلب بيانات المؤشر
+    const allKPIs = getFromStorage('customKPIs', []);
+    const kpi = allKPIs.find(k => k.id === kpiId);
+    
+    if (!kpi) {
+        showError('المؤشر غير موجود');
+        return;
+    }
+    
+    let html = `
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <button onclick="showCategoryEntryForm(getDataTypeInfo('${dataTypeId}'), '${categoryId}', ${subcategoryId ? `'${subcategoryId}'` : 'null'})" style="
+                background: rgba(26, 115, 232, 0.1);
+                border: none;
+                padding: 8px 16px;
+                border-radius: 8px;
+                color: #1a73e8;
+                cursor: pointer;
+                font-weight: 600;
+                margin-bottom: 15px;
+                transition: all 0.3s;
+            " onmouseover="this.style.background='rgba(26, 115, 232, 0.2)'" onmouseout="this.style.background='rgba(26, 115, 232, 0.1)'">← العودة</button>
+            
+            <div style="background: ${category.color}20; padding: 20px; border-radius: 10px; border-right: 4px solid ${category.color}; margin-bottom: 25px;">
+                <div style="font-size: 0.85rem; color: #666; margin-bottom: 5px;">${category.name} ${subcategory ? ' / ' + subcategory.name : ''}</div>
+                <h3 style="margin: 0 0 5px 0; color: #2c3e50;">${kpi.code} - ${kpi.name}</h3>
+                ${kpi.description ? `<p style="margin: 5px 0 0 0; color: #666; font-size: 0.9rem;">${kpi.description}</p>` : ''}
+            </div>
+            
+            ${kpi.formula ? `
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; border-right: 4px solid #2196f3; margin-bottom: 20px;">
+                    <strong style="color: #1565c0;">الصيغة:</strong> ${kpi.formula}
+                </div>
+            ` : ''}
+            
+            <form onsubmit="submitKPIData(event, '${dataTypeId}', '${categoryId}', '${subcategoryId || ''}', '${kpiId}')">
     `;
     
     // نموذج الإدخال حسب نوع البيانات
@@ -512,7 +655,7 @@ function showCategoryEntryForm(dataType, categoryId, subcategoryId = null) {
         html += `
             <div style="margin-bottom: 20px;">
                 <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">العدد *</label>
-                <input type="number" id="inputCount" required min="0" style="
+                <input type="number" id="kpiInputCount" required min="0" style="
                     width: 100%;
                     padding: 12px;
                     border: 2px solid #e0e0e0;
@@ -525,7 +668,7 @@ function showCategoryEntryForm(dataType, categoryId, subcategoryId = null) {
         html += `
             <div style="margin-bottom: 20px;">
                 <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">التقييم *</label>
-                <select id="inputAssessment" required style="
+                <select id="kpiInputAssessment" required style="
                     width: 100%;
                     padding: 12px;
                     border: 2px solid #e0e0e0;
@@ -533,32 +676,64 @@ function showCategoryEntryForm(dataType, categoryId, subcategoryId = null) {
                     font-size: 1rem;
                 ">
                     <option value="">-- اختر التقييم --</option>
-                    <option value="2">⭐⭐ ممتاز</option>
-                    <option value="1">⭐ جيد</option>
-                    <option value="0">❌ ضعيف</option>
-                    <option value="N/A">⚪ لا ينطبق</option>
+                    <option value="2">⭐⭐ ممتاز (2)</option>
+                    <option value="1">⭐ جيد (1)</option>
+                    <option value="0">❌ ضعيف (0)</option>
+                    <option value="N/A">⚪ لا ينطبق (N/A)</option>
                 </select>
             </div>
         `;
     } else if (dataType.inputType === 'formula' || dataType.inputType === 'monthly_data') {
-        html += `
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">القيمة *</label>
-                <input type="number" id="inputValue" required step="0.01" style="
-                    width: 100%;
-                    padding: 12px;
-                    border: 2px solid #e0e0e0;
-                    border-radius: 8px;
-                    font-size: 1rem;
-                " placeholder="أدخل القيمة">
-            </div>
-        `;
+        if (kpi.numerator && kpi.denominator) {
+            html += `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">${kpi.numerator} (البسط) *</label>
+                        <input type="number" id="kpiInputNumerator" required step="0.01" style="
+                            width: 100%;
+                            padding: 12px;
+                            border: 2px solid #e0e0e0;
+                            border-radius: 8px;
+                            font-size: 1rem;
+                        " placeholder="0" oninput="calculateKPIResult()">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">${kpi.denominator} (المقام) *</label>
+                        <input type="number" id="kpiInputDenominator" required step="0.01" style="
+                            width: 100%;
+                            padding: 12px;
+                            border: 2px solid #e0e0e0;
+                            border-radius: 8px;
+                            font-size: 1rem;
+                        " placeholder="0" oninput="calculateKPIResult()">
+                    </div>
+                </div>
+                
+                <div id="kpiResultBox" style="display: none; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); padding: 20px; border-radius: 8px; border-right: 4px solid #4caf50; margin-bottom: 20px; text-align: center;">
+                    <div style="font-weight: 600; color: #2e7d32; margin-bottom: 8px; font-size: 1rem;">النتيجة المحسوبة</div>
+                    <div id="kpiResultValue" style="font-size: 2.5rem; font-weight: 700; color: #1b5e20;">0.00%</div>
+                </div>
+            `;
+        } else {
+            html += `
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">القيمة *</label>
+                    <input type="number" id="kpiInputValue" required step="0.01" style="
+                        width: 100%;
+                        padding: 12px;
+                        border: 2px solid #e0e0e0;
+                        border-radius: 8px;
+                        font-size: 1rem;
+                    " placeholder="أدخل القيمة">
+                </div>
+            `;
+        }
     }
     
     html += `
                 <div style="margin-bottom: 20px;">
                     <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">ملاحظات (اختياري)</label>
-                    <textarea id="inputNotes" rows="4" style="
+                    <textarea id="kpiInputNotes" rows="4" style="
                         width: 100%;
                         padding: 12px;
                         border: 2px solid #e0e0e0;
@@ -584,7 +759,7 @@ function showCategoryEntryForm(dataType, categoryId, subcategoryId = null) {
                         💾 حفظ البيانات
                     </button>
                     
-                    <button type="button" onclick="document.getElementById('categoryEntryForm').innerHTML=''" style="
+                    <button type="button" onclick="showCategoryEntryForm(getDataTypeInfo('${dataTypeId}'), '${categoryId}', ${subcategoryId ? `'${subcategoryId}'` : 'null'})" style="
                         background: #9e9e9e;
                         color: white;
                         padding: 14px 30px;
@@ -606,6 +781,89 @@ function showCategoryEntryForm(dataType, categoryId, subcategoryId = null) {
     formContainer.scrollIntoView({ behavior: 'smooth' });
 }
 
+// ========================================
+// حساب النتيجة تلقائياً
+// ========================================
+
+function calculateKPIResult() {
+    const numerator = parseFloat(document.getElementById('kpiInputNumerator')?.value) || 0;
+    const denominator = parseFloat(document.getElementById('kpiInputDenominator')?.value) || 0;
+    const resultBox = document.getElementById('kpiResultBox');
+    const resultValue = document.getElementById('kpiResultValue');
+    
+    if (denominator > 0) {
+        const result = (numerator / denominator) * 100;
+        resultValue.textContent = result.toFixed(2) + '%';
+        resultBox.style.display = 'block';
+    } else {
+        resultBox.style.display = 'none';
+    }
+}
+
+// ========================================
+// حفظ بيانات المؤشر وقفله
+// ========================================
+
+function submitKPIData(event, dataTypeId, categoryId, subcategoryId, kpiId) {
+    event.preventDefault();
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    const allKPIs = getFromStorage('customKPIs', []);
+    const kpi = allKPIs.find(k => k.id === kpiId);
+    
+    let data = {
+        dataType: dataTypeId,
+        category: categoryId,
+        subcategory: subcategoryId || null,
+        kpiId: kpiId,
+        kpiCode: kpi.code,
+        kpiName: kpi.name,
+        user: currentUser.id,
+        userName: currentUser.name,
+        facility: currentFacility ? currentFacility.id : null,
+        facilityName: currentFacility ? currentFacility.name : null,
+        timestamp: new Date().toISOString()
+    };
+    
+    // جمع البيانات حسب النوع
+    if (dataType.inputType === 'count') {
+        data.count = parseInt(document.getElementById('kpiInputCount').value);
+    } else if (dataType.inputType === 'assessment') {
+        data.assessment = document.getElementById('kpiInputAssessment').value;
+    } else if (dataType.inputType === 'formula' || dataType.inputType === 'monthly_data') {
+        if (kpi.numerator && kpi.denominator) {
+            data.numerator = parseFloat(document.getElementById('kpiInputNumerator').value);
+            data.denominator = parseFloat(document.getElementById('kpiInputDenominator').value);
+            data.value = (data.numerator / data.denominator) * 100;
+        } else {
+            data.value = parseFloat(document.getElementById('kpiInputValue').value);
+        }
+    }
+    
+    const notesField = document.getElementById('kpiInputNotes');
+    if (notesField) {
+        data.notes = notesField.value;
+    }
+    
+    // حفظ البيانات
+    const dataKey = `kpi_data_${dataTypeId}_${categoryId}${subcategoryId ? '_' + subcategoryId : ''}_${kpiId}_${currentUser.id}`;
+    const lockKey = `kpi_lock_${dataTypeId}_${categoryId}${subcategoryId ? '_' + subcategoryId : ''}_${kpiId}_${currentUser.id}`;
+    
+    saveToStorage(dataKey, data);
+    saveToStorage(lockKey, true); // قفل المؤشر
+    
+    // حفظ في قائمة البيانات العامة للأدمن
+    let allData = getFromStorage('allUserData', []);
+    allData.push(data);
+    saveToStorage('allUserData', allData);
+    
+    showSuccess('✅ تم حفظ البيانات بنجاح! المؤشر الآن مقفل.');
+    
+    // إعادة تحميل النموذج
+    setTimeout(() => {
+        showCategoryEntryForm(dataType, categoryId, subcategoryId);
+    }, 1500);
+}
 // ========================================
 // حفظ البيانات وقفل القسم
 // ========================================
