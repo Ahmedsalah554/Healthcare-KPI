@@ -677,20 +677,49 @@ function viewCategoryDetails(dataTypeId, categoryId) {
     `;
     
     if (hasSubcat && subcategories && Object.keys(subcategories).length > 0) {
-        // عرض الأقسام الفرعية
+        // عرض الأقسام الفرعية مع زر إضافة مؤشر
         html += `
-            <h4 style="color: #2c3e50; margin-bottom: 15px;">الأقسام الفرعية:</h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h4 style="color: #2c3e50; margin: 0;">الأقسام الفرعية:</h4>
+                <button onclick="showAddSubcategoryKPIForm('${dataTypeId}', '${categoryId}')" style="
+                    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+                    color: white;
+                    padding: 8px 16px;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 0.9rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    box-shadow: 0 2px 8px rgba(76,175,80,0.3);
+                    transition: all 0.3s;
+                " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    ➕ إضافة مؤشر في ${category.name}
+                </button>
+            </div>
+            
+            <!-- نموذج إضافة المؤشر (مخفي) -->
+            <div id="addSubcategoryKPIForm" style="display: none; margin-bottom: 20px;"></div>
+            
             <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 15px; margin-bottom: 25px;">
         `;
         
         Object.values(subcategories).forEach(subcategory => {
             const subData = categoryData.filter(d => d.subcategory === subcategory.id);
             
+            // جلب المؤشرات المخصصة
+            const customKPIs = getCustomKPIsForSubcategory(dataTypeId, categoryId, subcategory.id);
+            
             let statusBadge = '';
             if (subData.length === 0) {
                 statusBadge = '<div style="background: #ff9800; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; margin-top: 5px;">⏳ فارغ</div>';
             } else {
                 statusBadge = `<div style="background: #4caf50; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; margin-top: 5px;">✅ ${subData.length}</div>`;
+            }
+            
+            // عرض عدد المؤشرات المخصصة
+            let kpisBadge = '';
+            if (customKPIs.length > 0) {
+                kpisBadge = `<div style="background: #2196f3; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; margin-top: 5px;">📊 ${customKPIs.length} مؤش��</div>`;
             }
             
             html += `
@@ -703,14 +732,36 @@ function viewCategoryDetails(dataTypeId, categoryId) {
                     transition: all 0.3s;
                 " onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background='#f8f9fa'">
                     <div style="font-size: 1.8rem; margin-bottom: 5px;">${subcategory.icon || '📋'}</div>
-                    <div style="font-size: 0.8rem; color: #2c3e50;">${subcategory.name}</div>
+                    <div style="font-size: 0.8rem; color: #2c3e50; font-weight: 600;">${subcategory.name}</div>
                     ${statusBadge}
+                    ${kpisBadge}
                 </div>
             `;
         });
         
         html += `
             </div>
+        `;
+    } else {
+        // لا توجد أقسام فرعية - عرض زر إضافة مؤشر للقسم الرئيسي
+        html += `
+            <div style="margin-bottom: 20px;">
+                <button onclick="showAddCategoryKPIForm('${dataTypeId}', '${categoryId}')" style="
+                    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+                    color: white;
+                    padding: 10px 20px;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 0.95rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    box-shadow: 0 2px 8px rgba(76,175,80,0.3);
+                " onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                    ➕ إضافة مؤشر في ${category.name}
+                </button>
+            </div>
+            
+            <div id="addCategoryKPIForm" style="display: none; margin-bottom: 20px;"></div>
         `;
     }
     
@@ -789,6 +840,229 @@ function viewCategoryDetails(dataTypeId, categoryId) {
     
     detailsSection.innerHTML = html;
     detailsSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ========================================
+// نموذج إضافة مؤشر في قسم فرعي
+// ========================================
+
+function showAddSubcategoryKPIForm(dataTypeId, categoryId) {
+    const formContainer = document.getElementById('addSubcategoryKPIForm');
+    if (!formContainer) return;
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    const category = dataType.categories[categoryId];
+    const subcategories = getSubcategories(dataTypeId, categoryId);
+    
+    let html = `
+        <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 3px 15px rgba(0,0,0,0.1); border-top: 4px solid ${category.color}; animation: slideDown 0.3s;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h4 style="margin: 0; color: ${category.color};">➕ إضافة مؤشر جديد في ${category.name}</h4>
+                <button onclick="hideAddSubcategoryKPIForm()" style="
+                    background: none;
+                    border: none;
+                    font-size: 1.3rem;
+                    color: #999;
+                    cursor: pointer;
+                " onmouseover="this.style.color='#f44336'" onmouseout="this.style.color='#999'">×</button>
+            </div>
+            
+            <form onsubmit="saveSubcategoryKPI(event, '${dataTypeId}', '${categoryId}')">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>كود المؤشر *</label>
+                        <input type="text" id="subKpiCode" required placeholder="مثال: MR-01" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>اسم المؤشر *</label>
+                        <input type="text" id="subKpiName" required placeholder="أدخل اسم المؤشر" class="form-control">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>القسم الفرعي *</label>
+                    <select id="subKpiSubcategory" required class="form-control">
+                        <option value="">-- اختر القسم الفرعي --</option>
+    `;
+    
+    Object.values(subcategories).forEach(sub => {
+        html += `<option value="${sub.id}">${sub.icon || '📋'} ${sub.name}</option>`;
+    });
+    
+    html += `
+                    </select>
+                </div>
+    `;
+    
+    // نماذج إدخال حسب نوع البيانات
+    if (dataType.inputType === 'formula') {
+        html += `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>البسط *</label>
+                    <input type="text" id="subKpiNumerator" required placeholder="مثال: عدد المرضى" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label>المقام *</label>
+                    <input type="text" id="subKpiDenominator" required placeholder="مثال: إجمالي الحالات" class="form-control">
+                </div>
+            </div>
+        `;
+    }
+    
+    html += `
+                <div class="form-group">
+                    <label>الوصف</label>
+                    <textarea id="subKpiDescription" rows="2" placeholder="وصف المؤشر..." class="form-control"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <button type="submit" class="btn btn-primary">💾 حفظ المؤشر</button>
+                    <button type="button" onclick="hideAddSubcategoryKPIForm()" class="btn btn-secondary">❌ إلغاء</button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    formContainer.innerHTML = html;
+    formContainer.style.display = 'block';
+    formContainer.scrollIntoView({ behavior: 'smooth' });
+}
+
+function hideAddSubcategoryKPIForm() {
+    const formContainer = document.getElementById('addSubcategoryKPIForm');
+    if (formContainer) {
+        formContainer.style.display = 'none';
+    }
+}
+
+function saveSubcategoryKPI(event, dataTypeId, categoryId) {
+    event.preventDefault();
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    
+    const kpiData = {
+        id: 'kpi_' + Date.now(),
+        code: document.getElementById('subKpiCode').value,
+        name: document.getElementById('subKpiName').value,
+        category: categoryId,
+        subcategory: document.getElementById('subKpiSubcategory').value,
+        dataType: dataTypeId,
+        description: document.getElementById('subKpiDescription')?.value || '',
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser.id
+    };
+    
+    // إضافة البيانات الخاصة بنوع المؤشر
+    if (dataType.inputType === 'formula') {
+        kpiData.numerator = document.getElementById('subKpiNumerator').value;
+        kpiData.denominator = document.getElementById('subKpiDenominator').value;
+        kpiData.formula = `(${kpiData.numerator} / ${kpiData.denominator}) × 100`;
+    }
+    
+    // حفظ المؤشر
+    let allKPIs = getFromStorage('customKPIs', []);
+    allKPIs.push(kpiData);
+    saveToStorage('customKPIs', allKPIs);
+    
+    showSuccess('✅ تم إضافة المؤشر بنجاح في القسم الفرعي!');
+    
+    // إعادة تحميل التفاصيل
+    setTimeout(() => {
+        viewCategoryDetails(dataTypeId, categoryId);
+    }, 1500);
+}
+
+// ========================================
+// نموذج إضافة مؤشر في قسم رئيسي (بدون أقسام فرعية)
+// ========================================
+
+function showAddCategoryKPIForm(dataTypeId, categoryId) {
+    const formContainer = document.getElementById('addCategoryKPIForm');
+    if (!formContainer) return;
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    const category = dataType.categories[categoryId];
+    
+    let html = `
+        <div style="background: white; padding: 25px; border-radius: 12px; box-shadow: 0 3px 15px rgba(0,0,0,0.1); border-top: 4px solid ${category.color}; animation: slideDown 0.3s;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h4 style="margin: 0; color: ${category.color};">➕ إضافة مؤشر جديد في ${category.name}</h4>
+                <button onclick="hideAddCategoryKPIForm()" style="
+                    background: none;
+                    border: none;
+                    font-size: 1.3rem;
+                    color: #999;
+                    cursor: pointer;
+                " onmouseover="this.style.color='#f44336'" onmouseout="this.style.color='#999'">×</button>
+            </div>
+            
+            <form onsubmit="saveCategoryKPI(event, '${dataTypeId}', '${categoryId}')">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>كود المؤشر *</label>
+                        <input type="text" id="catKpiCode" required placeholder="مثال: CAT-01" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>اسم المؤشر *</label>
+                        <input type="text" id="catKpiName" required placeholder="أدخل اسم المؤشر" class="form-control">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>الوصف</label>
+                    <textarea id="catKpiDescription" rows="2" placeholder="وصف المؤشر..." class="form-control"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <button type="submit" class="btn btn-primary">💾 حفظ المؤشر</button>
+                    <button type="button" onclick="hideAddCategoryKPIForm()" class="btn btn-secondary">❌ إلغاء</button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    formContainer.innerHTML = html;
+    formContainer.style.display = 'block';
+    formContainer.scrollIntoView({ behavior: 'smooth' });
+}
+
+function hideAddCategoryKPIForm() {
+    const formContainer = document.getElementById('addCategoryKPIForm');
+    if (formContainer) {
+        formContainer.style.display = 'none';
+    }
+}
+
+function saveCategoryKPI(event, dataTypeId, categoryId) {
+    event.preventDefault();
+    
+    const kpiData = {
+        id: 'kpi_' + Date.now(),
+        code: document.getElementById('catKpiCode').value,
+        name: document.getElementById('catKpiName').value,
+        category: categoryId,
+        subcategory: null,
+        dataType: dataTypeId,
+        description: document.getElementById('catKpiDescription')?.value || '',
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser.id
+    };
+    
+    // حفظ المؤشر
+    let allKPIs = getFromStorage('customKPIs', []);
+    allKPIs.push(kpiData);
+    saveToStorage('customKPIs', allKPIs);
+    
+    showSuccess('✅ تم إضافة المؤشر بنجاح!');
+    
+    // إعادة تحميل التفاصيل
+    setTimeout(() => {
+        viewCategoryDetails(dataTypeId, categoryId);
+    }, 1500);
 }
 
 function viewSubcategoryData(dataTypeId, categoryId, subcategoryId) {
