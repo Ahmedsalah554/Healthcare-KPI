@@ -407,7 +407,34 @@ function getRelativeTime(dateString) {
         return formatDateArabic(dateString);
     }
 }
+// ========================================
+// الحصول على المؤشرات المخصصة
+// ========================================
 
+function getCustomKPIsForDataType(dataTypeId) {
+    const allKPIs = getFromStorage('customKPIs', []);
+    return allKPIs.filter(kpi => kpi.dataType === dataTypeId);
+}
+
+function getCustomKPIsForCategory(dataTypeId, categoryId) {
+    const allKPIs = getFromStorage('customKPIs', []);
+    return allKPIs.filter(kpi => 
+        kpi.dataType === dataTypeId && 
+        kpi.category === categoryId && 
+        !kpi.subcategory
+    );
+}
+
+function getCustomKPIsForSubcategory(dataTypeId, categoryId, subcategoryId) {
+    const allKPIs = getFromStorage('customKPIs', []);
+    return allKPIs.filter(kpi => 
+        kpi.dataType === dataTypeId && 
+        kpi.category === categoryId && 
+        kpi.subcategory === subcategoryId
+    );
+}
+
+console.log('✅ Custom KPI functions loaded');
 console.log('✅ Date/Time helper functions loaded');
 
 // تشغيل التهيئة عند تحميل الصفحة
