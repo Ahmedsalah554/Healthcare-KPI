@@ -243,9 +243,7 @@ function loadRecentActivity() {
     activityList.innerHTML = html;
 }
 
-// ========================================
-// إدارة المؤشرات (محدث v2.0)
-// ========================================
+
 // ========================================
 // إدارة المؤشرات (v2.0 - نظام متقدم)
 // ========================================
@@ -359,7 +357,6 @@ function openKPIManagementPage(dataTypeId) {
     if (!container) return;
     
     const categories = dataType.categories;
-    const users = getFromStorage('users', []);
     const allData = getFromStorage('allUserData', []);
     
     let html = `
@@ -380,6 +377,27 @@ function openKPIManagementPage(dataTypeId) {
                 <h2 style="margin: 0; font-size: 1.8rem;">${dataType.icon} ${dataType.name}</h2>
                 <p style="margin: 10px 0 0 0; opacity: 0.95;">${dataType.description}</p>
             </div>
+            
+            <!-- زر إضافة مؤشر جديد -->
+            <div style="margin-bottom: 25px;">
+                <button onclick="showAddKPIForm('${dataTypeId}')" style="
+                    background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+                    color: white;
+                    padding: 12px 25px;
+                    border: none;
+                    border-radius: 10px;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    box-shadow: 0 3px 10px rgba(76,175,80,0.3);
+                    transition: all 0.3s;
+                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(76,175,80,0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 10px rgba(76,175,80,0.3)'">
+                    ➕ إضافة مؤشر جديد في ${dataType.name}
+                </button>
+            </div>
+            
+            <!-- نموذج الإضافة (مخفي) -->
+            <div id="addKPIFormSection" style="display: none; margin-bottom: 30px;"></div>
             
             <!-- الأقسام -->
             <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-bottom: 30px;">
@@ -429,6 +447,206 @@ function openKPIManagementPage(dataTypeId) {
     container.innerHTML = html;
 }
 
+// ========================================
+// نموذج إضافة مؤشر جديد
+// ========================================
+
+function showAddKPIForm(dataTypeId) {
+    const formSection = document.getElementById('addKPIFormSection');
+    if (!formSection) return;
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    
+    let html = `
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.08); border-top: 5px solid ${dataType.color}; animation: slideDown 0.3s;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #f0f0f0;">
+                <h3 style="margin: 0; color: ${dataType.color};">➕ إضافة مؤشر جديد في ${dataType.name}</h3>
+                <button onclick="hideAddKPIForm()" style="
+                    background: none;
+                    border: none;
+                    font-size: 1.5rem;
+                    color: #999;
+                    cursor: pointer;
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 50%;
+                    transition: all 0.3s;
+                " onmouseover="this.style.background='rgba(244,67,54,0.1)'; this.style.color='#f44336'" onmouseout="this.style.background='none'; this.style.color='#999'">×</button>
+            </div>
+            
+            <form onsubmit="saveNewKPI(event, '${dataTypeId}')">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>كود المؤشر *</label>
+                        <input type="text" id="kpiCode" required placeholder="مثال: WFM-01" class="form-control">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>اسم المؤشر *</label>
+                        <input type="text" id="kpiName" required placeholder="أدخل اسم المؤشر" class="form-control">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>القسم *</label>
+                        <select id="kpiCategory" required class="form-control" onchange="updateSubcategoryOptions('${dataTypeId}')">
+                            <option value="">-- اختر القسم --</option>
+    `;
+    
+    Object.values(dataType.categories).forEach(category => {
+        html += `<option value="${category.id}">${category.icon} ${category.name}</option>`;
+    });
+    
+    html += `
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="subcategoryGroup" style="display: none;">
+                        <label>القسم الفرعي</label>
+                        <select id="kpiSubcategory" class="form-control">
+                            <option value="">-- اختر القسم الفرعي --</option>
+                        </select>
+                    </div>
+                </div>
+    `;
+    
+    // نماذج إدخال حسب نوع البيانات
+    if (dataType.inputType === 'formula') {
+        html += `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>البسط (Numerator) *</label>
+                    <input type="text" id="kpiNumerator" required placeholder="مثال: عدد المرضى" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label>المقام (Denominator) *</label>
+                    <input type="text" id="kpiDenominator" required placeholder="مثال: إجمالي الحالات" class="form-control">
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>الصيغة</label>
+                <input type="text" id="kpiFormula" placeholder="سيتم إنشاؤها تلقائياً: (البسط / المقام) × 100" class="form-control" readonly>
+            </div>
+        `;
+    } else if (dataType.inputType === 'monthly_data') {
+        html += `
+            <div class="form-group">
+                <label>نوع البيانات الشهرية *</label>
+                <select id="kpiMonthlyType" required class="form-control">
+                    <option value="">-- اختر النوع --</option>
+                    <option value="بسط">بسط (Numerator)</option>
+                    <option value="هدف">هدف (Target)</option>
+                    <option value="مجموع">مجموع (Total)</option>
+                </select>
+            </div>
+        `;
+    }
+    
+    html += `
+                <div class="form-group">
+                    <label>الوصف</label>
+                    <textarea id="kpiDescription" rows="3" placeholder="وصف المؤشر..." class="form-control"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <button type="submit" class="btn btn-primary">
+                        💾 حفظ المؤشر
+                    </button>
+                    <button type="button" onclick="hideAddKPIForm()" class="btn btn-secondary">
+                        ❌ إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    formSection.innerHTML = html;
+    formSection.style.display = 'block';
+    formSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+function hideAddKPIForm() {
+    const formSection = document.getElementById('addKPIFormSection');
+    if (formSection) {
+        formSection.style.display = 'none';
+    }
+}
+
+function updateSubcategoryOptions(dataTypeId) {
+    const categorySelect = document.getElementById('kpiCategory');
+    const subcategoryGroup = document.getElementById('subcategoryGroup');
+    const subcategorySelect = document.getElementById('kpiSubcategory');
+    
+    if (!categorySelect || !subcategoryGroup || !subcategorySelect) return;
+    
+    const selectedCategory = categorySelect.value;
+    
+    if (!selectedCategory) {
+        subcategoryGroup.style.display = 'none';
+        return;
+    }
+    
+    // التحقق من وجود أقسام فرعية
+    if (hasSubcategories(dataTypeId)) {
+        const subcategories = getSubcategories(dataTypeId, selectedCategory);
+        
+        if (subcategories && Object.keys(subcategories).length > 0) {
+            subcategoryGroup.style.display = 'block';
+            
+            subcategorySelect.innerHTML = '<option value="">-- اختر القسم الفرعي --</option>';
+            
+            Object.values(subcategories).forEach(sub => {
+                subcategorySelect.innerHTML += `<option value="${sub.id}">${sub.icon || '📋'} ${sub.name}</option>`;
+            });
+        } else {
+            subcategoryGroup.style.display = 'none';
+        }
+    } else {
+        subcategoryGroup.style.display = 'none';
+    }
+}
+
+function saveNewKPI(event, dataTypeId) {
+    event.preventDefault();
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    
+    const kpiData = {
+        id: 'kpi_' + Date.now(),
+        code: document.getElementById('kpiCode').value,
+        name: document.getElementById('kpiName').value,
+        category: document.getElementById('kpiCategory').value,
+        subcategory: document.getElementById('kpiSubcategory')?.value || null,
+        dataType: dataTypeId,
+        description: document.getElementById('kpiDescription')?.value || '',
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser.id
+    };
+    
+    // إضافة البيانات الخاصة بنوع المؤشر
+    if (dataType.inputType === 'formula') {
+        kpiData.numerator = document.getElementById('kpiNumerator').value;
+        kpiData.denominator = document.getElementById('kpiDenominator').value;
+        kpiData.formula = `(${kpiData.numerator} / ${kpiData.denominator}) × 100`;
+    } else if (dataType.inputType === 'monthly_data') {
+        kpiData.monthlyType = document.getElementById('kpiMonthlyType').value;
+    }
+    
+    // حفظ المؤشر
+    let allKPIs = getFromStorage('customKPIs', []);
+    allKPIs.push(kpiData);
+    saveToStorage('customKPIs', allKPIs);
+    
+    showSuccess('✅ تم إضافة المؤشر بنجاح!');
+    
+    // إعادة تحميل الصفحة
+    setTimeout(() => {
+        openKPIManagementPage(dataTypeId);
+    }, 1500);
+}
 // ========================================
 // عرض تفاصيل القسم
 // ========================================
@@ -2054,6 +2272,28 @@ function showSection(sectionId) {
     } else if (sectionId === 'reports') {
         loadReports();
     }
+}
+// ========================================
+// الحصول على المؤشرات المخصصة
+// ========================================
+
+function getCustomKPIsForDataType(dataTypeId) {
+    const allKPIs = getFromStorage('customKPIs', []);
+    return allKPIs.filter(kpi => kpi.dataType === dataTypeId);
+}
+
+function getCustomKPIsForCategory(dataTypeId, categoryId) {
+    const allKPIs = getFromStorage('customKPIs', []);
+    return allKPIs.filter(kpi => kpi.dataType === dataTypeId && kpi.category === categoryId);
+}
+
+function getCustomKPIsForSubcategory(dataTypeId, categoryId, subcategoryId) {
+    const allKPIs = getFromStorage('customKPIs', []);
+    return allKPIs.filter(kpi => 
+        kpi.dataType === dataTypeId && 
+        kpi.category === categoryId && 
+        kpi.subcategory === subcategoryId
+    );
 }
 
 console.log('✅ Admin main script loaded (v2.0 - Complete)');
