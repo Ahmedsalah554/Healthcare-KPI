@@ -246,48 +246,521 @@ function loadRecentActivity() {
 // ========================================
 // إدارة المؤشرات (محدث v2.0)
 // ========================================
+// ========================================
+// إدارة المؤشرات (v2.0 - نظام متقدم)
+// ========================================
 
 function loadKPIManagement() {
-    console.log('📊 Loading KPI Management...');
+    console.log('📊 Loading KPI management...');
     
     const container = document.getElementById('kpiManagementContent');
-    if (!container) return;
+    
+    if (!container) {
+        console.error('❌ kpiManagementContent not found!');
+        return;
+    }
     
     const dataTypes = getAllDataTypes();
     
     let html = `
-        <div class="kpi-management-container">
-            <div class="section-header">
-                <h2>إدارة المؤشرات</h2>
-                <p>إضافة وتعديل المؤشرات حسب الأقسام</p>
-            </div>
-            
-            <div class="data-type-selector">
-                <h3>اختر نوع البيانات:</h3>
-                <div class="data-type-grid">
+        <div class="section-header">
+            <h2>📊 إدارة المؤشرات</h2>
+            <p>إضافة وتعديل وإدارة مؤشرات الأداء</p>
+        </div>
+        
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.08);">
+            <h3 style="color: #2c3e50; margin-bottom: 25px; font-size: 1.5rem;">اختر نوع البيانات:</h3>
+            <div class="data-type-grid">
     `;
     
     dataTypes.forEach(dataType => {
+        const stats = getKPIStatistics(dataType.id);
+        
         html += `
-            <div class="data-type-card" onclick="selectDataTypeForKPI('${dataType.id}')" style="border-left: 4px solid ${dataType.color}">
+            <div class="data-type-card" onclick="openKPIManagementPage('${dataType.id}')" style="border-left: 4px solid ${dataType.color}; cursor: pointer;">
                 <div class="data-type-icon" style="font-size: 3rem">${dataType.icon}</div>
                 <h4>${dataType.name}</h4>
                 <p class="data-type-desc">${dataType.description}</p>
                 <span class="input-type-badge" style="background: ${dataType.color}20; color: ${dataType.color}">${getInputTypeLabel(dataType.inputType)}</span>
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #f0f0f0;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #666;">
+                        <span>📊 إجمالي المؤشرات:</span>
+                        <strong style="color: ${dataType.color}">${stats.totalKPIs}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #666; margin-top: 5px;">
+                        <span>✅ تم الإدخال:</span>
+                        <strong style="color: #4caf50">${stats.completedKPIs}</strong>
+                    </div>
+                </div>
             </div>
         `;
     });
     
     html += `
-                </div>
             </div>
-            
-            <div id="kpiFormSection" style="display: none; margin-top: 30px;"></div>
-            <div id="kpiListSection" style="display: none; margin-top: 30px;"></div>
         </div>
     `;
     
     container.innerHTML = html;
+}
+
+function getKPIStatistics(dataTypeId) {
+    const dataType = getDataTypeInfo(dataTypeId);
+    if (!dataType) return { totalKPIs: 0, completedKPIs: 0 };
+    
+    let totalKPIs = 0;
+    let completedKPIs = 0;
+    
+    // حساب إجمالي الأقسام
+    Object.keys(dataType.categories).forEach(categoryId => {
+        if (hasSubcategories(dataTypeId)) {
+            const subcategories = getSubcategories(dataTypeId, categoryId);
+            totalKPIs += Object.keys(subcategories).length;
+            
+            // حساب المكتملة
+            Object.keys(subcategories).forEach(subcategoryId => {
+                const allData = getFromStorage('allUserData', []);
+                const hasData = allData.some(d => 
+                    d.dataType === dataTypeId && 
+                    d.category === categoryId && 
+                    d.subcategory === subcategoryId
+                );
+                if (hasData) completedKPIs++;
+            });
+        } else {
+            totalKPIs++;
+            const allData = getFromStorage('allUserData', []);
+            const hasData = allData.some(d => 
+                d.dataType === dataTypeId && 
+                d.category === categoryId
+            );
+            if (hasData) completedKPIs++;
+        }
+    });
+    
+    return { totalKPIs, completedKPIs };
+}
+
+// ========================================
+// صفحة إدارة المؤشرات المتقدمة
+// ========================================
+
+function openKPIManagementPage(dataTypeId) {
+    console.log('📋 Opening KPI management page for:', dataTypeId);
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    
+    if (!dataType) {
+        showError('نوع البيانات غير موجود');
+        return;
+    }
+    
+    const container = document.getElementById('kpiManagementContent');
+    if (!container) return;
+    
+    const categories = dataType.categories;
+    const users = getFromStorage('users', []);
+    const allData = getFromStorage('allUserData', []);
+    
+    let html = `
+        <div style="animation: fadeIn 0.3s;">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, ${dataType.color} 0%, ${dataType.color}cc 100%); color: white; padding: 25px 30px; border-radius: 15px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <button onclick="loadKPIManagement()" style="
+                    background: rgba(255,255,255,0.2);
+                    border: none;
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    margin-bottom: 15px;
+                    transition: all 0.3s;
+                ">← العودة لقائمة المؤشرات</button>
+                <h2 style="margin: 0; font-size: 1.8rem;">${dataType.icon} ${dataType.name}</h2>
+                <p style="margin: 10px 0 0 0; opacity: 0.95;">${dataType.description}</p>
+            </div>
+            
+            <!-- الأقسام -->
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-bottom: 30px;">
+    `;
+    
+    Object.values(categories).forEach(category => {
+        const categoryData = allData.filter(d => d.dataType === dataTypeId && d.category === category.id);
+        const entryCount = categoryData.length;
+        const userCount = new Set(categoryData.map(d => d.user)).size;
+        
+        let statusInfo = '';
+        if (entryCount === 0) {
+            statusInfo = '<div style="background: #ff9800; color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.75rem; margin-top: 8px;">⏳ لا توجد بيانات</div>';
+        } else {
+            statusInfo = `
+                <div style="background: #4caf50; color: white; padding: 5px 10px; border-radius: 15px; font-size: 0.75rem; margin-top: 8px;">
+                    ✅ ${entryCount} إدخال من ${userCount} مستخدم
+                </div>
+            `;
+        }
+        
+        html += `
+            <div onclick="viewCategoryDetails('${dataType.id}', '${category.id}')" style="
+                background: white;
+                padding: 20px;
+                border-radius: 12px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+                cursor: pointer;
+                transition: all 0.3s;
+                text-align: center;
+                border-top: 3px solid ${category.color};
+            " onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 5px 20px rgba(0,0,0,0.15)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 10px rgba(0,0,0,0.08)'">
+                <div style="font-size: 2.5rem; color: ${category.color}; margin-bottom: 10px;">${category.icon}</div>
+                <h4 style="color: #2c3e50; margin: 0 0 5px 0;">${category.name}</h4>
+                ${statusInfo}
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+            
+            <div id="categoryDetailsSection"></div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// ========================================
+// عرض تفاصيل القسم
+// ========================================
+
+function viewCategoryDetails(dataTypeId, categoryId) {
+    console.log('📋 Viewing category details:', dataTypeId, categoryId);
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    const category = dataType.categories[categoryId];
+    const detailsSection = document.getElementById('categoryDetailsSection');
+    
+    if (!detailsSection) return;
+    
+    // جلب البيانات
+    const allData = getFromStorage('allUserData', []);
+    const categoryData = allData.filter(d => d.dataType === dataTypeId && d.category === categoryId);
+    
+    // التحقق من وجود أقسام فرعية
+    let hasSubcat = hasSubcategories(dataTypeId);
+    let subcategories = hasSubcat ? getSubcategories(dataTypeId, categoryId) : null;
+    
+    let html = `
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-top: 20px;">
+            <div style="background: ${category.color}20; padding: 20px; border-radius: 10px; border-right: 4px solid ${category.color}; margin-bottom: 25px;">
+                <h3 style="margin: 0; color: #2c3e50;">${category.icon} ${category.name}</h3>
+                <p style="margin: 5px 0 0 0; color: #666;">إجمالي الإدخالات: <strong>${categoryData.length}</strong></p>
+            </div>
+    `;
+    
+    if (hasSubcat && subcategories && Object.keys(subcategories).length > 0) {
+        // عرض الأقسام الفرعية
+        html += `
+            <h4 style="color: #2c3e50; margin-bottom: 15px;">الأقسام الفرعية:</h4>
+            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 15px; margin-bottom: 25px;">
+        `;
+        
+        Object.values(subcategories).forEach(subcategory => {
+            const subData = categoryData.filter(d => d.subcategory === subcategory.id);
+            
+            let statusBadge = '';
+            if (subData.length === 0) {
+                statusBadge = '<div style="background: #ff9800; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; margin-top: 5px;">⏳ فارغ</div>';
+            } else {
+                statusBadge = `<div style="background: #4caf50; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.7rem; margin-top: 5px;">✅ ${subData.length}</div>`;
+            }
+            
+            html += `
+                <div onclick="viewSubcategoryData('${dataTypeId}', '${categoryId}', '${subcategory.id}')" style="
+                    background: #f8f9fa;
+                    padding: 15px;
+                    border-radius: 10px;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                " onmouseover="this.style.background='#e3f2fd'" onmouseout="this.style.background='#f8f9fa'">
+                    <div style="font-size: 1.8rem; margin-bottom: 5px;">${subcategory.icon || '📋'}</div>
+                    <div style="font-size: 0.8rem; color: #2c3e50;">${subcategory.name}</div>
+                    ${statusBadge}
+                </div>
+            `;
+        });
+        
+        html += `
+            </div>
+        `;
+    }
+    
+    // عرض جدول البيانات
+    if (categoryData.length > 0) {
+        html += `
+            <h4 style="color: #2c3e50; margin-bottom: 15px;">البيانات المُدخلة:</h4>
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>المستخدم</th>
+                            <th>المنشأة</th>
+                            ${hasSubcat ? '<th>القسم الفرعي</th>' : ''}
+                            <th>القيمة</th>
+                            <th>الملاحظات</th>
+                            <th>التاريخ</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        categoryData.forEach(data => {
+            const isLocked = getFromStorage(`lock_${data.dataType}_${data.category}${data.subcategory ? '_' + data.subcategory : ''}_${data.user}`, false);
+            const subcatName = data.subcategory && subcategories ? (subcategories[data.subcategory]?.name || '-') : '-';
+            
+            let valueDisplay = '-';
+            if (data.count !== undefined) valueDisplay = data.count;
+            else if (data.assessment !== undefined) valueDisplay = getAssessmentLabel(data.assessment);
+            else if (data.value !== undefined) valueDisplay = data.value;
+            
+            html += `
+                <tr>
+                    <td>${data.userName || '-'}</td>
+                    <td>${data.facilityName || '-'}</td>
+                    ${hasSubcat ? `<td>${subcatName}</td>` : ''}
+                    <td><strong style="color: #1a73e8;">${valueDisplay}</strong></td>
+                    <td>${data.notes || '-'}</td>
+                    <td style="font-size: 0.85rem;">${formatDateArabic(data.timestamp)}</td>
+                    <td>
+                        ${isLocked 
+                            ? '<span class="badge badge-danger">🔒 مقفل</span>' 
+                            : '<span class="badge badge-success">✅ مفتوح</span>'}
+                    </td>
+                    <td>
+                        ${isLocked 
+                            ? `<button onclick="unlockCategoryForUser('${data.dataType}', '${data.category}', '${data.subcategory || ''}', '${data.user}')" class="btn-icon" title="فك القفل">🔓</button>`
+                            : `<button onclick="lockCategoryForUser('${data.dataType}', '${data.category}', '${data.subcategory || ''}', '${data.user}')" class="btn-icon" title="قفل">🔒</button>`
+                        }
+                        <button onclick="deleteUserData('${data.dataType}', '${data.category}', '${data.subcategory || ''}', '${data.user}')" class="btn-icon" title="حذف" style="color: #f44336;">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } else {
+        html += `
+            <div style="text-align: center; padding: 40px; color: #999;">
+                <div style="font-size: 3rem; margin-bottom: 15px;">📭</div>
+                <h4>لا توجد بيانات</h4>
+                <p>لم يتم إدخال أي بيانات لهذا القسم بعد</p>
+            </div>
+        `;
+    }
+    
+    html += `
+        </div>
+    `;
+    
+    detailsSection.innerHTML = html;
+    detailsSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+function viewSubcategoryData(dataTypeId, categoryId, subcategoryId) {
+    const allData = getFromStorage('allUserData', []);
+    const subData = allData.filter(d => 
+        d.dataType === dataTypeId && 
+        d.category === categoryId && 
+        d.subcategory === subcategoryId
+    );
+    
+    const dataType = getDataTypeInfo(dataTypeId);
+    const category = dataType.categories[categoryId];
+    const subcategory = getSubcategories(dataTypeId, categoryId)[subcategoryId];
+    
+    const detailsSection = document.getElementById('categoryDetailsSection');
+    if (!detailsSection) return;
+    
+    let html = `
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-top: 20px;">
+            <button onclick="viewCategoryDetails('${dataTypeId}', '${categoryId}')" style="
+                background: rgba(26, 115, 232, 0.1);
+                border: none;
+                padding: 8px 16px;
+                border-radius: 8px;
+                color: #1a73e8;
+                cursor: pointer;
+                font-weight: 600;
+                margin-bottom: 15px;
+            ">← العودة</button>
+            
+            <div style="background: ${category.color}20; padding: 20px; border-radius: 10px; border-right: 4px solid ${category.color}; margin-bottom: 25px;">
+                <h3 style="margin: 0; color: #2c3e50;">${subcategory.icon || '📋'} ${subcategory.name}</h3>
+                <p style="margin: 5px 0 0 0; color: #666;">${category.name} - إجمالي الإدخالات: <strong>${subData.length}</strong></p>
+            </div>
+    `;
+    
+    if (subData.length > 0) {
+        html += `
+            <div style="overflow-x: auto;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>المستخدم</th>
+                            <th>المنشأة</th>
+                            <th>القيمة</th>
+                            <th>الملاحظات</th>
+                            <th>التاريخ</th>
+                            <th>الحالة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        subData.forEach(data => {
+            const isLocked = getFromStorage(`lock_${data.dataType}_${data.category}_${data.subcategory}_${data.user}`, false);
+            
+            let valueDisplay = '-';
+            if (data.count !== undefined) valueDisplay = data.count;
+            else if (data.assessment !== undefined) valueDisplay = getAssessmentLabel(data.assessment);
+            else if (data.value !== undefined) valueDisplay = data.value;
+            
+            html += `
+                <tr>
+                    <td>${data.userName || '-'}</td>
+                    <td>${data.facilityName || '-'}</td>
+                    <td><strong style="color: #1a73e8;">${valueDisplay}</strong></td>
+                    <td>${data.notes || '-'}</td>
+                    <td style="font-size: 0.85rem;">${formatDateArabic(data.timestamp)}</td>
+                    <td>
+                        ${isLocked 
+                            ? '<span class="badge badge-danger">🔒 مقفل</span>' 
+                            : '<span class="badge badge-success">✅ مفتوح</span>'}
+                    </td>
+                    <td>
+                        ${isLocked 
+                            ? `<button onclick="unlockCategoryForUser('${data.dataType}', '${data.category}', '${data.subcategory}', '${data.user}')" class="btn-icon" title="فك القفل">🔓</button>`
+                            : `<button onclick="lockCategoryForUser('${data.dataType}', '${data.category}', '${data.subcategory}', '${data.user}')" class="btn-icon" title="قفل">🔒</button>`
+                        }
+                        <button onclick="deleteUserData('${data.dataType}', '${data.category}', '${data.subcategory}', '${data.user}')" class="btn-icon" title="حذ��" style="color: #f44336;">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } else {
+        html += `
+            <div style="text-align: center; padding: 40px; color: #999;">
+                <div style="font-size: 3rem; margin-bottom: 15px;">📭</div>
+                <h4>لا توجد بيانات</h4>
+            </div>
+        `;
+    }
+    
+    html += `</div>`;
+    
+    detailsSection.innerHTML = html;
+    detailsSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ========================================
+// إدارة القفل
+// ========================================
+
+function unlockCategoryForUser(dataTypeId, categoryId, subcategoryId, userId) {
+    if (!confirm('هل تريد فك قفل هذا القسم للمستخدم؟ سيتمكن من إعادة إدخال البيانات.')) {
+        return;
+    }
+    
+    const lockKey = `lock_${dataTypeId}_${categoryId}${subcategoryId ? '_' + subcategoryId : ''}_${userId}`;
+    removeFromStorage(lockKey);
+    
+    showSuccess('✅ تم فك القفل بنجاح! المستخدم يمكنه الآن إعادة الإدخال.');
+    
+    // إعادة تحميل التفاصيل
+    setTimeout(() => {
+        if (subcategoryId) {
+            viewSubcategoryData(dataTypeId, categoryId, subcategoryId);
+        } else {
+            viewCategoryDetails(dataTypeId, categoryId);
+        }
+    }, 1000);
+}
+
+function lockCategoryForUser(dataTypeId, categoryId, subcategoryId, userId) {
+    if (!confirm('هل تريد قفل هذا القسم للمستخدم؟')) {
+        return;
+    }
+    
+    const lockKey = `lock_${dataTypeId}_${categoryId}${subcategoryId ? '_' + subcategoryId : ''}_${userId}`;
+    saveToStorage(lockKey, true);
+    
+    showSuccess('🔒 تم القفل بنجاح!');
+    
+    setTimeout(() => {
+        if (subcategoryId) {
+            viewSubcategoryData(dataTypeId, categoryId, subcategoryId);
+        } else {
+            viewCategoryDetails(dataTypeId, categoryId);
+        }
+    }, 1000);
+}
+
+function deleteUserData(dataTypeId, categoryId, subcategoryId, userId) {
+    if (!confirm('هل تريد حذف هذه البيانات؟ هذا الإجراء لا يمكن التراجع عنه!')) {
+        return;
+    }
+    
+    // حذف البيانات
+    const dataKey = `data_${dataTypeId}_${categoryId}${subcategoryId ? '_' + subcategoryId : ''}_${userId}`;
+    removeFromStorage(dataKey);
+    
+    // حذف القفل
+    const lockKey = `lock_${dataTypeId}_${categoryId}${subcategoryId ? '_' + subcategoryId : ''}_${userId}`;
+    removeFromStorage(lockKey);
+    
+    // حذف من قاعدة البيانات العامة
+    let allData = getFromStorage('allUserData', []);
+    allData = allData.filter(d => !(
+        d.dataType === dataTypeId && 
+        d.category === categoryId && 
+        d.subcategory === (subcategoryId || null) && 
+        d.user === userId
+    ));
+    saveToStorage('allUserData', allData);
+    
+    showSuccess('✅ تم الحذف بنجاح!');
+    
+    setTimeout(() => {
+        if (subcategoryId) {
+            viewSubcategoryData(dataTypeId, categoryId, subcategoryId);
+        } else {
+            viewCategoryDetails(dataTypeId, categoryId);
+        }
+    }, 1000);
+}
+
+function getAssessmentLabel(value) {
+    const labels = {
+        '2': '⭐⭐ ممتاز',
+        '1': '⭐ جيد',
+        '0': '❌ ضعيف',
+        'N/A': '⚪ لا ينطبق'
+    };
+    return labels[value] || value;
 }
 function selectDataTypeForKPI(dataTypeId) {
     selectedKPIDataType = dataTypeId;
