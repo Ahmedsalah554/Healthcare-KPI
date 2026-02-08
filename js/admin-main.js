@@ -2422,7 +2422,7 @@ function deleteUser(userId) {
 // ========================================
 
 function loadReports() {
-    console.log('📊 Loading reports...');
+    console.log('📊 Loading advanced reports...');
     
     const container = document.getElementById('reportsContent');
     if (!container) return;
@@ -2430,9 +2430,44 @@ function loadReports() {
     let html = `
         <div class="reports-section">
             <div class="section-header">
-                <h2>التقارير والإحصائيات</h2>
+                <h2>📊 التقارير والتحليل المتقدم</h2>
+                <p>تقارير شاملة وتحليل بيانات مؤشرات الأداء</p>
             </div>
             
+            <!-- فلتر الفترة الزمنية -->
+            <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 25px;">
+                <h3 style="color: #2c3e50; margin-bottom: 20px;">🗓️ تحديد الفترة الزمنية</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; align-items: end;">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">من تاريخ</label>
+                        <input type="date" id="reportDateFrom" class="form-control" value="${getDefaultFromDate()}">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">إلى تاريخ</label>
+                        <input type="date" id="reportDateTo" class="form-control" value="${getCurrentDate()}">
+                    </div>
+                    <div>
+                        <button onclick="generateCustomReport()" class="btn btn-primary" style="width: 100%;">
+                            📊 إنشاء التقرير
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- اختصارات سريعة -->
+                <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                    <button onclick="setQuickDateRange('today')" class="btn btn-secondary btn-small">📅 اليوم</button>
+                    <button onclick="setQuickDateRange('week')" class="btn btn-secondary btn-small">📆 هذا الأسبوع</button>
+                    <button onclick="setQuickDateRange('month')" class="btn btn-secondary btn-small">🗓️ هذا الشهر</button>
+                    <button onclick="setQuickDateRange('quarter')" class="btn btn-secondary btn-small">📊 هذا الربع</button>
+                    <button onclick="setQuickDateRange('year')" class="btn btn-secondary btn-small">📈 هذا العام</button>
+                    <button onclick="setQuickDateRange('all')" class="btn btn-secondary btn-small">🌐 كل الفترة</button>
+                </div>
+            </div>
+            
+            <!-- نتائج التقرير -->
+            <div id="reportResult"></div>
+            
+            <!-- أنواع التقارير -->
             <div class="reports-grid">
                 <div class="report-card" onclick="generateKPIReport()">
                     <div class="report-icon">📊</div>
@@ -2458,8 +2493,6 @@ function loadReports() {
                     <p>تصدير جميع البيانات بصيغة JSON</p>
                 </div>
             </div>
-            
-            <div id="reportResult" style="margin-top: 30px;"></div>
         </div>
     `;
     
@@ -3083,5 +3116,759 @@ function deleteCustomKPI(kpiId, dataTypeId, categoryId, subcategoryId = null) {
         }
     }, 1000);
 }
+// ========================================
+// نظام التقارير والتحليل المتقدم
+// ========================================
 
+function loadAdvancedReports() {
+    console.log('📊 Loading advanced reports...');
+    
+    const container = document.getElementById('reportsContent');
+    if (!container) return;
+    
+    let html = `
+        <div class="reports-section">
+            <div class="section-header">
+                <h2>📊 التقارير والتحليل المتقدم</h2>
+                <p>تقارير شاملة وتحليل بيانات مؤشرات الأداء</p>
+            </div>
+            
+            <!-- فلتر الفترة الزمنية -->
+            <div style="background: white; padding: 25px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 25px;">
+                <h3 style="color: #2c3e50; margin-bottom: 20px;">🗓️ تحديد الفترة الزمنية</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 15px; align-items: end;">
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">من تاريخ</label>
+                        <input type="date" id="reportDateFrom" class="form-control" value="${getDefaultFromDate()}">
+                    </div>
+                    <div>
+                        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">إلى تاريخ</label>
+                        <input type="date" id="reportDateTo" class="form-control" value="${getCurrentDate()}">
+                    </div>
+                    <div>
+                        <button onclick="generateCustomReport()" class="btn btn-primary" style="width: 100%;">
+                            📊 إنشاء التقرير
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- اختصارات سريعة -->
+                <div style="display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap;">
+                    <button onclick="setQuickDateRange('today')" class="btn btn-secondary btn-small">📅 اليوم</button>
+                    <button onclick="setQuickDateRange('week')" class="btn btn-secondary btn-small">📆 هذا الأسبوع</button>
+                    <button onclick="setQuickDateRange('month')" class="btn btn-secondary btn-small">🗓️ هذا الشهر</button>
+                    <button onclick="setQuickDateRange('quarter')" class="btn btn-secondary btn-small">📊 هذا الربع</button>
+                    <button onclick="setQuickDateRange('year')" class="btn btn-secondary btn-small">📈 هذا العام</button>
+                    <button onclick="setQuickDateRange('all')" class="btn btn-secondary btn-small">🌐 كل الفترة</button>
+                </div>
+            </div>
+            
+            <!-- نتائج التقرير -->
+            <div id="reportResults"></div>
+            
+            <!-- أنواع التقارير -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 25px;">
+                <div class="report-card" onclick="generateDataTypeReport()">
+                    <div class="report-icon">📊</div>
+                    <h3>تقرير أنواع البيانات</h3>
+                    <p>تحليل شامل لجميع أنواع البيانات</p>
+                </div>
+                
+                <div class="report-card" onclick="generateFacilityReport()">
+                    <div class="report-icon">🏥</div>
+                    <h3>تقرير المنشآت</h3>
+                    <p>أداء المنشآت والمقارنات</p>
+                </div>
+                
+                <div class="report-card" onclick="generateUserActivityReport()">
+                    <div class="report-icon">👥</div>
+                    <h3>تقرير نشاط المستخدمين</h3>
+                    <p>إحصائيات الاستخدام والأداء</p>
+                </div>
+                
+                <div class="report-card" onclick="generateKPIComparisonReport()">
+                    <div class="report-icon">📈</div>
+                    <h3>تقرير مقارنة المؤشرات</h3>
+                    <p>مقارنة أداء المؤشرات المختلفة</p>
+                </div>
+                
+                <div class="report-card" onclick="generateCompletionReport()">
+                    <div class="report-icon">✅</div>
+                    <h3>تقرير نسب الإنجاز</h3>
+                    <p>نسب إدخال البيانات والإكمال</p>
+                </div>
+                
+                <div class="report-card" onclick="generateTrendAnalysisReport()">
+                    <div class="report-icon">📉</div>
+                    <h3>تحليل الاتجاهات</h3>
+                    <p>تحليل الاتجاهات الزمنية</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// ========================================
+// دوال مساعدة للتواريخ
+// ========================================
+
+function getDefaultFromDate() {
+    const date = new Date();
+    date.setMonth(date.getMonth() - 1);
+    return date.toISOString().split('T')[0];
+}
+
+function setQuickDateRange(range) {
+    const today = new Date();
+    const fromInput = document.getElementById('reportDateFrom');
+    const toInput = document.getElementById('reportDateTo');
+    
+    let fromDate = new Date();
+    
+    switch(range) {
+        case 'today':
+            fromDate = new Date(today);
+            break;
+        case 'week':
+            fromDate.setDate(today.getDate() - 7);
+            break;
+        case 'month':
+            fromDate.setMonth(today.getMonth() - 1);
+            break;
+        case 'quarter':
+            fromDate.setMonth(today.getMonth() - 3);
+            break;
+        case 'year':
+            fromDate.setFullYear(today.getFullYear() - 1);
+            break;
+        case 'all':
+            fromDate = new Date(2020, 0, 1);
+            break;
+    }
+    
+    fromInput.value = fromDate.toISOString().split('T')[0];
+    toInput.value = today.toISOString().split('T')[0];
+    
+    showSuccess(`تم تحديد الفترة: ${getRangeName(range)}`);
+}
+
+function getRangeName(range) {
+    const names = {
+        'today': 'اليوم',
+        'week': 'آخر أسبوع',
+        'month': 'آخر شهر',
+        'quarter': 'آخر 3 أشهر',
+        'year': 'آخر سنة',
+        'all': 'كل الفترة'
+    };
+    return names[range] || range;
+}
+
+// ========================================
+// إنشاء التقرير المخصص
+// ========================================
+
+function generateCustomReport() {
+    const fromDate = document.getElementById('reportDateFrom').value;
+    const toDate = document.getElementById('reportDateTo').value;
+    
+    if (!fromDate || !toDate) {
+        showError('يرجى تحديد الفترة الزمنية');
+        return;
+    }
+    
+    if (new Date(fromDate) > new Date(toDate)) {
+        showError('تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
+        return;
+    }
+    
+    console.log('📊 Generating custom report:', { fromDate, toDate });
+    
+    // جلب البيانات
+    const allData = getFromStorage('allUserData', []);
+    const filteredData = allData.filter(d => {
+        const dataDate = new Date(d.timestamp);
+        return dataDate >= new Date(fromDate) && dataDate <= new Date(toDate);
+    });
+    
+    console.log('📊 Filtered data:', filteredData.length);
+    
+    displayReportResults(filteredData, fromDate, toDate);
+}
+
+// ========================================
+// عرض نتائج التقرير
+// ========================================
+
+function displayReportResults(data, fromDate, toDate) {
+    const resultsContainer = document.getElementById('reportResults');
+    if (!resultsContainer) return;
+    
+    // حساب الإحصائيات
+    const stats = calculateReportStats(data);
+    
+    let html = `
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 25px;">
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 2px solid #f0f0f0;">
+                <div>
+                    <h3 style="margin: 0 0 5px 0; color: #2c3e50;">📊 نتائج التقرير</h3>
+                    <p style="margin: 0; color: #666; font-size: 0.9rem;">الفترة: ${formatDateArabic(fromDate)} - ${formatDateArabic(toDate)}</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="exportReportToPDF()" class="btn btn-danger btn-small">📄 PDF</button>
+                    <button onclick="exportReportToExcel()" class="btn btn-success btn-small">📊 Excel</button>
+                    <button onclick="exportReportToCSV()" class="btn btn-primary btn-small">📋 CSV</button>
+                    <button onclick="printReport()" class="btn btn-secondary btn-small">🖨️ طباعة</button>
+                </div>
+            </div>
+            
+            <!-- إحصائيات سريعة -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; color: white; text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 5px;">${stats.totalEntries}</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">إجمالي الإدخالات</div>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 20px; border-radius: 12px; color: white; text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 5px;">${stats.activeUsers}</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">المستخدمين النشطين</div>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 20px; border-radius: 12px; color: white; text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 5px;">${stats.activeFacilities}</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">المنشآت النشطة</div>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); padding: 20px; border-radius: 12px; color: white; text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 5px;">${stats.completionRate}%</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">نسبة الإنجاز</div>
+                </div>
+            </div>
+            
+            <!-- تحليل حسب نوع البيانات -->
+            <div style="margin-bottom: 30px;">
+                <h4 style="color: #2c3e50; margin-bottom: 15px;">📊 التحليل حسب نوع البيانات</h4>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+    `;
+    
+    // تحليل كل نوع بيانات
+    const dataTypes = getAllDataTypes();
+    dataTypes.forEach(dataType => {
+        const typeData = data.filter(d => d.dataType === dataType.id);
+        const percentage = data.length > 0 ? ((typeData.length / data.length) * 100).toFixed(1) : 0;
+        
+        html += `
+            <div style="background: ${dataType.color}10; padding: 20px; border-radius: 10px; border-right: 4px solid ${dataType.color};">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 2rem;">${dataType.icon}</span>
+                        <strong style="color: #2c3e50;">${dataType.name}</strong>
+                    </div>
+                    <span style="background: ${dataType.color}; color: white; padding: 5px 12px; border-radius: 15px; font-weight: 600; font-size: 0.9rem;">${typeData.length}</span>
+                </div>
+                <div style="background: #e0e0e0; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 8px;">
+                    <div style="background: ${dataType.color}; height: 100%; width: ${percentage}%; transition: width 0.5s;"></div>
+                </div>
+                <div style="text-align: left; color: #666; font-size: 0.85rem;">${percentage}% من إجمالي الإدخالات</div>
+            </div>
+        `;
+    });
+    
+    html += `
+                </div>
+            </div>
+            
+            <!-- جدول البيانات التفصيلي -->
+            <div>
+                <h4 style="color: #2c3e50; margin-bottom: 15px;">📋 البيانات التفصيلية</h4>
+                <div style="overflow-x: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>نوع البيانات</th>
+                                <th>المؤشر</th>
+                                <th>المستخدم</th>
+                                <th>المنشأة</th>
+                                <th>القيمة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+    `;
+    
+    if (data.length === 0) {
+        html += `
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
+                    لا توجد بيانات في الفترة المحددة
+                </td>
+            </tr>
+        `;
+    } else {
+        data.slice(0, 100).forEach(item => {
+            const dataType = getDataTypeInfo(item.dataType);
+            let value = '-';
+            
+            if (item.count !== undefined) value = item.count;
+            else if (item.assessment !== undefined) value = getAssessmentLabel(item.assessment);
+            else if (item.value !== undefined) value = item.value.toFixed(2);
+            
+            html += `
+                <tr>
+                    <td style="font-size: 0.85rem;">${formatDateArabic(item.timestamp)}</td>
+                    <td>${dataType ? dataType.icon + ' ' + dataType.name : '-'}</td>
+                    <td><strong>${item.kpiCode || item.kpiName || '-'}</strong></td>
+                    <td>${item.userName || '-'}</td>
+                    <td>${item.facilityName || '-'}</td>
+                    <td><strong style="color: #1a73e8;">${value}</strong></td>
+                </tr>
+            `;
+        });
+        
+        if (data.length > 100) {
+            html += `
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 15px; background: #f5f5f5; color: #666;">
+                        عرض أول 100 سجل من ${data.length} سجل
+                    </td>
+                </tr>
+            `;
+        }
+    }
+    
+    html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    resultsContainer.innerHTML = html;
+    resultsContainer.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ========================================
+// حساب الإحصائيات
+// ========================================
+
+function calculateReportStats(data) {
+    const users = new Set(data.map(d => d.user)).size;
+    const facilities = new Set(data.map(d => d.facility).filter(f => f)).size;
+    
+    // حساب نسبة الإنجاز
+    const totalKPIs = getFromStorage('customKPIs', []).length;
+    const completionRate = totalKPIs > 0 ? ((data.length / totalKPIs) * 100).toFixed(1) : 0;
+    
+    return {
+        totalEntries: data.length,
+        activeUsers: users,
+        activeFacilities: facilities,
+        completionRate: completionRate
+    };
+}
+
+// ========================================
+// تصدير التقارير
+// ========================================
+
+function exportReportToPDF() {
+    showError('تصدير PDF قيد التطوير - يمكنك الطباعة حالياً');
+}
+
+function exportReportToExcel() {
+    const fromDate = document.getElementById('reportDateFrom').value;
+    const toDate = document.getElementById('reportDateTo').value;
+    
+    const allData = getFromStorage('allUserData', []);
+    const filteredData = allData.filter(d => {
+        const dataDate = new Date(d.timestamp);
+        return dataDate >= new Date(fromDate) && dataDate <= new Date(toDate);
+    });
+    
+    if (filteredData.length === 0) {
+        showError('لا توجد بيانات للتصدير');
+        return;
+    }
+    
+    // تحويل البيانات لصيغة CSV (Excel)
+    let csv = '\uFEFF'; // BOM for UTF-8
+    csv += 'التاريخ,نوع البيانات,كود المؤشر,اسم المؤشر,المستخدم,المنشأة,القيمة,الملاحظات\n';
+    
+    filteredData.forEach(item => {
+        const dataType = getDataTypeInfo(item.dataType);
+        let value = item.count || item.assessment || item.value || '-';
+        
+        csv += `"${formatDateArabic(item.timestamp)}",`;
+        csv += `"${dataType ? dataType.name : '-'}",`;
+        csv += `"${item.kpiCode || '-'}",`;
+        csv += `"${item.kpiName || '-'}",`;
+        csv += `"${item.userName || '-'}",`;
+        csv += `"${item.facilityName || '-'}",`;
+        csv += `"${value}",`;
+        csv += `"${item.notes || '-'}"\n`;
+    });
+    
+    // تنزيل الملف
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `report_${Date.now()}.csv`;
+    link.click();
+    
+    showSuccess('✅ تم تصدير التقرير بنجاح!');
+}
+
+function exportReportToCSV() {
+    exportReportToExcel(); // نفس الطريقة
+}
+
+function printReport() {
+    window.print();
+    showSuccess('جاري الطباعة...');
+}
+
+// ========================================
+// تقارير إضافية
+// ========================================
+
+function generateDataTypeReport() {
+    generateCustomReport();
+    setTimeout(() => {
+        showSuccess('تقرير أنواع البيانات جاهز');
+    }, 500);
+}
+
+function generateFacilityReport() {
+    showError('تقرير المنشآت قيد التطوير');
+}
+
+function generateUserActivityReport() {
+    showError('تقرير نشاط المستخدمين قيد التطوير');
+}
+
+function generateKPIComparisonReport() {
+    showError('تقرير مقارنة المؤشرات قيد التطوير');
+}
+
+function generateCompletionReport() {
+    showError('تقرير نسب الإنجاز قيد التطوير');
+}
+
+function generateTrendAnalysisReport() {
+    showError('تحليل الاتجاهات قيد التطوير');
+}
+// ========================================
+// دوال مساعدة للتواريخ
+// ========================================
+
+function getDefaultFromDate() {
+    const date = new Date();
+    date.setMonth(date.getMonth() - 1);
+    return date.toISOString().split('T')[0];
+}
+
+function setQuickDateRange(range) {
+    const today = new Date();
+    const fromInput = document.getElementById('reportDateFrom');
+    const toInput = document.getElementById('reportDateTo');
+    
+    let fromDate = new Date();
+    
+    switch(range) {
+        case 'today':
+            fromDate = new Date(today);
+            break;
+        case 'week':
+            fromDate.setDate(today.getDate() - 7);
+            break;
+        case 'month':
+            fromDate.setMonth(today.getMonth() - 1);
+            break;
+        case 'quarter':
+            fromDate.setMonth(today.getMonth() - 3);
+            break;
+        case 'year':
+            fromDate.setFullYear(today.getFullYear() - 1);
+            break;
+        case 'all':
+            fromDate = new Date(2020, 0, 1);
+            break;
+    }
+    
+    fromInput.value = fromDate.toISOString().split('T')[0];
+    toInput.value = today.toISOString().split('T')[0];
+    
+    showSuccess(`تم تحديد الفترة: ${getRangeName(range)}`);
+}
+
+function getRangeName(range) {
+    const names = {
+        'today': 'اليوم',
+        'week': 'آخر أسبوع',
+        'month': 'آخر شهر',
+        'quarter': 'آخر 3 أشهر',
+        'year': 'آخر سنة',
+        'all': 'كل الفترة'
+    };
+    return names[range] || range;
+}
+
+// ========================================
+// إنشاء التقرير المخصص
+// ========================================
+
+function generateCustomReport() {
+    const fromDate = document.getElementById('reportDateFrom').value;
+    const toDate = document.getElementById('reportDateTo').value;
+    
+    if (!fromDate || !toDate) {
+        showError('يرجى تحديد الفترة الزمنية');
+        return;
+    }
+    
+    if (new Date(fromDate) > new Date(toDate)) {
+        showError('تاريخ البداية يجب أن يكون قبل تاريخ النهاية');
+        return;
+    }
+    
+    console.log('📊 Generating custom report:', { fromDate, toDate });
+    
+    // جلب البيانات
+    const allData = getFromStorage('allUserData', []);
+    const filteredData = allData.filter(d => {
+        const dataDate = new Date(d.timestamp);
+        return dataDate >= new Date(fromDate) && dataDate <= new Date(toDate);
+    });
+    
+    console.log('📊 Filtered data:', filteredData.length);
+    
+    displayReportResults(filteredData, fromDate, toDate);
+}
+
+// ========================================
+// عرض نتائج التقرير
+// ========================================
+
+function displayReportResults(data, fromDate, toDate) {
+    const resultsContainer = document.getElementById('reportResult');
+    if (!resultsContainer) return;
+    
+    // حساب الإحصائيات
+    const stats = calculateReportStats(data);
+    
+    let html = `
+        <div style="background: white; padding: 30px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 25px;">
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 2px solid #f0f0f0;">
+                <div>
+                    <h3 style="margin: 0 0 5px 0; color: #2c3e50;">📊 نتائج التقرير</h3>
+                    <p style="margin: 0; color: #666; font-size: 0.9rem;">الفترة: ${formatDateArabic(fromDate)} - ${formatDateArabic(toDate)}</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="exportReportToExcel()" class="btn btn-success btn-small">📊 تصدير Excel</button>
+                    <button onclick="printReport()" class="btn btn-secondary btn-small">🖨️ طباعة</button>
+                </div>
+            </div>
+            
+            <!-- إحصائيات سريعة -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; color: white; text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 5px;">${stats.totalEntries}</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">إجمالي الإدخالات</div>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 20px; border-radius: 12px; color: white; text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 5px;">${stats.activeUsers}</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">المستخدمين النشطين</div>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 20px; border-radius: 12px; color: white; text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 5px;">${stats.activeFacilities}</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">المنشآت النشطة</div>
+                </div>
+                
+                <div style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); padding: 20px; border-radius: 12px; color: white; text-align: center;">
+                    <div style="font-size: 2.5rem; font-weight: 700; margin-bottom: 5px;">${stats.completionRate}%</div>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">نسبة الإنجاز</div>
+                </div>
+            </div>
+            
+            <!-- تحليل حسب نوع البيانات -->
+            <div style="margin-bottom: 30px;">
+                <h4 style="color: #2c3e50; margin-bottom: 15px;">📊 التحليل حسب نوع البيانات</h4>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+    `;
+    
+    // تحليل كل نوع بيانات
+    const dataTypes = getAllDataTypes();
+    dataTypes.forEach(dataType => {
+        const typeData = data.filter(d => d.dataType === dataType.id);
+        const percentage = data.length > 0 ? ((typeData.length / data.length) * 100).toFixed(1) : 0;
+        
+        html += `
+            <div style="background: ${dataType.color}10; padding: 20px; border-radius: 10px; border-right: 4px solid ${dataType.color};">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 2rem;">${dataType.icon}</span>
+                        <strong style="color: #2c3e50;">${dataType.name}</strong>
+                    </div>
+                    <span style="background: ${dataType.color}; color: white; padding: 5px 12px; border-radius: 15px; font-weight: 600; font-size: 0.9rem;">${typeData.length}</span>
+                </div>
+                <div style="background: #e0e0e0; height: 10px; border-radius: 5px; overflow: hidden; margin-bottom: 8px;">
+                    <div style="background: ${dataType.color}; height: 100%; width: ${percentage}%; transition: width 0.5s;"></div>
+                </div>
+                <div style="text-align: left; color: #666; font-size: 0.85rem;">${percentage}% من إجمالي الإدخالات</div>
+            </div>
+        `;
+    });
+    
+    html += `
+                </div>
+            </div>
+            
+            <!-- جدول البيانات التفصيلي -->
+            <div>
+                <h4 style="color: #2c3e50; margin-bottom: 15px;">📋 البيانات التفصيلية</h4>
+                <div style="overflow-x: auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>نوع البيانات</th>
+                                <th>المؤشر</th>
+                                <th>المستخدم</th>
+                                <th>المنشأة</th>
+                                <th>القيمة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+    `;
+    
+    if (data.length === 0) {
+        html += `
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
+                    لا توج�� بيانات في الفترة المحددة
+                </td>
+            </tr>
+        `;
+    } else {
+        data.slice(0, 100).forEach(item => {
+            const dataType = getDataTypeInfo(item.dataType);
+            let value = '-';
+            
+            if (item.count !== undefined) value = item.count;
+            else if (item.assessment !== undefined) value = getAssessmentLabel(item.assessment);
+            else if (item.value !== undefined) value = item.value.toFixed(2);
+            
+            html += `
+                <tr>
+                    <td style="font-size: 0.85rem;">${formatDateArabic(item.timestamp)}</td>
+                    <td>${dataType ? dataType.icon + ' ' + dataType.name : '-'}</td>
+                    <td><strong>${item.kpiCode || item.kpiName || '-'}</strong></td>
+                    <td>${item.userName || '-'}</td>
+                    <td>${item.facilityName || '-'}</td>
+                    <td><strong style="color: #1a73e8;">${value}</strong></td>
+                </tr>
+            `;
+        });
+        
+        if (data.length > 100) {
+            html += `
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 15px; background: #f5f5f5; color: #666;">
+                        عرض أول 100 سجل من ${data.length} سجل
+                    </td>
+                </tr>
+            `;
+        }
+    }
+    
+    html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    resultsContainer.innerHTML = html;
+    resultsContainer.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ========================================
+// حساب الإحصائيات
+// ========================================
+
+function calculateReportStats(data) {
+    const users = new Set(data.map(d => d.user)).size;
+    const facilities = new Set(data.map(d => d.facility).filter(f => f)).size;
+    
+    // حساب نسبة الإنجاز
+    const totalKPIs = getFromStorage('customKPIs', []).length;
+    const completionRate = totalKPIs > 0 ? ((data.length / totalKPIs) * 100).toFixed(1) : 0;
+    
+    return {
+        totalEntries: data.length,
+        activeUsers: users,
+        activeFacilities: facilities,
+        completionRate: completionRate
+    };
+}
+
+// ========================================
+// تصدير التقارير
+// ========================================
+
+function exportReportToExcel() {
+    const fromDate = document.getElementById('reportDateFrom').value;
+    const toDate = document.getElementById('reportDateTo').value;
+    
+    const allData = getFromStorage('allUserData', []);
+    const filteredData = allData.filter(d => {
+        const dataDate = new Date(d.timestamp);
+        return dataDate >= new Date(fromDate) && dataDate <= new Date(toDate);
+    });
+    
+    if (filteredData.length === 0) {
+        showError('لا توجد بيانات للتصدير');
+        return;
+    }
+    
+    // تحويل البيانات لصيغة CSV (Excel)
+    let csv = '\uFEFF'; // BOM for UTF-8
+    csv += 'التاريخ,نوع البيانات,كود المؤشر,اسم المؤشر,المستخدم,المنشأة,القيمة,الملاحظات\n';
+    
+    filteredData.forEach(item => {
+        const dataType = getDataTypeInfo(item.dataType);
+        let value = item.count || item.assessment || item.value || '-';
+        
+        csv += `"${formatDateArabic(item.timestamp)}",`;
+        csv += `"${dataType ? dataType.name : '-'}",`;
+        csv += `"${item.kpiCode || '-'}",`;
+        csv += `"${item.kpiName || '-'}",`;
+        csv += `"${item.userName || '-'}",`;
+        csv += `"${item.facilityName || '-'}",`;
+        csv += `"${value}",`;
+        csv += `"${item.notes || '-'}"\n`;
+    });
+    
+    // تنزيل الملف
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `report_${fromDate}_to_${toDate}.csv`;
+    link.click();
+    
+    showSuccess('✅ تم تصدير التقرير بنجاح!');
+}
+
+function printReport() {
+    window.print();
+    showSuccess('جاري الطباعة...');
+}
 console.log('✅ Admin main script loaded (v2.0 - Complete)');
